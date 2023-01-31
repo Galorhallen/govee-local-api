@@ -19,3 +19,6 @@ classifiers = [
 [project.urls]
 "Homepage" = "https://github.com/Galorhallen/govee-local-api"
 "Bug Tracker" = "https://github.com/Galorhallen/govee-local-api/issues"
+
+[tool.black]
+target-version = ["py310"]
