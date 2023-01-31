@@ -10,8 +10,7 @@ from .message import GoveeMessage, ScanMessage, ScanResponse, MessageResponseFac
 from .device import GoveeDevice
 
 
-_logger = logging.getLogger(__name__)
-
+BROADCAST_ADDRESS = "239.255.255.250"
 BROADCAST_PORT = 4001
 LISTENING_PORT = 4002
 COMMAND_PORT = 4003
@@ -23,7 +22,7 @@ UPDATE_INTERVAL = 5
 class GoveeController:
   def __init__(self,
         loop = None,
-        broadcast_address: str = "239.255.255.250",
+        broadcast_address: str = BROADCAST_ADDRESS,
         broadcast_port: int = BROADCAST_PORT,
         listening_address: str = "0.0.0.0",
         listening_port: int = LISTENING_PORT,
@@ -34,7 +33,8 @@ class GoveeController:
         autoupdate: bool = True,
         autoupdate_interval: int = UPDATE_INTERVAL,
         discovered_callback: Callable[[GoveeDevice, bool], None] = None,
-        evicted_callback: Callable[[GoveeDevice], None] = None
+        evicted_callback: Callable[[GoveeDevice], None] = None,
+        logger: logging.Logger = None,
   ) -> None:
     self._transport = None
     self._protocol = None
@@ -56,6 +56,8 @@ class GoveeController:
 
     self._device_discovered_callback = discovered_callback
     self._device_evicted_callback = evicted_callback
+
+    self._logger = logger or logging.getLogger(__name__)
 
   async def start(self):
     self._transport, self._protocol = await self._loop.create_datagram_endpoint(
@@ -105,11 +107,12 @@ class GoveeController:
   async def set_brightness(self, device: GoveeDevice, brightness: int) -> None:
     self._send_message(BrightnessMessage(brightness), device)
 
-  async def set_color(self, device: GoveeDevice, rgb: tuple(int, int, int), temperature: int) -> None:
+  async def set_color(self, device: GoveeDevice, rgb: tuple(int, int, int), temperature: int = None) -> None:
     if rgb:
-      self._send_message(ColorMessage(rgb=rgb), device)
+      self._send_message(ColorMessage(rgb=rgb, temperature=None), device)
     else:
-      self._send_message(ColorMessage(temperature=temperature), device)
+      self._send_message(ColorMessage(rgb=None, temperature=temperature), device)
+
 
   def connection_made(self, transport):
     self._transport = transport
@@ -120,7 +123,7 @@ class GoveeController:
 
 
   def connection_lost(self, *args, **kwargs):
-    print(f"Disconnected: {args} {kwargs}")
+    self._logger.debug("Disconnected")
 
   def datagram_received(self, data: bytes, addr: tuple):
       message = self._message_factory.create_message(data)
@@ -148,10 +151,12 @@ class GoveeController:
     if device:
       device.update_lastseen()
       is_new = False
+      self._logger.debug("Device updated: %s", device)
     else:
       device = GoveeDevice(self, message.ip, message.device, message.sku)
       self._devices[message.device] = device
       is_new = True
+      self._logger.debug("Device discovered: %s", device)
 
     self._evict()
 
@@ -169,4 +174,5 @@ class GoveeController:
         device._controller = None
         del self._devices[id]
         if self._device_evicted_callback and callable(self._device_evicted_callback):
+          self._logger.debug("Device evicted: %s", device)
           self._device_evicted_callback(device)

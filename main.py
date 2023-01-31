@@ -8,10 +8,9 @@ def discovered_callback(device: GoveeDevice, is_new: bool):
     print(f'Discovered: {device}. New: {is_new}')
 
 async def print_status(controller: GoveeController):
-  while True:
-    for device in controller.devices:
-      print(f'Status: {device}')
-    await asyncio.sleep(5)
+  for device in controller.devices:
+    print(f'Status: {device}')
+  #await asyncio.sleep(5)
 
 
 async def main(controller: GoveeController):    
@@ -19,7 +18,8 @@ async def main(controller: GoveeController):
   await asyncio.sleep(5)
 
   device: GoveeDevice = controller.get_device_by_sku("H615A")
-  await device.turn_on()
+  await device.turn_off()
+  await asyncio.sleep(5)
   await print_status(controller)
 
 

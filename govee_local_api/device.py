@@ -66,10 +66,10 @@ class GoveeDevice:
     await self._controller.set_brightness(self, value)
 
   async def set_rgb_color(self, red: int, green: int, blue: int) -> None:
-    await self._controller.set_color(self, rgb=(red, green, blue))
+    await self._controller.set_color(self, rgb=(red, green, blue), temperature=None)
 
   async def set_temperature(self, temperature: int) -> None:
-    await self._controller.set_color(self, temperature=temperature)
+    await self._controller.set_color(self, temperature=temperature, rgb=None)
 
   def update(self, message: StatusResponse) -> None:
     self._is_on = message.is_on
