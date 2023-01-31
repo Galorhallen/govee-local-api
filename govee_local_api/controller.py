@@ -138,12 +138,22 @@ class GoveeController:
         self._logger.debug("Disconnected")
 
     def datagram_received(self, data: bytes, addr: tuple):
+        if not data:
+            return
         message = self._message_factory.create_message(data)
         if not message:
+            if self._logger.isEnabledFor(logging.DEBUG):
+                self._logger.debug(
+                    "Unkown message received from %s. Message: %s", addr, data
+                )
+            self._logger.warning(
+                "Unkown message received from %s. Message: %s", addr, data[:50]
+            )
+
             return
 
         if message.command == ScanResponse.command:
-            self._handle_scan_response(message)
+            self._loop.create_task(self._handle_scan_response(message))
         elif message.command == StatusResponse.command:
             self._handle_status_update_response(message, addr)
 
@@ -156,7 +166,7 @@ class GoveeController:
         if device:
             device.update(message)
 
-    def _handle_scan_response(self, message: ScanResponse) -> None:
+    async def _handle_scan_response(self, message: ScanResponse) -> None:
         fingerprint = message.device
         device = self._devices.get(fingerprint, None)
 
