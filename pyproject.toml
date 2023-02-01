@@ -22,3 +22,9 @@ classifiers = [
 
 [tool.black]
 target-version = ["py310"]
+
+[tool.pytest.ini_options]
+pythonpath = "src"
+addopts = [
+    "--import-mode=importlib",
+]

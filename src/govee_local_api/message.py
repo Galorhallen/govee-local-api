@@ -52,22 +52,29 @@ class BrightnessMessage(GoveeMessage):
     command = "brightness"
 
     def __init__(self, brightness_pct: int) -> None:
-        super().__init__({"value": brightness_pct})
+        super().__init__({"value": max(0, min(brightness_pct, 100))})
 
 
 class ColorMessage(GoveeMessage):
+    TEMPERATURE_MAX_KELVIN = 9000
+    TEMPERATURE_MIN_KELVIN = 2000
+
     command = "colorwc"
 
     def __init__(self, *, rgb: Tuple(int, int, int), temperature: int) -> None:
         if rgb:
+            rgb = [max(0, min(c, 255)) for c in rgb]
             data = {
                 "color": {"r": rgb[0], "g": rgb[1], "b": rgb[2]},
                 "colorTemInKelvin": 0,
             }
         elif temperature:
             data = {
-                "color": {"r": 0, "g": "0", "b": 0},
-                "colorTemInKelvin": temperature,
+                "color": {"r": 0, "g": 0, "b": 0},
+                "colorTemInKelvin": max(
+                    self.TEMPERATURE_MIN_KELVIN,
+                    min(temperature, self.TEMPERATURE_MAX_KELVIN),
+                ),
             }
 
         super().__init__(data)
