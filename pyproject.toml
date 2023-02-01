@@ -1,9 +1,10 @@
 [build-system]
 requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "govee-local-api"
-version = "0.1.0"
+version = "1.0.0"
 authors = [
   { name="Galorhallen", email="andrea.ponte1987@gmail.com" },
 ]
@@ -11,6 +12,7 @@ description = "Library to comunicate with Govee local API"
 readme = "README.md"
 requires-python = ">=3.9"
 classifiers = [
+    "Development Status :: 5 - Production/Stable",
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
