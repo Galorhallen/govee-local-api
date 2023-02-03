@@ -93,8 +93,10 @@ class GoveeController:
             lambda: self, local_addr=(self._listening_address, self._listening_port)
         )
 
-        self.send_discovery_message()
-        self.send_update_message()
+        if self._discovery:
+            self.send_discovery_message()
+        if self._autoupdate:
+            self.send_update_message()
 
     def clenaup(self):
         if self._transport:
