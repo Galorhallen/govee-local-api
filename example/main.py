@@ -30,7 +30,7 @@ if __name__ == "__main__":
     loop = asyncio.new_event_loop()
     controller: GoveeController = GoveeController(
         loop,
-        discovery=True,
+        discovery=False,
         discovered_callback=discovered_callback,
         evicted_callback=lambda device: print(f"Evicted {device}"),
     )
