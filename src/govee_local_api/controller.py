@@ -44,7 +44,7 @@ class GoveeController:
         eviction_interval: int = EVICTION_INTERVAL,
         autoupdate: bool = True,
         autoupdate_interval: int = UPDATE_INTERVAL,
-        discovered_callback: Callable[[GoveeDevice, bool], None] = None,
+        discovered_callback: Callable[[GoveeDevice, bool], True] = None,
         evicted_callback: Callable[[GoveeDevice], None] = None,
         logger: logging.Logger = None,
     ) -> None:
@@ -224,23 +224,26 @@ class GoveeController:
     async def _handle_scan_response(self, message: ScanResponse) -> None:
         ip = message.ip
         device = self._devices.get(ip, None)
+        is_new = device is None
 
-        if device:
-            device.update_lastseen()
-            is_new = False
-            self._logger.debug("Device updated: %s", device)
-        else:
+        if is_new:
             device = GoveeDevice(self, ip, message.device, message.sku)
-            self._devices[ip] = device
-            is_new = True
-            self._logger.debug("Device discovered: %s", device)
+            if self._call_discovered_callback(device, True):
+                self._devices[ip] = device
+                self._logger.debug("Device discovered: %s", device)
+            else:
+                self._logger.debug("Device %s ignored", device)
+        else:
+            if self._call_discovered_callback(device, True):
+                device.update_lastseen()
+                self._logger.debug("Device updated: %s", device)
 
         self._evict()
 
-        if self._device_discovered_callback and callable(
-            self._device_discovered_callback
-        ):
-            self._device_discovered_callback(device, is_new)
+    def _call_discovered_callback(self, device: GoveeDevice, is_new: bool) -> bool:
+        if not self._device_discovered_callback:
+            return True
+        return self._device_discovered_callback(device, is_new)
 
     def _send_message(self, message: GoveeMessage, device: GoveeDevice) -> None:
         self._transport.sendto(bytes(message), (device.ip, self._device_command_port))

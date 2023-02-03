@@ -4,9 +4,10 @@ import functools
 from src.govee_local_api import GoveeController, GoveeDevice
 
 
-def discovered_callback(device: GoveeDevice, is_new: bool):
+def discovered_callback(device: GoveeDevice, is_new: bool) -> bool:
     if is_new:
         print(f"Discovered: {device}. New: {is_new}")
+    return True
 
 
 async def print_status(controller: GoveeController):
@@ -30,7 +31,7 @@ if __name__ == "__main__":
     loop = asyncio.new_event_loop()
     controller: GoveeController = GoveeController(
         loop,
-        discovery=False,
+        discovery=True,
         discovered_callback=discovered_callback,
         evicted_callback=lambda device: print(f"Evicted {device}"),
     )
