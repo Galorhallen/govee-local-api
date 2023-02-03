@@ -101,6 +101,10 @@ class GoveeController:
             self._transport.close()
         self._devices.clear()
 
+    def add_device(self, ip: str, sku: str, fingerprint: str = None) -> None:
+        device: GoveeDevice = GoveeDevice(self, ip, fingerprint, sku)
+        self._devices[ip] = device
+
     def set_discovery(self, enabled: bool) -> None:
         self._discovery = enabled
         if enabled:
@@ -160,10 +164,17 @@ class GoveeController:
             self._send_message(ColorMessage(rgb=None, temperature=temperature), device)
 
     def get_device_by_ip(self, ip: str) -> GoveeDevice | None:
-        return next(device for device in self._devices.values() if device.ip == ip)
+        return self._devices.get(ip, None)
 
     def get_device_by_sku(self, sku: str) -> GoveeDevice | None:
         return next(device for device in self._devices.values() if device.sku == sku)
+
+    def get_device_by_fingerprint(self, fingerprint: str) -> GoveeDevice | None:
+        return next(
+            device
+            for device in self._devices.values()
+            if device.fingerprint == fingerprint
+        )
 
     @property
     def devices(self) -> list(GoveeDevice):
@@ -209,16 +220,16 @@ class GoveeController:
             device.update(message)
 
     async def _handle_scan_response(self, message: ScanResponse) -> None:
-        fingerprint = message.device
-        device = self._devices.get(fingerprint, None)
+        ip = message.ip
+        device = self._devices.get(ip, None)
 
         if device:
             device.update_lastseen()
             is_new = False
             self._logger.debug("Device updated: %s", device)
         else:
-            device = GoveeDevice(self, message.ip, message.device, message.sku)
-            self._devices[message.device] = device
+            device = GoveeDevice(self, ip, message.device, message.sku)
+            self._devices[ip] = device
             is_new = True
             self._logger.debug("Device discovered: %s", device)
 
@@ -234,11 +245,11 @@ class GoveeController:
 
     def _evict(self):
         now = datetime.now()
-        for id, device in self._devices.items():
+        for ip, device in self._devices.items():
             diff: timedelta = now - device.lastseen
             if diff.total_seconds() >= self._eviction_interval:
                 device._controller = None
-                del self._devices[id]
+                del self._devices[ip]
                 if self._device_evicted_callback and callable(
                     self._device_evicted_callback
                 ):
