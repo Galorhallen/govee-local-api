@@ -88,6 +88,9 @@ class GoveeController:
 
         self._logger = logger or logging.getLogger(__name__)
 
+        self._discovery_handle: asyncio.TimerHandle = None
+        self._update_handle: asyncio.TimerHandle = None
+
     async def start(self):
         self._transport, self._protocol = await self._loop.create_datagram_endpoint(
             lambda: self, local_addr=(self._listening_address, self._listening_port)
@@ -99,6 +102,9 @@ class GoveeController:
             self.send_update_message()
 
     def clenaup(self):
+        self.set_autoupdate(False)
+        self.set_discovery(False)
+
         if self._transport:
             self._transport.close()
         self._devices.clear()
@@ -111,6 +117,9 @@ class GoveeController:
         self._discovery = enabled
         if enabled:
             self.send_discovery_message()
+        elif self._discovery_handle:
+            self._discovery_handle.cancel()
+            self._discovery_handle = None
 
     @property
     def discovery(self) -> bool:
@@ -127,6 +136,9 @@ class GoveeController:
         self._autoupdate = enabled
         if enabled:
             self.send_update_message()
+        elif self._update_handle:
+            self._update_handle.cancel()
+            self._update_handle = None
 
     @property
     def autoupdate(self) -> bool:
@@ -139,7 +151,9 @@ class GoveeController:
         )
 
         if self._discovery:
-            self._loop.call_later(self._discovery_interval, self.send_discovery_message)
+            self._discovery_handler = self._loop.call_later(
+                self._discovery_interval, self.send_discovery_message
+            )
 
     def send_update_message(self, device: GoveeDevice = None):
         if device:
