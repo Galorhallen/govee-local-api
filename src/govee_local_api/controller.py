@@ -151,7 +151,7 @@ class GoveeController:
         )
 
         if self._discovery:
-            self._discovery_handler = self._loop.call_later(
+            self._discovery_handle = self._loop.call_later(
                 self._discovery_interval, self.send_discovery_message
             )
 
@@ -163,7 +163,9 @@ class GoveeController:
                 self._send_update_message(device=d)
 
         if self._autoupdate:
-            self._loop.call_later(self._autoupdate_interval, self.send_update_message)
+            self._update_handle = self._loop.call_later(
+                self._autoupdate_interval, self.send_update_message
+            )
 
     async def turn_on_off(self, device: GoveeDevice, status: bool) -> None:
         self._send_message(OnOffMessage(status), device)
