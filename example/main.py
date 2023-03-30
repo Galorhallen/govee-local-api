@@ -1,7 +1,7 @@
 import asyncio
 import functools
 
-from src.govee_local_api import GoveeController, GoveeDevice
+from govee_local_api import GoveeController, GoveeDevice
 
 
 def discovered_callback(device: GoveeDevice, is_new: bool) -> bool:
