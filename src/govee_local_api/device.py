@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Tuple
+from typing import Tuple, Any
 from datetime import datetime
 
 from .message import StatusResponse
@@ -53,18 +53,24 @@ class GoveeDevice:
 
     async def turn_on(self) -> None:
         await self._controller.turn_on_off(self, True)
+        self._is_on = True
 
     async def turn_off(self) -> None:
         await self._controller.turn_on_off(self, False)
+        self._is_on = False
 
     async def set_brightness(self, value: int) -> None:
         await self._controller.set_brightness(self, value)
+        self._brightness = value
 
     async def set_rgb_color(self, red: int, green: int, blue: int) -> None:
-        await self._controller.set_color(self, rgb=(red, green, blue), temperature=None)
+        rgb = (red, green, blue)
+        await self._controller.set_color(self, rgb=rgb, temperature=None)
+        self._rgb_color = rgb
 
     async def set_temperature(self, temperature: int) -> None:
         await self._controller.set_color(self, temperature=temperature, rgb=None)
+        self._temperature_color = temperature
 
     def update(self, message: StatusResponse) -> None:
         self._is_on = message.is_on
@@ -75,6 +81,18 @@ class GoveeDevice:
 
     def update_lastseen(self) -> None:
         self._lastseen = datetime.now()
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "ip": self._ip,
+            "fingerprint": self._fingerprint,
+            "sku": self._sku,
+            "lastseen": self._lastseen,
+            "on": self._is_on,
+            "brightness": self._brightness,
+            "color": self._rgb_color,
+            "colorTemperature": self._temperature_color,
+        }
 
     def __str__(self) -> str:
         result = f"<GoveeDevice ip={self.ip}, fingerprint={self.fingerprint}, sku={self.sku}, lastseen={self._lastseen}, is_on={self._is_on}"

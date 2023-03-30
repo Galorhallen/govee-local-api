@@ -44,7 +44,7 @@ class GoveeController:
         eviction_interval: int = EVICTION_INTERVAL,
         autoupdate: bool = True,
         autoupdate_interval: int = UPDATE_INTERVAL,
-        discovered_callback: Callable[[GoveeDevice, bool], True] = None,
+        discovered_callback: Callable[[GoveeDevice, bool], None] = None,
         evicted_callback: Callable[[GoveeDevice], None] = None,
         logger: logging.Logger = None,
     ) -> None:
@@ -131,6 +131,14 @@ class GoveeController:
     @property
     def discovery_interval(self) -> int:
         return self._discovery_interval
+
+    def set_discovery_callback(
+        self, callback: Callable[[GoveeDevice, bool], None]
+    ) -> None:
+        self._device_discovered_callback = callback
+
+    def set_eviction_callback(self, callback: Callable[[GoveeDevice], None]) -> None:
+        self._device_evicted_callback = callback
 
     def set_autoupdate(self, enabled: bool) -> None:
         self._autoupdate = enabled
@@ -248,7 +256,7 @@ class GoveeController:
             else:
                 self._logger.debug("Device %s ignored", device)
         else:
-            if self._call_discovered_callback(device, True):
+            if self._call_discovered_callback(device, False):
                 device.update_lastseen()
                 self._logger.debug("Device updated: %s", device)
 
