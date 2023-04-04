@@ -287,7 +287,7 @@ class GoveeController:
     def _evict(self):
         now = datetime.now()
         devices = list(self._devices)
-        for fingerprint, device in devices.items():
+        for fingerprint, device in devices:
             diff: timedelta = now - device.lastseen
             if diff.total_seconds() >= self._eviction_interval:
                 device._controller = None
