@@ -26,7 +26,7 @@ LISTENING_PORT = 4002
 COMMAND_PORT = 4003
 
 DISCOVERY_INTERVAL = 10
-EVICTION_INTERVAL = DISCOVERY_INTERVAL * 3
+EVICT_INTERVAL = DISCOVERY_INTERVAL * 3
 UPDATE_INTERVAL = 5
 
 
@@ -39,11 +39,12 @@ class GoveeController:
         listening_address: str = "0.0.0.0",
         listening_port: int = LISTENING_PORT,
         device_command_port: int = COMMAND_PORT,
-        discovery: bool = False,
+        discovery_enabled: bool = False,
         discovery_interval: int = DISCOVERY_INTERVAL,
-        eviction_interval: int = EVICTION_INTERVAL,
-        autoupdate: bool = True,
-        autoupdate_interval: int = UPDATE_INTERVAL,
+        evict_enabled: bool = False,
+        evict_interval: int = EVICT_INTERVAL,
+        update_enabled: bool = True,
+        update_interval: int = UPDATE_INTERVAL,
         discovered_callback: Callable[[GoveeDevice, bool], bool] = None,
         evicted_callback: Callable[[GoveeDevice], None] = None,
         logger: logging.Logger = None,
@@ -56,11 +57,12 @@ class GoveeController:
             broadcast_port (int): Devices port where discovery messages are sent. Default: 4001
             listening_port (int): Local UDP port on which the controller listen for incoming devices' messages
             device_command_port (int): The devices' port where the commands should be sent
-            discovery (bool): If true a discovery message is sent every ``discovery_interval`` seconds. Default: False
+            discovery_enabled (bool): If true a discovery message is sent every ``discovery_interval`` seconds. Default: False
             discovery_interval (int): Interval between discovery messages (if discovery is enabled). Default: 10 seconds
-            eviction_interval (int): Interval after which a device is evicted. Default 30 seconds
-            autoupdate (bool): If true the devices status is updated automatically every ``autoupdate_interval`` seconds. A successful device update reset the eviction timer for the device. Default: True
-            autoupdate_interval (int): Interval between a status update is requested to devices.
+            evict_enabled (bool): If true the controller automatically remove devices not seen for ``evict_interval`` seconds (requires discovery to be enabled)
+            evict_interval (int): Interval after which a device is evicted. Default 30 seconds
+            update_enabled (bool): If true the devices status is updated automatically every ``update_interval`` seconds. A successful device update reset the eviction timer for the device. Default: True
+            update_interval (int): Interval between a status update is requested to devices.
             discovered_callback (Callable[GoveeDevice, bool]): An optional function to call when a device is discovered (or rediscovered). Default None
             evicted_callback (Callable[GoveeDevice]): An optional function to call when a device is evicted.
         """
@@ -77,11 +79,12 @@ class GoveeController:
         self._message_factory = MessageResponseFactory()
         self._devices: dict[str, GoveeDevice] = {}
 
-        self._discovery = discovery
+        self._discovery_enabled = discovery_enabled
         self._discovery_interval = discovery_interval
-        self._autoupdate = autoupdate
-        self._autoupdate_interval = autoupdate_interval
-        self._eviction_interval = eviction_interval
+        self._update_enabled = update_enabled
+        self._update_interval = update_interval
+        self._evict_enabled = evict_enabled
+        self._evict_interval = evict_interval
 
         self._device_discovered_callback = discovered_callback
         self._device_evicted_callback = evicted_callback
@@ -96,14 +99,14 @@ class GoveeController:
             lambda: self, local_addr=(self._listening_address, self._listening_port)
         )
 
-        if self._discovery:
+        if self._discovery_enabled:
             self.send_discovery_message()
-        if self._autoupdate:
+        if self._update_enabled:
             self.send_update_message()
 
     def clenaup(self):
-        self.set_autoupdate(False)
-        self.set_discovery(False)
+        self.set_update_enabled(False)
+        self.set_discovery_enabled(False)
 
         if self._transport:
             self._transport.close()
@@ -119,10 +122,17 @@ class GoveeController:
         if device in self._devices:
             del self._devices[device]
 
-    def set_discovery(self, enabled: bool) -> None:
-        if self._discovery == enabled:
+    @property
+    def evict_enabled(self) -> bool:
+        return self._evict_enabled
+
+    def set_evict_enabled(self, enabled: bool) -> None:
+        self._evict_enabled = enabled
+
+    def set_discovery_enabled(self, enabled: bool) -> None:
+        if self._discovery_enabled == enabled:
             return
-        self._discovery = enabled
+        self._discovery_enabled = enabled
         if enabled:
             self.send_discovery_message()
         elif self._discovery_handle:
@@ -147,10 +157,10 @@ class GoveeController:
         self._device_discovered_callback = callback
         return old_callback
 
-    def set_autoupdate(self, enabled: bool) -> None:
-        if self._autoupdate == enabled:
+    def set_update_enabled(self, enabled: bool) -> None:
+        if self._update_enabled == enabled:
             return
-        self._autoupdate = enabled
+        self._update_enabled = enabled
         if enabled:
             self.send_update_message()
         elif self._update_handle:
@@ -158,8 +168,8 @@ class GoveeController:
             self._update_handle = None
 
     @property
-    def autoupdate(self) -> bool:
-        return self._autoupdate
+    def update_enabled(self) -> bool:
+        return self._update_enabled
 
     def send_discovery_message(self):
         message: ScanMessage = ScanMessage()
@@ -168,7 +178,7 @@ class GoveeController:
                 bytes(message), (self._broadcast_address, self._broadcast_port)
             )
 
-            if self._discovery:
+            if self._discovery_enabled:
                 self._discovery_handle = self._loop.call_later(
                     self._discovery_interval, self.send_discovery_message
                 )
@@ -181,9 +191,9 @@ class GoveeController:
                 for d in self._devices.values():
                     self._send_update_message(device=d)
 
-            if self._autoupdate:
+            if self._update_enabled:
                 self._update_handle = self._loop.call_later(
-                    self._autoupdate_interval, self.send_update_message
+                    self._update_interval, self.send_update_message
                 )
 
     async def turn_on_off(self, device: GoveeDevice, status: bool) -> None:
@@ -274,7 +284,8 @@ class GoveeController:
                 device.update_lastseen()
                 self._logger.debug("Device updated: %s", device)
 
-        self._evict()
+        if self._evict_enabled:
+            self._evict()
 
     def _call_discovered_callback(self, device: GoveeDevice, is_new: bool) -> bool:
         if not self._device_discovered_callback:
@@ -287,9 +298,9 @@ class GoveeController:
     def _evict(self):
         now = datetime.now()
         devices = dict(self._devices)
-        for fingerprint, device in devices:
+        for fingerprint, device in devices.items():
             diff: timedelta = now - device.lastseen
-            if diff.total_seconds() >= self._eviction_interval:
+            if diff.total_seconds() >= self._evict_interval:
                 device._controller = None
                 del self._devices[fingerprint]
                 if self._device_evicted_callback and callable(
