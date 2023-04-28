@@ -4,7 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "govee-local-api"
-version = "1.2.1"
+dynamic = ["version"]
+
 authors = [
   { name="Galorhallen", email="andrea.ponte1987@gmail.com" },
 ]
@@ -15,7 +16,7 @@ classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
+    "Operating System :: OS Independent", 
 ]
 
 [project.urls]
@@ -30,3 +31,6 @@ pythonpath = "src"
 addopts = [
     "--import-mode=importlib",
 ]
+
+[tool.setuptools.dynamic]
+version = {attr = "govee_local_api.__version__"}
