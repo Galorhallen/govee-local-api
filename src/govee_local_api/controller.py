@@ -141,7 +141,7 @@ class GoveeController:
 
     @property
     def discovery(self) -> bool:
-        return self._discovery
+        return self._discovery_enabled
 
     def set_discovery_interval(self, interval: int) -> None:
         self._discovery_interval = interval

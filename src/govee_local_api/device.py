@@ -20,6 +20,10 @@ class GoveeDevice:
         self._brightness = 0
 
     @property
+    def controller(self):
+        return self._controller
+
+    @property
     def ip(self) -> str:
         return self._ip
 
