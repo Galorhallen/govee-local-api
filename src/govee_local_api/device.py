@@ -55,12 +55,14 @@ class GoveeDevice:
     @property
     def temperature_color(self) -> int:
         return self._temperature_color
-    
+
     @property
     def update_callback(self) -> Callable[[GoveeDevice]] | None:
         return self._update_callback
 
-    def set_update_callback(self, callback: Callable[[GoveeDevice]] | None) -> Callable[[GoveeDevice]] | None:
+    def set_update_callback(
+        self, callback: Callable[[GoveeDevice]] | None
+    ) -> Callable[[GoveeDevice]] | None:
         old_callback = self._update_callback
         self._update_callback = callback
         return old_callback
