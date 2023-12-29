@@ -280,7 +280,7 @@ class GoveeController:
             else:
                 self._logger.debug("Device %s ignored", device)
         else:
-            if self._call_discovered_callback(device, True):
+            if self._call_discovered_callback(device, False):
                 device.update_lastseen()
                 self._logger.debug("Device updated: %s", device)
 

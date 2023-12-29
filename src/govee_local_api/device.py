@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Tuple, Any
+from typing import Tuple, Any, Callable
 from datetime import datetime
 
 from .message import StatusResponse
@@ -18,6 +18,7 @@ class GoveeDevice:
         self._rgb_color = (0, 0, 0)
         self._temperature_color = 0
         self._brightness = 0
+        self._update_callback: Callable[[GoveeDevice]] | None = None
 
     @property
     def controller(self):
@@ -54,6 +55,15 @@ class GoveeDevice:
     @property
     def temperature_color(self) -> int:
         return self._temperature_color
+    
+    @property
+    def update_callback(self) -> Callable[[GoveeDevice]] | None:
+        return self._update_callback
+
+    def set_update_callback(self, callback: Callable[[GoveeDevice]] | None) -> Callable[[GoveeDevice]] | None:
+        old_callback = self._update_callback
+        self._update_callback = callback
+        return old_callback
 
     async def turn_on(self) -> None:
         await self._controller.turn_on_off(self, True)
@@ -82,6 +92,8 @@ class GoveeDevice:
         self._rgb_color = message.color
         self._temperature_color = message.color_temperature
         self.update_lastseen()
+        if self._update_callback and callable(self._update_callback):
+            self._update_callback(self)
 
     def update_lastseen(self) -> None:
         self._lastseen = datetime.now()
