@@ -3,8 +3,10 @@ import functools
 
 from govee_local_api import GoveeController, GoveeDevice
 
+
 def update_device_callback(device: GoveeDevice):
     print(f"Goveee device update callback: {device}")
+
 
 def discovered_callback(device: GoveeDevice, is_new: bool) -> bool:
     if is_new:
