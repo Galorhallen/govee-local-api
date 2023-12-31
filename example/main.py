@@ -50,5 +50,5 @@ if __name__ == "__main__":
         pass
     finally:
         print("Closing Loop")
-        controller.clenaup()
+        controller.cleanup()
         loop.close()

@@ -104,7 +104,7 @@ class GoveeController:
         if self._update_enabled:
             self.send_update_message()
 
-    def clenaup(self):
+    def cleanup(self):
         self.set_update_enabled(False)
         self.set_discovery_enabled(False)
 
