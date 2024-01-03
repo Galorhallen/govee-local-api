@@ -4,6 +4,7 @@ from typing import Tuple, Any, Callable
 from datetime import datetime
 
 from .message import StatusResponse
+from .light_capabilities import GOVEE_LIGHT_CAPABILITIES, GoveeLightCapability
 
 
 class GoveeDevice:
@@ -13,6 +14,9 @@ class GoveeDevice:
         self._sku = sku
         self._ip = ip
         self._lastseen: datetime = datetime.now()
+        self._capabilities: GoveeLightCapability | None = GOVEE_LIGHT_CAPABILITIES.get(
+            sku, None
+        )
 
         self._is_on: bool = False
         self._rgb_color = (0, 0, 0)
@@ -23,6 +27,10 @@ class GoveeDevice:
     @property
     def controller(self):
         return self._controller
+
+    @property
+    def capabilities(self) -> set(GoveeLightCapability) | None:
+        return self._capabilities
 
     @property
     def ip(self) -> str:

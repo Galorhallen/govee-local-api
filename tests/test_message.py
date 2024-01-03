@@ -1,5 +1,4 @@
 from __future__ import absolute_import
-import pytest
 
 from govee_local_api.message import *
 
