@@ -4,7 +4,7 @@ import asyncio
 import logging
 import socket
 from datetime import datetime, timedelta
-from typing import Callable, Tuple, Any
+from typing import Callable, Tuple, Any, cast
 
 from .device import GoveeDevice
 from .light_capabilities import GOVEE_LIGHT_CAPABILITIES, GoveeLightCapability
@@ -264,9 +264,11 @@ class GoveeController:
             return
 
         if message.command == ScanResponse.command:
-            self._loop.create_task(self._handle_scan_response(message))
+            self._loop.create_task(
+                self._handle_scan_response(cast(ScanResponse, message))
+            )
         elif message.command == StatusResponse.command:
-            self._handle_status_update_response(message, addr)
+            self._handle_status_update_response(cast(StatusResponse, message), addr)
 
     def _send_update_message(self, device: GoveeDevice):
         self._send_message(StatusMessage(), device)

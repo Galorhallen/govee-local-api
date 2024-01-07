@@ -1,11 +1,12 @@
 from __future__ import absolute_import, annotations
 
 import json
-from typing import Any, Tuple, TypeVar, Type, Set
+from typing import Any, Tuple, TypeVar, Type, Set, Protocol
 
 
-class GoveeMessage:
+class GoveeMessage(Protocol):
     command: str = ""
+    _data: dict[str, Any]
 
     def __init__(self, data: dict[str, Any]) -> None:
         self._data = data
@@ -140,11 +141,11 @@ class MessageResponseFactory:
             and "data" not in msg_json["msg"]
         ):
             return None
-        cmd = msg_json["msg"]["cmd"]
-        data = msg_json["msg"]["data"]
+        cmd: str = msg_json["msg"]["cmd"]
+        message_data: dict[str, Any] = msg_json["msg"]["data"]
         message: Type[GoveeMessage] = next(
             m for m in self._messages if m.command == cmd
         )
         if not message:
             return None
-        return message(data)
+        return message(message_data)
