@@ -1,22 +1,27 @@
 from __future__ import annotations
 
-from typing import Tuple, Any, Callable
 from datetime import datetime
+from typing import Any, Callable, Tuple
 
+from .light_capabilities import GoveeLightCapability
 from .message import StatusResponse
-from .light_capabilities import GOVEE_LIGHT_CAPABILITIES, GoveeLightCapability
 
 
 class GoveeDevice:
-    def __init__(self, controller, ip: str, fingerprint: str, sku: str) -> None:
+    def __init__(
+        self,
+        controller,
+        ip: str,
+        fingerprint: str,
+        sku: str,
+        capabilities: set[GoveeLightCapability] | None,
+    ) -> None:
         self._controller = controller
         self._fingerprint = fingerprint
         self._sku = sku
         self._ip = ip
         self._lastseen: datetime = datetime.now()
-        self._capabilities: GoveeLightCapability | None = GOVEE_LIGHT_CAPABILITIES.get(
-            sku, None
-        )
+        self._capabilities: set[GoveeLightCapability] | None = capabilities
 
         self._is_on: bool = False
         self._rgb_color = (0, 0, 0)

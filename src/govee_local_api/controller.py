@@ -1,24 +1,24 @@
 from __future__ import annotations
+
 import asyncio
 import logging
 import socket
-
-from typing import Callable
 from datetime import datetime, timedelta
+from typing import Callable
 
+from .device import GoveeDevice
+from .light_capabilities import GOVEE_LIGHT_CAPABILITIES
 from .message import (
-    GoveeMessage,
-    ScanMessage,
-    ScanResponse,
-    MessageResponseFactory,
-    StatusResponse,
-    StatusMessage,
-    OnOffMessage,
     BrightnessMessage,
     ColorMessage,
+    GoveeMessage,
+    MessageResponseFactory,
+    OnOffMessage,
+    ScanMessage,
+    ScanResponse,
+    StatusMessage,
+    StatusResponse,
 )
-from .device import GoveeDevice
-
 
 BROADCAST_ADDRESS = "239.255.255.250"
 BROADCAST_PORT = 4001
@@ -52,7 +52,7 @@ class GoveeController:
         """Build a controller that handle Govee devices that support local API on local network.
 
         Args:
-            loop: The asyncio event loop. If None the loop is retreived by calling ``asyncio.get_running_loop()``
+            loop: The asyncio event loop. If None the loop is retrieved by calling ``asyncio.get_running_loop()``
             broadcast_address (str): The multicast address to use to send discovery messages. Default: 239.255.255.250
             broadcast_port (int): Devices port where discovery messages are sent. Default: 4001
             listening_port (int): Local UDP port on which the controller listen for incoming devices' messages
@@ -245,10 +245,10 @@ class GoveeController:
         if not message:
             if self._logger.isEnabledFor(logging.DEBUG):
                 self._logger.debug(
-                    "Unkown message received from %s. Message: %s", addr, data
+                    "Unknown message received from %s. Message: %s", addr, data
                 )
             self._logger.warning(
-                "Unkown message received from %s. Message: %s", addr, data[:50]
+                "Unknown message received from %s. Message: %s", addr, data[:50]
             )
 
             return
@@ -273,7 +273,15 @@ class GoveeController:
         is_new = device is None
 
         if is_new:
-            device = GoveeDevice(self, message.ip, fingerprint, message.sku)
+            capabilities = GOVEE_LIGHT_CAPABILITIES.get(message.sku, None)
+            if not capabilities:
+                self._logger.warning(
+                    "Device %s is not supported. Only power control is available. Please open an issue at 'https://github.com/Galorhallen/govee-local-api/issues'",
+                    message.sku,
+                )
+            device = GoveeDevice(
+                self, message.ip, fingerprint, message.sku, capabilities
+            )
             if self._call_discovered_callback(device, True):
                 self._devices[fingerprint] = device
                 self._logger.debug("Device discovered: %s", device)

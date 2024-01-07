@@ -1,7 +1,7 @@
-from __future__ import annotations, absolute_import
+from __future__ import absolute_import, annotations
 
-from typing import Any, Tuple
 import json
+from typing import Any, Tuple
 
 
 class GoveeMessage:

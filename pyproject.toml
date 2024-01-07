@@ -9,7 +9,7 @@ dynamic = ["version"]
 authors = [
   { name="Galorhallen", email="andrea.ponte1987@gmail.com" },
 ]
-description = "Library to comunicate with Govee local API"
+description = "Library to communicate with Govee local API"
 readme = "README.md"
 requires-python = ">=3.9"
 classifiers = [
@@ -24,7 +24,15 @@ classifiers = [
 "Bug Tracker" = "https://github.com/Galorhallen/govee-local-api/issues"
 
 [tool.black]
-target-version = ["py310"]
+target-version = ["py311"]
+
+[tool.ruff.isort]
+force-sort-within-sections = true
+known-first-party = [
+    "govee_local_api",
+]
+combine-as-imports = true
+split-on-trailing-comma = false
 
 [tool.pytest.ini_options]
 pythonpath = "src"
