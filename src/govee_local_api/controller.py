@@ -4,10 +4,10 @@ import asyncio
 import logging
 import socket
 from datetime import datetime, timedelta
-from typing import Callable
+from typing import Callable, Tuple, Any
 
 from .device import GoveeDevice
-from .light_capabilities import GOVEE_LIGHT_CAPABILITIES
+from .light_capabilities import GOVEE_LIGHT_CAPABILITIES, GoveeLightCapability
 from .message import (
     BrightnessMessage,
     ColorMessage,
@@ -45,9 +45,9 @@ class GoveeController:
         evict_interval: int = EVICT_INTERVAL,
         update_enabled: bool = True,
         update_interval: int = UPDATE_INTERVAL,
-        discovered_callback: Callable[[GoveeDevice, bool], bool] = None,
-        evicted_callback: Callable[[GoveeDevice], None] = None,
-        logger: logging.Logger = None,
+        discovered_callback: Callable[[GoveeDevice, bool], bool] | None = None,
+        evicted_callback: Callable[[GoveeDevice], None] | None = None,
+        logger: logging.Logger | None = None,
     ) -> None:
         """Build a controller that handle Govee devices that support local API on local network.
 
@@ -67,7 +67,7 @@ class GoveeController:
             evicted_callback (Callable[GoveeDevice]): An optional function to call when a device is evicted.
         """
 
-        self._transport = None
+        self._transport: Any = None
         self._protocol = None
         self._broadcast_address = broadcast_address
         self._broadcast_port = broadcast_port
@@ -91,8 +91,8 @@ class GoveeController:
 
         self._logger = logger or logging.getLogger(__name__)
 
-        self._discovery_handle: asyncio.TimerHandle = None
-        self._update_handle: asyncio.TimerHandle = None
+        self._discovery_handle: asyncio.TimerHandle | None = None
+        self._update_handle: asyncio.TimerHandle | None = None
 
     async def start(self):
         self._transport, self._protocol = await self._loop.create_datagram_endpoint(
@@ -112,8 +112,14 @@ class GoveeController:
             self._transport.close()
         self._devices.clear()
 
-    def add_device(self, ip: str, sku: str, fingerprint: str = None) -> None:
-        device: GoveeDevice = GoveeDevice(self, ip, fingerprint, sku)
+    def add_device(
+        self,
+        ip: str,
+        sku: str,
+        fingerprint,
+        capabilities: set[GoveeLightCapability] | None,
+    ) -> None:
+        device: GoveeDevice = GoveeDevice(self, ip, fingerprint, sku, capabilities)
         self._devices[fingerprint] = device
 
     def remove_device(self, device: str | GoveeDevice) -> None:
@@ -171,7 +177,7 @@ class GoveeController:
     def update_enabled(self) -> bool:
         return self._update_enabled
 
-    def send_discovery_message(self):
+    def send_discovery_message(self) -> None:
         message: ScanMessage = ScanMessage()
         if self._transport:
             self._transport.sendto(
@@ -183,7 +189,7 @@ class GoveeController:
                     self._discovery_interval, self.send_discovery_message
                 )
 
-    def send_update_message(self, device: GoveeDevice = None):
+    def send_update_message(self, device: GoveeDevice | None = None) -> None:
         if self._transport:
             if device:
                 self._send_update_message(device=device)
@@ -203,7 +209,11 @@ class GoveeController:
         self._send_message(BrightnessMessage(brightness), device)
 
     async def set_color(
-        self, device: GoveeDevice, rgb: tuple(int, int, int), temperature: int = None
+        self,
+        device: GoveeDevice,
+        *,
+        rgb: Tuple[int, int, int] | None,
+        temperature: int | None,
     ) -> None:
         if rgb:
             self._send_message(ColorMessage(rgb=rgb, temperature=None), device)
@@ -225,7 +235,7 @@ class GoveeController:
         return self._devices.get(fingerprint, None)
 
     @property
-    def devices(self) -> list(GoveeDevice):
+    def devices(self) -> list[GoveeDevice]:
         return list(self._devices.values())
 
     def connection_made(self, transport):
@@ -270,9 +280,8 @@ class GoveeController:
     async def _handle_scan_response(self, message: ScanResponse) -> None:
         fingerprint = message.device
         device = self.get_device_by_fingerprint(fingerprint)
-        is_new = device is None
 
-        if is_new:
+        if device is None:
             capabilities = GOVEE_LIGHT_CAPABILITIES.get(message.sku, None)
             if not capabilities:
                 self._logger.warning(
@@ -303,7 +312,7 @@ class GoveeController:
     def _send_message(self, message: GoveeMessage, device: GoveeDevice) -> None:
         self._transport.sendto(bytes(message), (device.ip, self._device_command_port))
 
-    def _evict(self):
+    def _evict(self) -> None:
         now = datetime.now()
         devices = dict(self._devices)
         for fingerprint, device in devices.items():

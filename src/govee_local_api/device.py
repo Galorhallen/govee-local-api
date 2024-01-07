@@ -27,14 +27,14 @@ class GoveeDevice:
         self._rgb_color = (0, 0, 0)
         self._temperature_color = 0
         self._brightness = 0
-        self._update_callback: Callable[[GoveeDevice]] | None = None
+        self._update_callback: Callable[[GoveeDevice], None] | None = None
 
     @property
     def controller(self):
         return self._controller
 
     @property
-    def capabilities(self) -> set(GoveeLightCapability) | None:
+    def capabilities(self) -> set[GoveeLightCapability] | None:
         return self._capabilities
 
     @property
@@ -58,7 +58,7 @@ class GoveeDevice:
         return self._is_on
 
     @property
-    def rgb_color(self) -> Tuple(int, int, int):
+    def rgb_color(self) -> Tuple[int, int, int]:
         return self._rgb_color
 
     @property
@@ -70,12 +70,12 @@ class GoveeDevice:
         return self._temperature_color
 
     @property
-    def update_callback(self) -> Callable[[GoveeDevice]] | None:
+    def update_callback(self) -> Callable[[GoveeDevice], None] | None:
         return self._update_callback
 
     def set_update_callback(
-        self, callback: Callable[[GoveeDevice]] | None
-    ) -> Callable[[GoveeDevice]] | None:
+        self, callback: Callable[[GoveeDevice], None] | None
+    ) -> Callable[[GoveeDevice], None] | None:
         old_callback = self._update_callback
         self._update_callback = callback
         return old_callback

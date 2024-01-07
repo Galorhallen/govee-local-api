@@ -1,11 +1,11 @@
 from __future__ import absolute_import, annotations
 
 import json
-from typing import Any, Tuple
+from typing import Any, Tuple, TypeVar, Type, Set
 
 
 class GoveeMessage:
-    command: str = None
+    command: str = ""
 
     def __init__(self, data: dict[str, Any]) -> None:
         self._data = data
@@ -25,6 +25,9 @@ class GoveeMessage:
     @property
     def data(self) -> dict[str, Any]:
         return self._data
+
+
+M = TypeVar("M", bound=GoveeMessage)
 
 
 class ScanMessage(GoveeMessage):
@@ -61,11 +64,13 @@ class ColorMessage(GoveeMessage):
 
     command = "colorwc"
 
-    def __init__(self, *, rgb: Tuple(int, int, int), temperature: int) -> None:
+    def __init__(
+        self, *, rgb: Tuple[int, int, int] | None, temperature: int | None
+    ) -> None:
         if rgb:
-            rgb = [max(0, min(c, 255)) for c in rgb]
+            nrgb = [max(0, min(c, 255)) for c in rgb]
             data = {
-                "color": {"r": rgb[0], "g": rgb[1], "b": rgb[2]},
+                "color": {"r": nrgb[0], "g": nrgb[1], "b": nrgb[2]},
                 "colorTemInKelvin": 0,
             }
         elif temperature:
@@ -110,7 +115,7 @@ class StatusResponse(GoveeMessage):
         return bool(self._data["onOff"])
 
     @property
-    def color(self) -> tuple(int, int, int):
+    def color(self) -> tuple[int, int, int]:
         color = self._data["color"]
         return (color["r"], color["g"], color["b"])
 
@@ -125,16 +130,9 @@ class StatusResponse(GoveeMessage):
 
 class MessageResponseFactory:
     def __init__(self) -> None:
-        self._messages: dict[str, GoveeMessage] = {ScanResponse, StatusResponse}
+        self._messages: Set[Type[GoveeMessage]] = {ScanResponse, StatusResponse}
 
-    def add_message(self, cls: GoveeMessage) -> None:
-        self._messages[cls.command] = cls
-
-    def remove_message(self, command: str) -> None:
-        if command in self._messages:
-            del self._messages[command]
-
-    def create_message(self, data: bytes | bytearray | str) -> GoveeMessage:
+    def create_message(self, data: bytes | bytearray | str) -> GoveeMessage | None:
         msg_json = json.loads(data)
         if (
             "msg" not in msg_json
@@ -144,7 +142,9 @@ class MessageResponseFactory:
             return None
         cmd = msg_json["msg"]["cmd"]
         data = msg_json["msg"]["data"]
-        message = next(m for m in self._messages if m.command == cmd)
+        message: Type[GoveeMessage] = next(
+            m for m in self._messages if m.command == cmd
+        )
         if not message:
             return None
         return message(data)
