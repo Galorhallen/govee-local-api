@@ -1,10 +1,10 @@
 from __future__ import absolute_import, annotations
 
 import json
-from typing import Any, Tuple, TypeVar, Type, Set, Protocol
+from typing import Any, Tuple, TypeVar, Type, Set
 
 
-class GoveeMessage(Protocol):
+class GoveeMessage:
     command: str = ""
     _data: dict[str, Any]
 
