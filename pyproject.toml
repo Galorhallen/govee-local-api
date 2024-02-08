@@ -33,7 +33,7 @@ python = "^3.10"
 pytest = "^8.0.0"
 
 [tool.black]
-target-version = ["py310", "py311", "py312"]
+target-version = ["py310", "py311"]
 
 [tool.ruff.isort]
 force-sort-within-sections = true
