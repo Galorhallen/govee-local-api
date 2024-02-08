@@ -1,5 +1,4 @@
 import asyncio
-import functools
 
 from govee_local_api import GoveeController, GoveeDevice
 
@@ -26,9 +25,9 @@ async def main(controller: GoveeController):
     await controller.start()
     await asyncio.sleep(5)
 
-    device: GoveeDevice = controller.get_device_by_ip("10.0.0.183")
+    # device: GoveeDevice = controller.get_device_by_ip("10.0.0.183")
     # await device.turn_on()
-    # await asyncio.sleep(5)
+    await asyncio.sleep(5)
     await print_status(controller)
 
 
@@ -36,7 +35,6 @@ if __name__ == "__main__":
     loop = asyncio.new_event_loop()
     controller: GoveeController = GoveeController(
         loop=loop,
-        broadcast_address="10.0.0.228",
         listening_address="10.0.0.52",
         discovery_enabled=True,
         discovered_callback=discovered_callback,

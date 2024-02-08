@@ -7,7 +7,8 @@ from datetime import datetime, timedelta
 from typing import Callable, Tuple, Any, cast
 
 from .device import GoveeDevice
-from .light_capabilities import GOVEE_LIGHT_CAPABILITIES, GoveeLightCapability
+from .light_capabilities import GOVEE_LIGHT_CAPABILITIES
+from .device_registry import DeviceRegistry
 from .message import (
     BrightnessMessage,
     ColorMessage,
@@ -77,7 +78,7 @@ class GoveeController:
 
         self._loop = loop or asyncio.get_running_loop()
         self._message_factory = MessageResponseFactory()
-        self._devices: dict[str, GoveeDevice] = {}
+        self._registry: DeviceRegistry = DeviceRegistry()
 
         self._discovery_enabled = discovery_enabled
         self._discovery_interval = discovery_interval
@@ -110,23 +111,7 @@ class GoveeController:
 
         if self._transport:
             self._transport.close()
-        self._devices.clear()
-
-    def add_device(
-        self,
-        ip: str,
-        sku: str,
-        fingerprint,
-        capabilities: set[GoveeLightCapability] | None,
-    ) -> None:
-        device: GoveeDevice = GoveeDevice(self, ip, fingerprint, sku, capabilities)
-        self._devices[fingerprint] = device
-
-    def remove_device(self, device: str | GoveeDevice) -> None:
-        if isinstance(device, GoveeDevice):
-            device = device.fingerprint
-        if device in self._devices:
-            del self._devices[device]
+        self._registry.cleanup()
 
     @property
     def evict_enabled(self) -> bool:
@@ -178,6 +163,7 @@ class GoveeController:
         return self._update_enabled
 
     def send_discovery_message(self) -> None:
+        print("Discovery message sent")
         message: ScanMessage = ScanMessage()
         if self._transport:
             self._transport.sendto(
@@ -189,13 +175,10 @@ class GoveeController:
                     self._discovery_interval, self.send_discovery_message
                 )
 
-    def send_update_message(self, device: GoveeDevice | None = None) -> None:
+    def send_update_message(self) -> None:
         if self._transport:
-            if device:
-                self._send_update_message(device=device)
-            else:
-                for d in self._devices.values():
-                    self._send_update_message(device=d)
+            for d in self._registry.discovered_devices.values():
+                self._send_update_message(device=d)
 
             if self._update_enabled:
                 self._update_handle = self._loop.call_later(
@@ -221,22 +204,17 @@ class GoveeController:
             self._send_message(ColorMessage(rgb=None, temperature=temperature), device)
 
     def get_device_by_ip(self, ip: str) -> GoveeDevice | None:
-        return next(
-            (device for device in self._devices.values() if device.ip == ip),
-            None,
-        )
+        return self._registry.get_device_by_ip(ip)
 
     def get_device_by_sku(self, sku: str) -> GoveeDevice | None:
-        return next(
-            (device for device in self._devices.values() if device.sku == sku), None
-        )
+        return self._registry.get_device_by_sku(sku)
 
     def get_device_by_fingerprint(self, fingerprint: str) -> GoveeDevice | None:
-        return self._devices.get(fingerprint, None)
+        return self._registry.get_device_by_fingerprint(fingerprint)
 
     @property
     def devices(self) -> list[GoveeDevice]:
-        return list(self._devices.values())
+        return list(self._registry.discovered_devices.values())
 
     def connection_made(self, transport):
         self._transport = transport
@@ -281,7 +259,7 @@ class GoveeController:
 
     async def _handle_scan_response(self, message: ScanResponse) -> None:
         fingerprint = message.device
-        device = self.get_device_by_fingerprint(fingerprint)
+        device = self._registry.get_device_by_fingerprint(fingerprint)
 
         if device is None:
             capabilities = GOVEE_LIGHT_CAPABILITIES.get(message.sku, None)
@@ -294,7 +272,7 @@ class GoveeController:
                 self, message.ip, fingerprint, message.sku, capabilities
             )
             if self._call_discovered_callback(device, True):
-                self._devices[fingerprint] = device
+                device = self._registry.add_discovered_device(device)
                 self._logger.debug("Device discovered: %s", device)
             else:
                 self._logger.debug("Device %s ignored", device)
@@ -316,15 +294,14 @@ class GoveeController:
 
     def _evict(self) -> None:
         now = datetime.now()
-        devices = dict(self._devices)
+        devices = dict(self._registry.discovered_devices)
         for fingerprint, device in devices.items():
             diff: timedelta = now - device.lastseen
             if diff.total_seconds() >= self._evict_interval:
                 device._controller = None
-                del self._devices[fingerprint]
+                self._registry.remove_discovered_device(fingerprint)
+                self._logger.debug("Device evicted: %s", device)
                 if self._device_evicted_callback and callable(
                     self._device_evicted_callback
                 ):
-                    self._logger.debug("Device evicted: %s", device)
                     self._device_evicted_callback(device)
-        self._devices = devices
