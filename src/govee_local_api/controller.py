@@ -67,6 +67,7 @@ class GoveeController:
             discovered_callback (Callable[GoveeDevice, bool]): An optional function to call when a device is discovered (or rediscovered). Default None
             evicted_callback (Callable[GoveeDevice]): An optional function to call when a device is evicted.
         """
+        self._logger = logger or logging.getLogger(__name__)
 
         self._transport: Any = None
         self._protocol = None
@@ -78,7 +79,7 @@ class GoveeController:
 
         self._loop = loop or asyncio.get_running_loop()
         self._message_factory = MessageResponseFactory()
-        self._registry: DeviceRegistry = DeviceRegistry()
+        self._registry: DeviceRegistry = DeviceRegistry(self._logger)
 
         self._discovery_enabled = discovery_enabled
         self._discovery_interval = discovery_interval
@@ -90,8 +91,6 @@ class GoveeController:
         self._device_discovered_callback = discovered_callback
         self._device_evicted_callback = evicted_callback
 
-        self._logger = logger or logging.getLogger(__name__)
-
         self._discovery_handle: asyncio.TimerHandle | None = None
         self._update_handle: asyncio.TimerHandle | None = None
 
@@ -100,7 +99,7 @@ class GoveeController:
             lambda: self, local_addr=(self._listening_address, self._listening_port)
         )
 
-        if self._discovery_enabled:
+        if self._discovery_enabled or self._registry.has_custom_devices:
             self.send_discovery_message()
         if self._update_enabled:
             self.send_update_message()
@@ -112,6 +111,9 @@ class GoveeController:
         if self._transport:
             self._transport.close()
         self._registry.cleanup()
+
+    def add_device(self, device: str) -> None:
+        self._registry.add_custom_device(device)
 
     @property
     def evict_enabled(self) -> bool:
@@ -163,14 +165,18 @@ class GoveeController:
         return self._update_enabled
 
     def send_discovery_message(self) -> None:
-        print("Discovery message sent")
-        message: ScanMessage = ScanMessage()
+        message: bytes = bytes(ScanMessage())
         if self._transport:
-            self._transport.sendto(
-                bytes(message), (self._broadcast_address, self._broadcast_port)
-            )
-
             if self._discovery_enabled:
+                self._transport.sendto(
+                    message, (self._broadcast_address, self._broadcast_port)
+                )
+
+            if self._registry.has_custom_devices:
+                for ip in self._registry.custom_devices_queue:
+                    self._transport.sendto(message, (ip, self._broadcast_port))
+
+            if self._discovery_enabled or self._registry.has_custom_devices:
                 self._discovery_handle = self._loop.call_later(
                     self._discovery_interval, self.send_discovery_message
                 )

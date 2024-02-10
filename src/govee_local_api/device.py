@@ -15,6 +15,7 @@ class GoveeDevice:
         fingerprint: str,
         sku: str,
         capabilities: set[GoveeLightCapability] | None,
+        custom: bool = False,
     ) -> None:
         self._controller = controller
         self._fingerprint = fingerprint
@@ -28,6 +29,7 @@ class GoveeDevice:
         self._temperature_color = 0
         self._brightness = 0
         self._update_callback: Callable[[GoveeDevice], None] | None = None
+        self.is_custom: bool = False
 
     @property
     def controller(self):

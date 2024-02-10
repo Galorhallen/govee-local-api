@@ -16,18 +16,20 @@ def discovered_callback(device: GoveeDevice, is_new: bool) -> bool:
 
 async def print_status(controller: GoveeController):
     while True:
-        for device in controller.devices:
-            print(f"Status: {device}")
         await asyncio.sleep(5)
+
+
+#        for device in controller.devices:
+#            print(f"Status: {device}")
 
 
 async def main(controller: GoveeController):
     await controller.start()
     await asyncio.sleep(5)
 
-    # device: GoveeDevice = controller.get_device_by_ip("10.0.0.183")
-    # await device.turn_on()
-    await asyncio.sleep(5)
+    device = controller.get_device_by_sku("H618A")
+    if device:
+        await device.turn_on()
     await print_status(controller)
 
 
@@ -36,11 +38,12 @@ if __name__ == "__main__":
     controller: GoveeController = GoveeController(
         loop=loop,
         listening_address="10.0.0.52",
-        discovery_enabled=True,
+        discovery_enabled=False,
         discovered_callback=discovered_callback,
         evicted_callback=lambda device: print(f"Evicted {device}"),
     )
 
+    controller.add_device("10.0.0.229")
     try:
         loop.run_until_complete(main(controller))
         loop.run_forever()
