@@ -57,9 +57,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Set up Python
-        uses: actions/setup-python@v3
-        with:
-          python-version: "3.12"
+        uses: snok/install-poetry@v1
       - name: Install dependencies
         run: |
           poetry self install
