@@ -5,4 +5,4 @@ from .light_capabilities import GoveeLightCapability
 
 __all__ = ["GoveeController", "GoveeDevice", "GoveeLightCapability"]
 
-__version__ = "1.4.6"
+__version__ = "1.4.5"
