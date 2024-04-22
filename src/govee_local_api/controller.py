@@ -244,6 +244,7 @@ class GoveeController:
         sock = self._transport.get_extra_info("socket")
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
 
     def connection_lost(self, *args, **kwargs):
         self._logger.debug("Disconnected")
