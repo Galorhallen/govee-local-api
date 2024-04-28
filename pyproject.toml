@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "govee-local-api"
-version = "0.0.0"
+version = "1.4.5"
 description = "Library to communicate with Govee local API"
 license = "Apache Software License 2.0"
 readme = "README.md"
@@ -22,9 +22,8 @@ packages = [
 [tool.poetry.urls]
 "Bug Tracker" = "https://github.com/Galorhallen/govee-local-api/issues"
 
-
-[tool.poetry-dynamic-versioning]
-enable = true
+[tool.poetry_bumpversion.file."src/govee_local_api/__init__.py"]
+# Duplicate the line above to add more files
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -51,5 +50,4 @@ addopts = [
 ]
 
 [build-system]
-requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning>=1.0.0,<2.0.0"]
-build-backend = "poetry_dynamic_versioning.backend"
+requires = ["poetry-core>=1.0.0"]

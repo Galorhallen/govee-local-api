@@ -1,5 +1,4 @@
 import asyncio
-import functools
 
 from govee_local_api import GoveeController, GoveeDevice
 
@@ -17,6 +16,8 @@ def discovered_callback(device: GoveeDevice, is_new: bool) -> bool:
 
 async def print_status(controller: GoveeController):
     while True:
+        if not controller.devices:
+            print("No devices found")
         for device in controller.devices:
             print(f"Status: {device}")
         await asyncio.sleep(5)
@@ -24,9 +25,11 @@ async def print_status(controller: GoveeController):
 
 async def main(controller: GoveeController):
     await controller.start()
+    print("start")
     await asyncio.sleep(5)
+    print("Waited")
 
-    device: GoveeDevice = controller.get_device_by_ip("10.0.0.183")
+    # device = controller.get_device_by_ip("10.0.0.183")
     # await device.turn_on()
     # await asyncio.sleep(5)
     await print_status(controller)
@@ -36,8 +39,7 @@ if __name__ == "__main__":
     loop = asyncio.new_event_loop()
     controller: GoveeController = GoveeController(
         loop=loop,
-        broadcast_address="10.0.0.228",
-        listening_address="10.0.0.52",
+        listening_address="0.0.0.0",
         discovery_enabled=True,
         discovered_callback=discovered_callback,
         evicted_callback=lambda device: print(f"Evicted {device}"),
