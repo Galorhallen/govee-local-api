@@ -240,13 +240,33 @@ class GoveeController:
 
     def connection_made(self, transport):
         self._transport = transport
-
         sock = self._transport.get_extra_info("socket")
+
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
 
+        sock.setsockopt(
+            socket.SOL_IP,
+            socket.IP_MULTICAST_IF,
+            socket.inet_aton(self._listening_address),
+        )
+        sock.setsockopt(
+            socket.SOL_IP,
+            socket.IP_ADD_MEMBERSHIP,
+            socket.inet_aton(self._broadcast_address)
+            + socket.inet_aton(self._listening_address),
+        )
+
     def connection_lost(self, *args, **kwargs):
+        if self._transport:
+            sock = self._transport.get_extra_info("socket")
+            sock.setsockopt(
+                socket.SOL_IP,
+                socket.IP_DROP_MEMBERSHIP,
+                socket.inet_aton(self._broadcast_address)
+                + socket.inet_aton(self._listening_address),
+            )
         self._logger.debug("Disconnected")
 
     def datagram_received(self, data: bytes, addr: tuple):
