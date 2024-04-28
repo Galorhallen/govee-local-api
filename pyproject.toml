@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "govee-local-api"
-version = "1.4.5"
+version = "1.4.6"
 description = "Library to communicate with Govee local API"
 license = "Apache Software License 2.0"
 readme = "README.md"
