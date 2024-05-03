@@ -5,6 +5,7 @@ import logging
 import socket
 from datetime import datetime, timedelta
 from typing import Callable, Tuple, Any, cast
+import ipaddress
 
 from .device import GoveeDevice
 from .light_capabilities import GOVEE_LIGHT_CAPABILITIES, GoveeLightCapability
@@ -76,6 +77,7 @@ class GoveeController:
         self._device_command_port = device_command_port
 
         self._loop = loop or asyncio.get_running_loop()
+        self._cleanup_done: asyncio.Event = asyncio.Event()
         self._message_factory = MessageResponseFactory()
         self._devices: dict[str, GoveeDevice] = {}
 
@@ -104,13 +106,15 @@ class GoveeController:
         if self._update_enabled:
             self.send_update_message()
 
-    def cleanup(self):
+    def cleanup(self) -> asyncio.Event:
+        self._cleanup_done.clear()
         self.set_update_enabled(False)
         self.set_discovery_enabled(False)
 
         if self._transport:
             self._transport.close()
         self._devices.clear()
+        return self._cleanup_done
 
     def add_device(
         self,
@@ -244,29 +248,36 @@ class GoveeController:
 
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
 
-        sock.setsockopt(
-            socket.SOL_IP,
-            socket.IP_MULTICAST_IF,
-            socket.inet_aton(self._listening_address),
-        )
-        sock.setsockopt(
-            socket.SOL_IP,
-            socket.IP_ADD_MEMBERSHIP,
-            socket.inet_aton(self._broadcast_address)
-            + socket.inet_aton(self._listening_address),
-        )
+        broadcast_ip = ipaddress.ip_address(self._broadcast_address)
 
-    def connection_lost(self, *args, **kwargs):
-        if self._transport:
-            sock = self._transport.get_extra_info("socket")
+        if broadcast_ip.is_multicast:
+            sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
+
             sock.setsockopt(
                 socket.SOL_IP,
-                socket.IP_DROP_MEMBERSHIP,
+                socket.IP_MULTICAST_IF,
+                socket.inet_aton(self._listening_address),
+            )
+            sock.setsockopt(
+                socket.SOL_IP,
+                socket.IP_ADD_MEMBERSHIP,
                 socket.inet_aton(self._broadcast_address)
                 + socket.inet_aton(self._listening_address),
             )
+
+    def connection_lost(self, *args, **kwargs):
+        if self._transport:
+            broadcast_ip = ipaddress.ip_address(self._broadcast_address)
+            if broadcast_ip.is_multicast:
+                sock = self._transport.get_extra_info("socket")
+                sock.setsockopt(
+                    socket.SOL_IP,
+                    socket.IP_DROP_MEMBERSHIP,
+                    socket.inet_aton(self._broadcast_address)
+                    + socket.inet_aton(self._listening_address),
+                )
+        self._cleanup_done.set()
         self._logger.debug("Disconnected")
 
     def datagram_received(self, data: bytes, addr: tuple):

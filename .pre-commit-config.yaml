@@ -8,8 +8,8 @@ repos:
     rev: v0.1.8
     hooks:
       - id: ruff
-        args:
-          - --fix
+        types_or: ["python"]
+        args: ["--fix"]
       - id: ruff-format
         files: ^.+\.py$
   - repo: https://github.com/codespell-project/codespell
