@@ -46,10 +46,12 @@ jobs:
       - name: Test with pytest
         run: |
           poetry run pytest
-  deploy:
+  publish:
     needs:
       - test
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
     if: ${{ github.event_name == 'release' }}
     steps:
       - uses: actions/checkout@v3
@@ -67,6 +69,28 @@ jobs:
         run: poetry build
       - name: Publish package
         uses: pypa/gh-action-pypi-publish@v1.8.14
+  publish-test:
+    needs:
+      - test
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    if: ${{ github.event_name == 'develop' }}
+    steps:
+      - uses: actions/checkout@v3
         with:
-          user: __token__
-          password: ${{ secrets.PYPI_API_TOKEN }}
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.12"
+      - uses: snok/install-poetry@v1
+      - name: Install dependencies
+        run: |
+          poetry install --no-interaction --no-root
+      - name: Build package
+        run: poetry build
+      - name: Publish package
+        uses: pypa/gh-action-pypi-publish@v1.8.14
+        with:
+          repository-url: https://test.pypi.org/legacy/
