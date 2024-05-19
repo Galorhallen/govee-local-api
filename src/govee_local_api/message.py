@@ -15,7 +15,7 @@ class GoveeMessage:
         return {"msg": {"cmd": self.command, "data": self.data}}
 
     def as_json(self) -> str:
-        return json.dumps(self.as_dict())
+        return json.dumps(self.as_dict(), separators=(",", ":"))
 
     def __bytes__(self) -> bytearray | bytes:
         return self.as_json().encode("utf-8")
