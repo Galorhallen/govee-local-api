@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "govee-local-api"
-version = "1.5.3"
+version = "1.5.4"
 description = "Library to communicate with Govee local API"
 readme = "README.md"
 repository = "https://github.com/Galorhallen/govee-local-api"
