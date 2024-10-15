@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "govee-local-api"
-version = "1.5.4"
+version = "2.0.0a0"
 description = "Library to communicate with Govee local API"
 readme = "README.md"
 repository = "https://github.com/Galorhallen/govee-local-api"
@@ -27,6 +27,7 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.10"
+poetry = "^1.8.4"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"

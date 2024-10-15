@@ -1,495 +1,167 @@
 from enum import Enum, auto
 
 
-class GoveeLightCapability(Enum):
+class GoveeLightFeatures(Enum):
     """Govee Lights capabilities."""
 
     COLOR_RGB = auto()
     COLOR_KELVIN_TEMPERATURE = auto()
     BRIGHTNESS = auto()
+    SEGMENT_CONTROL = auto()
+    SCENE_CONTROL = auto()
 
 
-GOVEE_LIGHT_CAPABILITIES: dict[str, set[GoveeLightCapability]] = {
-    "H6046": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H6047": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H6051": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H6056": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H6059": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H6061": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H6062": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H6065": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H6066": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H6067": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H6072": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H6073": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H6076": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H6078": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H6087": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H610A": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H610B": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H6110": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H6117": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H6159": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H615A": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H615B": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H615C": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H615D": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H615E": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H6163": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H6168": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H6172": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H6173": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H618A": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H618C": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H618E": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H618F": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H619A": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H619B": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H619C": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H619D": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H619E": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H619Z": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H61A0": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H61A1": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H61A2": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H61A3": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H61A5": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H61A8": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H61B2": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H61BA": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H61BC": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H61E1": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H7012": {
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H7013": {
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H7021": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H7028": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H7041": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H7042": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H7050": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H7051": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H7055": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H705A": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H705B": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H705C": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H705E": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H7060": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H7063": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H7061": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H7062": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H7065": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H7066": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    # User reported devices
-    "H7033": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H70C1": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H70C2": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H6052": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H6088": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H608A": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H606A": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H61C5": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H7020": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H61BE": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H61B5": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H61C3": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H61D3": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H61D5": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H608B": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H608D": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H6175": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H6176": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H7037": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H7038": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H7039": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H7052": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H61E0": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H6079": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H607C": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H7075": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H60A1": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H70B1": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
-    "H70A1": {
-        GoveeLightCapability.COLOR_RGB,
-        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
-        GoveeLightCapability.BRIGHTNESS,
-    },
+COMMON_FEATURES = {
+    GoveeLightFeatures.COLOR_RGB,
+    GoveeLightFeatures.COLOR_KELVIN_TEMPERATURE,
+    GoveeLightFeatures.BRIGHTNESS,
+}
+
+# Devices with only brightness as a feature
+BRIGHTNESS_ONLY = {GoveeLightFeatures.BRIGHTNESS}
+
+
+class GoveeLightCapabilities:
+    def __init__(
+        self,
+        features: set[GoveeLightFeatures],
+        segments: list[bytes] = [],
+        scenes: dict[str, str] = {},
+    ) -> None:
+        self.features = features
+        self.segments = segments
+        self.scenes = scenes
+
+    def __repr__(self) -> str:
+        return f"GoveeLightCapabilities(features={self.features!r}, segments={self.segments!r}, scenes={self.scenes!r})"
+
+    def __str__(self) -> str:
+        return f"GoveeLightCapabilities(features={self.features!r}, segments={len(self.segments)}, scenes={len(self.scenes)})"
+
+
+SEGMENT_CODES: list[bytes] = [
+    b"\x01\x00",  # 1
+    b"\x02\x00",  # 2
+    b"\x04\x00",  # 3
+    b"\x08\x00",  # 4
+    b"\x10\x00",  # 5
+    b"\x20\x00",  # 6
+    b"\x40\x00",  # 7
+    b"\x80\x00",  # 8
+    b"\x00\x01",  # 9
+    b"\x00\x02",  # 10
+    b"\x00\x04",  # 11
+    b"\x00\x08",  # 12
+    b"\x00\x10",  # 13
+    b"\x00\x20",  # 14
+    b"\x00\x40",  # 15
+]
+
+
+COMMON_CAPABILITIES = GoveeLightCapabilities(COMMON_FEATURES)
+BRIGHTNESS_ONLY_CAPABILITIES = GoveeLightCapabilities(BRIGHTNESS_ONLY)
+SEGMENTS_CAPABILITIES = GoveeLightCapabilities(
+    {*COMMON_FEATURES, GoveeLightFeatures.SEGMENT_CONTROL}, SEGMENT_CODES, {}
+)
+
+GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
+    # Models with common features
+    "H6046": COMMON_CAPABILITIES,
+    "H6047": COMMON_CAPABILITIES,
+    "H6051": COMMON_CAPABILITIES,
+    "H6056": COMMON_CAPABILITIES,
+    "H6059": COMMON_CAPABILITIES,
+    "H6061": COMMON_CAPABILITIES,
+    "H6062": COMMON_CAPABILITIES,
+    "H6065": COMMON_CAPABILITIES,
+    "H6066": COMMON_CAPABILITIES,
+    "H6067": COMMON_CAPABILITIES,
+    "H6072": COMMON_CAPABILITIES,
+    "H6073": COMMON_CAPABILITIES,
+    "H6076": COMMON_CAPABILITIES,
+    "H6078": COMMON_CAPABILITIES,
+    "H6087": COMMON_CAPABILITIES,
+    "H610A": COMMON_CAPABILITIES,
+    "H610B": COMMON_CAPABILITIES,
+    "H6110": COMMON_CAPABILITIES,
+    "H6117": COMMON_CAPABILITIES,
+    "H6159": COMMON_CAPABILITIES,
+    "H615A": COMMON_CAPABILITIES,
+    "H615B": COMMON_CAPABILITIES,
+    "H615C": COMMON_CAPABILITIES,
+    "H615D": COMMON_CAPABILITIES,
+    "H615E": COMMON_CAPABILITIES,
+    "H6163": COMMON_CAPABILITIES,
+    "H6168": COMMON_CAPABILITIES,
+    "H6172": COMMON_CAPABILITIES,
+    "H6173": COMMON_CAPABILITIES,
+    "H618A": COMMON_CAPABILITIES,
+    "H618C": COMMON_CAPABILITIES,
+    "H618E": COMMON_CAPABILITIES,
+    "H618F": COMMON_CAPABILITIES,
+    "H619A": SEGMENTS_CAPABILITIES,
+    "H619B": SEGMENTS_CAPABILITIES,
+    "H619C": SEGMENTS_CAPABILITIES,
+    "H619D": SEGMENTS_CAPABILITIES,
+    "H619E": SEGMENTS_CAPABILITIES,
+    "H619Z": COMMON_CAPABILITIES,
+    "H61A0": COMMON_CAPABILITIES,
+    "H61A1": COMMON_CAPABILITIES,
+    "H61A2": COMMON_CAPABILITIES,
+    "H61A3": COMMON_CAPABILITIES,
+    "H61A5": COMMON_CAPABILITIES,
+    "H61A8": COMMON_CAPABILITIES,
+    "H61B2": COMMON_CAPABILITIES,
+    "H61BA": COMMON_CAPABILITIES,
+    "H61BC": COMMON_CAPABILITIES,
+    "H61E1": COMMON_CAPABILITIES,
+    "H7021": COMMON_CAPABILITIES,
+    "H7028": COMMON_CAPABILITIES,
+    "H7041": COMMON_CAPABILITIES,
+    "H7042": COMMON_CAPABILITIES,
+    "H7050": COMMON_CAPABILITIES,
+    "H7051": COMMON_CAPABILITIES,
+    "H7055": COMMON_CAPABILITIES,
+    "H705A": COMMON_CAPABILITIES,
+    "H705B": COMMON_CAPABILITIES,
+    "H705C": COMMON_CAPABILITIES,
+    "H705E": COMMON_CAPABILITIES,
+    "H7060": COMMON_CAPABILITIES,
+    "H7063": COMMON_CAPABILITIES,
+    "H7061": COMMON_CAPABILITIES,
+    "H7062": COMMON_CAPABILITIES,
+    "H7065": COMMON_CAPABILITIES,
+    "H7066": COMMON_CAPABILITIES,
+    "H7033": COMMON_CAPABILITIES,
+    "H70C1": COMMON_CAPABILITIES,
+    "H70C2": COMMON_CAPABILITIES,
+    "H6052": COMMON_CAPABILITIES,
+    "H6088": COMMON_CAPABILITIES,
+    "H608A": COMMON_CAPABILITIES,
+    "H606A": COMMON_CAPABILITIES,
+    "H61C5": COMMON_CAPABILITIES,
+    "H7020": COMMON_CAPABILITIES,
+    "H61BE": COMMON_CAPABILITIES,
+    "H61B5": COMMON_CAPABILITIES,
+    "H61C3": COMMON_CAPABILITIES,
+    "H61D3": COMMON_CAPABILITIES,
+    "H61D5": COMMON_CAPABILITIES,
+    "H608B": COMMON_CAPABILITIES,
+    "H608D": COMMON_CAPABILITIES,
+    "H6175": COMMON_CAPABILITIES,
+    "H6176": COMMON_CAPABILITIES,
+    "H7037": COMMON_CAPABILITIES,
+    "H7038": COMMON_CAPABILITIES,
+    "H7039": COMMON_CAPABILITIES,
+    "H7052": COMMON_CAPABILITIES,
+    "H61E0": COMMON_CAPABILITIES,
+    "H6079": COMMON_CAPABILITIES,
+    "H607C": COMMON_CAPABILITIES,
+    "H7075": COMMON_CAPABILITIES,
+    "H60A1": COMMON_CAPABILITIES,
+    "H70B1": COMMON_CAPABILITIES,
+    "H70A1": COMMON_CAPABILITIES,
+    # Models with only brightness
+    "H7012": BRIGHTNESS_ONLY_CAPABILITIES,
+    "H7013": BRIGHTNESS_ONLY_CAPABILITIES,
 }

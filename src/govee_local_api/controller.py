@@ -8,10 +8,15 @@ from typing import Callable, Tuple, Any, cast
 import ipaddress
 
 from .device import GoveeDevice
-from .light_capabilities import GOVEE_LIGHT_CAPABILITIES, GoveeLightCapability
+from .light_capabilities import (
+    GOVEE_LIGHT_CAPABILITIES,
+    GoveeLightCapabilities,
+    GoveeLightFeatures,
+)
 from .message import (
     BrightnessMessage,
     ColorMessage,
+    SegmentColorMessages,
     GoveeMessage,
     MessageResponseFactory,
     OnOffMessage,
@@ -121,7 +126,7 @@ class GoveeController:
         ip: str,
         sku: str,
         fingerprint,
-        capabilities: set[GoveeLightCapability] | None,
+        capabilities: GoveeLightCapabilities | None,
     ) -> None:
         device: GoveeDevice = GoveeDevice(self, ip, fingerprint, sku, capabilities)
         self._devices[fingerprint] = device
@@ -208,6 +213,31 @@ class GoveeController:
 
     async def turn_on_off(self, device: GoveeDevice, status: bool) -> None:
         self._send_message(OnOffMessage(status), device)
+
+    async def set_segment_color(
+        self, device: GoveeDevice, segment: int, rgb: Tuple[int, int, int]
+    ) -> None:
+        if GoveeLightFeatures.SEGMENT_CONTROL not in device.capabilities.features:
+            self._logger.warning(
+                "Segment control is not supported by device %s", device
+            )
+            return
+
+        if segment < 1 or segment > len(device.capabilities.segments):
+            self._logger.warning(
+                "Segment index %s is not valid for device %s", segment, device
+            )
+            return
+
+        segment_data: bytes = device.capabilities.segments[segment - 1]
+        if not segment_data:
+            self._logger.warning(
+                "Segment %s is not supported by device %s", segment, device
+            )
+            return
+        message = SegmentColorMessages(segment_data, rgb)
+        print("Sending message {} to device {}".format(message, device))
+        self._send_message(message, device)
 
     async def set_brightness(self, device: GoveeDevice, brightness: int) -> None:
         self._send_message(BrightnessMessage(brightness), device)

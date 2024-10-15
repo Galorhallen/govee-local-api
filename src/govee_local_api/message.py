@@ -1,6 +1,7 @@
 from __future__ import absolute_import, annotations
 
 import json
+import base64
 from typing import Any, Tuple, TypeVar, Type, Set
 
 
@@ -84,6 +85,37 @@ class ColorMessage(GoveeMessage):
             }
 
         super().__init__(data)
+
+
+class PtRealMessage(GoveeMessage):
+    command = "ptReal"
+
+    def __init__(self, data: list[str]) -> None:
+        super().__init__({"command": data})
+
+
+class SegmentColorMessages(PtRealMessage):
+    def __init__(self, segment: int, color: Tuple[int, int, int]) -> None:
+        segCode = "0100"
+        color = "000000"
+        # data = f"33010000000000000000000000000000000000" # turn off
+        data = f"33051501{color}0000000000{segCode}0000000000"
+        data = self.get_checksum(data)
+        super().__init__([base64.b64encode(bytes.fromhex(data)).decode("utf-8")])
+
+    def get_checksum(self, bytes_str) -> str:
+        # Convert the hex string to bytes all at once
+        byte_array = bytes.fromhex(bytes_str)
+
+        # Initialize the XOR result as 0 (starting point)
+        xor_result = 0
+
+        # XOR each byte directly
+        for byte in byte_array:
+            xor_result ^= byte
+
+        # Convert the final result back to a hex string, padded to 2 characters
+        return f"{bytes_str}{xor_result:02x}"
 
 
 class ScanResponse(GoveeMessage):

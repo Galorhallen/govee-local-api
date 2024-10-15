@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Callable, Tuple
 
-from .light_capabilities import GoveeLightCapability
+from .light_capabilities import GoveeLightCapabilities
 from .message import StatusResponse
 
 
@@ -14,14 +14,14 @@ class GoveeDevice:
         ip: str,
         fingerprint: str,
         sku: str,
-        capabilities: set[GoveeLightCapability] | None,
+        capabilities: GoveeLightCapabilities | None,
     ) -> None:
         self._controller = controller
         self._fingerprint = fingerprint
         self._sku = sku
         self._ip = ip
         self._lastseen: datetime = datetime.now()
-        self._capabilities: set[GoveeLightCapability] | None = capabilities
+        self._capabilities: GoveeLightCapabilities | None = capabilities
 
         self._is_on: bool = False
         self._rgb_color = (0, 0, 0)
@@ -34,7 +34,7 @@ class GoveeDevice:
         return self._controller
 
     @property
-    def capabilities(self) -> set[GoveeLightCapability] | None:
+    def capabilities(self) -> GoveeLightCapabilities | None:
         return self._capabilities
 
     @property
@@ -83,6 +83,11 @@ class GoveeDevice:
     async def turn_on(self) -> None:
         await self._controller.turn_on_off(self, True)
         self._is_on = True
+
+    async def set_segment_color(
+        self, segment: int, color: Tuple[int, int, int]
+    ) -> None:
+        await self._controller.set_segment_color(self, segment, color)
 
     async def turn_off(self) -> None:
         await self._controller.turn_on_off(self, False)

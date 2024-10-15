@@ -26,12 +26,24 @@ async def print_status(controller: GoveeController):
 async def main(controller: GoveeController):
     await controller.start()
     print("start")
-    await asyncio.sleep(5)
+    await asyncio.sleep(1)
     print("Waited")
 
-    # device = controller.get_device_by_ip("10.0.0.183")
-    # await device.turn_on()
-    # await asyncio.sleep(5)
+    devices = [controller.get_device_by_ip("10.0.0.110")]
+    # devices = controller.devices
+    for device in devices:
+        if not device:
+            continue
+        await device.turn_on()
+        await asyncio.sleep(1)
+        await device.set_segment_color(1, (255, 0, 0))
+        # await device.set_segment_color(14, (0, 255, 0))
+        # await device.set_segment_color(13, (0, 0, 255))
+        # await device.set_segment_color(12, (255, 255, 0))
+        # await device.set_segment_color(11, (0, 255, 255))
+        # await device.set_segment_color(10, (255, 0, 255))
+        # await device.set_segment_color(9, (0, 0, 0))
+
     await print_status(controller)
 
 
