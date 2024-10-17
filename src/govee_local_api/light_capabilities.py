@@ -68,20 +68,25 @@ SEGMENT_CODES: list[bytes] = [
     b"\x00\x40",  # 15
 ]
 
+SCENE_CODES: dict[int, bytes] = {
 
-COMMON_CAPABILITIES = GoveeLightCapabilities(COMMON_FEATURES, [], {})
-BRIGHTNESS_ONLY_CAPABILITIES = GoveeLightCapabilities(BRIGHTNESS_ONLY, [], {})
+}
 
+def create_with_capabilities(rgb: bool, kelvin: bool, brightness: bool, segments: int, scenes: bool) -> GoveeLightCapabilities:
+    features = set()
+    segments_codes = []
+    if rgb:
+        features.add(GoveeLightFeatures.COLOR_RGB)
+    if kelvin:
+        features.add(GoveeLightFeatures.COLOR_KELVIN_TEMPERATURE)
+    if brightness:
+        features.add(GoveeLightFeatures.BRIGHTNESS)
+    if segments > 0:
+        features.add(GoveeLightFeatures.SEGMENT_CONTROL)
+        segments_codes = SEGMENT_CODES[:segments]        
+    return GoveeLightCapabilities(features, segments_codes, {})
 
-def _create_with_segment_capabilities(segmentCount: int) -> GoveeLightCapabilities:
-    if segmentCount <= 0:
-        return COMMON_CAPABILITIES
-    return GoveeLightCapabilities(
-        {*COMMON_FEATURES, GoveeLightFeatures.SEGMENT_CONTROL},
-        SEGMENT_CODES[:segmentCount],
-        {},
-    )
-
+COMMON_CAPABILITIES = create_with_capabilities(True, True, True, 0, True)
 
 GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     # Models with common features
@@ -105,24 +110,24 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     "H6110": COMMON_CAPABILITIES,
     "H6117": COMMON_CAPABILITIES,
     "H6159": COMMON_CAPABILITIES,
-    "H615A": _create_with_segment_capabilities(0),
-    "H615B": COMMON_CAPABILITIES,
-    "H615C": COMMON_CAPABILITIES,
-    "H615D": COMMON_CAPABILITIES,
-    "H615E": COMMON_CAPABILITIES,
+    "H615A": create_with_capabilities(True, True, True, 0, True),
+    "H615B": create_with_capabilities(True, True, True, 0, True),
+    "H615C": create_with_capabilities(True, True, True, 0, True),
+    "H615D": create_with_capabilities(True, True, True, 0, True),
+    "H615E": create_with_capabilities(True, True, True, 0, True),
     "H6163": COMMON_CAPABILITIES,
     "H6168": COMMON_CAPABILITIES,
     "H6172": COMMON_CAPABILITIES,
     "H6173": COMMON_CAPABILITIES,
-    "H618A": _create_with_segment_capabilities(15),
-    "H618C": COMMON_CAPABILITIES,
-    "H618E": COMMON_CAPABILITIES,
-    "H618F": COMMON_CAPABILITIES,
-    "H619A": _create_with_segment_capabilities(10),
-    "H619B": _create_with_segment_capabilities(10),
-    "H619C": _create_with_segment_capabilities(10),
-    "H619D": _create_with_segment_capabilities(10),
-    "H619E": _create_with_segment_capabilities(10),
+    "H618A": create_with_capabilities(True, True, True, 15, True),
+    "H618C": create_with_capabilities(True, True, True, 15, True),
+    "H618E": create_with_capabilities(True, True, True, 15, True),
+    "H618F": create_with_capabilities(True, True, True, 15, True),
+    "H619A": create_with_capabilities(True, True, True, 10, True),
+    "H619B": create_with_capabilities(True, True, True, 10, True),
+    "H619C": create_with_capabilities(True, True, True, 10, True),
+    "H619D": create_with_capabilities(True, True, True, 10, True),
+    "H619E": create_with_capabilities(True, True, True, 10, True),
     "H619Z": COMMON_CAPABILITIES,
     "H61A0": COMMON_CAPABILITIES,
     "H61A1": COMMON_CAPABILITIES,
@@ -181,6 +186,6 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     "H70B1": COMMON_CAPABILITIES,
     "H70A1": COMMON_CAPABILITIES,
     # Models with only brightness
-    "H7012": BRIGHTNESS_ONLY_CAPABILITIES,
-    "H7013": BRIGHTNESS_ONLY_CAPABILITIES,
+    "H7012": create_with_capabilities(False, False, True, 0, False),
+    "H7013": create_with_capabilities(False, False, True, 0, False),
 }
