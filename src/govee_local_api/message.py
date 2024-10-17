@@ -1,5 +1,6 @@
 from __future__ import absolute_import, annotations
 
+import base64
 import json
 import base64
 from typing import Any, Tuple, TypeVar, Type, Set
@@ -87,35 +88,63 @@ class ColorMessage(GoveeMessage):
         super().__init__(data)
 
 
-class PtRealMessage(GoveeMessage):
+class HexMessage(GoveeMessage):
     command = "ptReal"
 
     def __init__(self, data: list[str]) -> None:
-        super().__init__({"command": data})
+        encoded_data: list[str] = [
+            base64.b64encode(d.encode("utf-8")).decode("utf-8") for d in data
+        ]
+        super().__init__({"command": encoded_data})
+
+
+class PtRealMessage(GoveeMessage):
+    command = "ptReal"
+
+    def __init__(self, data: list[bytes]) -> None:
+        checksumed_data: list[bytes] = [
+            base64.b64encode(self._with_checksum(d)).decode("utf-8") for d in data
+        ]
+        super().__init__({"command": checksumed_data})
+
+    def _with_checksum(self, data: bytes) -> bytes:
+        xor_result: int = 0
+        for byte in data:
+            xor_result ^= byte
+        return data + xor_result.to_bytes(1, "big")
 
 
 class SegmentColorMessages(PtRealMessage):
-    def __init__(self, segment: int, color: Tuple[int, int, int]) -> None:
-        segCode = "0100"
-        color = "000000"
-        # data = f"33010000000000000000000000000000000000" # turn off
-        data = f"33051501{color}0000000000{segCode}0000000000"
-        data = self.get_checksum(data)
-        super().__init__([base64.b64encode(bytes.fromhex(data)).decode("utf-8")])
+    def __init__(self, segment: bytes, color: Tuple[int, int, int]) -> None:
+        capped_color = [max(0, min(c, 255)) for c in color]
+        data = (
+            b"\x33\x05\x15\x01"
+            + bytes(capped_color)
+            + b"\x00\x00\x00\x00\x00"
+            + segment
+            + b"\x00\x00\x00\x00\x00"
+        )
+        super().__init__([data])
 
-    def get_checksum(self, bytes_str) -> str:
-        # Convert the hex string to bytes all at once
-        byte_array = bytes.fromhex(bytes_str)
 
-        # Initialize the XOR result as 0 (starting point)
-        xor_result = 0
+class ColorModeMessage(PtRealMessage):
+    def __init__(self, mode: bytes) -> None:
+        data = (
+            b"\x33\x05\x15\x01"
+            + mode
+            + b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        )
+        super().__init__([data])
 
-        # XOR each byte directly
-        for byte in byte_array:
-            xor_result ^= byte
 
-        # Convert the final result back to a hex string, padded to 2 characters
-        return f"{bytes_str}{xor_result:02x}"
+class SceneMessages(PtRealMessage):
+    def __init__(self, scene: bytes) -> None:
+        data = (
+            b"\x33\x05\x15\x01"
+            + scene
+            + b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        )
+        super().__init__([data])
 
 
 class ScanResponse(GoveeMessage):

@@ -14,13 +14,17 @@ def discovered_callback(device: GoveeDevice, is_new: bool) -> bool:
     return True
 
 
-async def print_status(controller: GoveeController):
+async def print_status(controller: GoveeController, device: GoveeDevice):
     while True:
-        if not controller.devices:
-            print("No devices found")
-        for device in controller.devices:
-            print(f"Status: {device}")
-        await asyncio.sleep(5)
+        if not device or not device.capabilities:
+            continue
+        for seg in range(1, 1 + device.capabilities.segments_count):
+            await device.set_segment_color(seg, (255, 0, 0))
+            await asyncio.sleep(0.1)
+        for seg in range(1, 1 + device.capabilities.segments_count):
+            await device.set_segment_color(seg, (0, 0, 255))
+            await asyncio.sleep(0.1)
+        await asyncio.sleep(1)
 
 
 async def main(controller: GoveeController):
@@ -29,22 +33,15 @@ async def main(controller: GoveeController):
     await asyncio.sleep(1)
     print("Waited")
 
-    devices = [controller.get_device_by_ip("10.0.0.110")]
-    # devices = controller.devices
-    for device in devices:
-        if not device:
-            continue
-        await device.turn_on()
-        await asyncio.sleep(1)
-        await device.set_segment_color(1, (255, 0, 0))
-        # await device.set_segment_color(14, (0, 255, 0))
-        # await device.set_segment_color(13, (0, 0, 255))
-        # await device.set_segment_color(12, (255, 255, 0))
-        # await device.set_segment_color(11, (0, 255, 255))
-        # await device.set_segment_color(10, (255, 0, 255))
-        # await device.set_segment_color(9, (0, 0, 0))
+    device = controller.get_device_by_ip("10.0.0.110")
+    if not device:
+        print("Device not found")
+    await device.turn_on()
+    await device.set_rgb_color(255, 255, 255)
+    await device.set_brightness(100)
+    await asyncio.sleep(1)
 
-    await print_status(controller)
+    await print_status(controller, device)
 
 
 if __name__ == "__main__":

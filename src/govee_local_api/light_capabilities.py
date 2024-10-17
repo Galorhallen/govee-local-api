@@ -8,7 +8,14 @@ class GoveeLightFeatures(Enum):
     COLOR_KELVIN_TEMPERATURE = auto()
     BRIGHTNESS = auto()
     SEGMENT_CONTROL = auto()
-    SCENE_CONTROL = auto()
+
+
+class GoveeLightColorMode(Enum):
+    """Govee Lights color mode."""
+
+    MANUAL = auto()
+    MUSIC = auto()
+    SCENE = auto()
 
 
 COMMON_FEATURES = {
@@ -31,6 +38,10 @@ class GoveeLightCapabilities:
         self.features = features
         self.segments = segments
         self.scenes = scenes
+
+    @property
+    def segments_count(self) -> int:
+        return len(self.segments)
 
     def __repr__(self) -> str:
         return f"GoveeLightCapabilities(features={self.features!r}, segments={self.segments!r}, scenes={self.scenes!r})"
@@ -58,11 +69,19 @@ SEGMENT_CODES: list[bytes] = [
 ]
 
 
-COMMON_CAPABILITIES = GoveeLightCapabilities(COMMON_FEATURES)
-BRIGHTNESS_ONLY_CAPABILITIES = GoveeLightCapabilities(BRIGHTNESS_ONLY)
-SEGMENTS_CAPABILITIES = GoveeLightCapabilities(
-    {*COMMON_FEATURES, GoveeLightFeatures.SEGMENT_CONTROL}, SEGMENT_CODES, {}
-)
+COMMON_CAPABILITIES = GoveeLightCapabilities(COMMON_FEATURES, [], {})
+BRIGHTNESS_ONLY_CAPABILITIES = GoveeLightCapabilities(BRIGHTNESS_ONLY, [], {})
+
+
+def _create_with_segment_capabilities(segmentCount: int) -> GoveeLightCapabilities:
+    if segmentCount <= 0:
+        return COMMON_CAPABILITIES
+    return GoveeLightCapabilities(
+        {*COMMON_FEATURES, GoveeLightFeatures.SEGMENT_CONTROL},
+        SEGMENT_CODES[:segmentCount],
+        {},
+    )
+
 
 GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     # Models with common features
@@ -86,7 +105,7 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     "H6110": COMMON_CAPABILITIES,
     "H6117": COMMON_CAPABILITIES,
     "H6159": COMMON_CAPABILITIES,
-    "H615A": COMMON_CAPABILITIES,
+    "H615A": _create_with_segment_capabilities(0),
     "H615B": COMMON_CAPABILITIES,
     "H615C": COMMON_CAPABILITIES,
     "H615D": COMMON_CAPABILITIES,
@@ -95,15 +114,15 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     "H6168": COMMON_CAPABILITIES,
     "H6172": COMMON_CAPABILITIES,
     "H6173": COMMON_CAPABILITIES,
-    "H618A": COMMON_CAPABILITIES,
+    "H618A": _create_with_segment_capabilities(15),
     "H618C": COMMON_CAPABILITIES,
     "H618E": COMMON_CAPABILITIES,
     "H618F": COMMON_CAPABILITIES,
-    "H619A": SEGMENTS_CAPABILITIES,
-    "H619B": SEGMENTS_CAPABILITIES,
-    "H619C": SEGMENTS_CAPABILITIES,
-    "H619D": SEGMENTS_CAPABILITIES,
-    "H619E": SEGMENTS_CAPABILITIES,
+    "H619A": _create_with_segment_capabilities(10),
+    "H619B": _create_with_segment_capabilities(10),
+    "H619C": _create_with_segment_capabilities(10),
+    "H619D": _create_with_segment_capabilities(10),
+    "H619E": _create_with_segment_capabilities(10),
     "H619Z": COMMON_CAPABILITIES,
     "H61A0": COMMON_CAPABILITIES,
     "H61A1": COMMON_CAPABILITIES,

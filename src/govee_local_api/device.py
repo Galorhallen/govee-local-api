@@ -28,6 +28,9 @@ class GoveeDevice:
         self._temperature_color = 0
         self._brightness = 0
         self._update_callback: Callable[[GoveeDevice], None] | None = None
+        self._segments_color = (
+            [(0, 0, 0)] * len(self._capabilities.segments) if self._capabilities else []
+        )
 
     @property
     def controller(self):
@@ -69,6 +72,13 @@ class GoveeDevice:
     def temperature_color(self) -> int:
         return self._temperature_color
 
+    def get_segment_color(self, segment: int) -> Tuple[int, int, int]:
+        return self._segments_color[segment - 1]
+
+    @property
+    def segments_color(self) -> list[Tuple[int, int, int]]:
+        return self._segments_color
+
     @property
     def update_callback(self) -> Callable[[GoveeDevice], None] | None:
         return self._update_callback
@@ -87,6 +97,7 @@ class GoveeDevice:
     async def set_segment_color(
         self, segment: int, color: Tuple[int, int, int]
     ) -> None:
+        self._segments_color[segment - 1] = color
         await self._controller.set_segment_color(self, segment, color)
 
     async def turn_off(self) -> None:

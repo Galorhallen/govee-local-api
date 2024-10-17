@@ -217,6 +217,10 @@ class GoveeController:
     async def set_segment_color(
         self, device: GoveeDevice, segment: int, rgb: Tuple[int, int, int]
     ) -> None:
+        if not device.capabilities:
+            self._logger.warning("Capabilities not available for device %s", device)
+            return
+
         if GoveeLightFeatures.SEGMENT_CONTROL not in device.capabilities.features:
             self._logger.warning(
                 "Segment control is not supported by device %s", device
@@ -336,6 +340,7 @@ class GoveeController:
         self._send_message(StatusMessage(), device)
 
     def _handle_status_update_response(self, message: StatusResponse, addr):
+        print("Status update received from %s: %s", addr, message)
         ip = addr[0]
         device = self.get_device_by_ip(ip)
         if device:
