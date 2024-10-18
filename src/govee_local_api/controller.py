@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import asyncio
+import ipaddress
 import logging
 import socket
+from collections.abc import Callable
 from datetime import datetime, timedelta
-from typing import Callable, Tuple, Any, cast
-import ipaddress
+from typing import Any, cast
 
 from .device import GoveeDevice
 from .light_capabilities import (
@@ -16,12 +17,12 @@ from .light_capabilities import (
 from .message import (
     BrightnessMessage,
     ColorMessage,
-    SegmentColorMessages,
     GoveeMessage,
     MessageResponseFactory,
     OnOffMessage,
     ScanMessage,
     ScanResponse,
+    SegmentColorMessages,
     StatusMessage,
     StatusResponse,
 )
@@ -215,7 +216,7 @@ class GoveeController:
         self._send_message(OnOffMessage(status), device)
 
     async def set_segment_color(
-        self, device: GoveeDevice, segment: int, rgb: Tuple[int, int, int]
+        self, device: GoveeDevice, segment: int, rgb: tuple[int, int, int]
     ) -> None:
         if not device.capabilities:
             self._logger.warning("Capabilities not available for device %s", device)
@@ -240,7 +241,7 @@ class GoveeController:
             )
             return
         message = SegmentColorMessages(segment_data, rgb)
-        print("Sending message {} to device {}".format(message, device))
+        print(f"Sending message {message} to device {device}")
         self._send_message(message, device)
 
     async def set_brightness(self, device: GoveeDevice, brightness: int) -> None:
@@ -250,7 +251,7 @@ class GoveeController:
         self,
         device: GoveeDevice,
         *,
-        rgb: Tuple[int, int, int] | None,
+        rgb: tuple[int, int, int] | None,
         temperature: int | None,
     ) -> None:
         if rgb:

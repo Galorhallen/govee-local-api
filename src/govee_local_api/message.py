@@ -1,9 +1,8 @@
-from __future__ import absolute_import, annotations
+from __future__ import annotations
 
 import base64
 import json
-import base64
-from typing import Any, Tuple, TypeVar, Type, Set
+from typing import Any, TypeVar
 
 
 class GoveeMessage:
@@ -68,7 +67,7 @@ class ColorMessage(GoveeMessage):
     command = "colorwc"
 
     def __init__(
-        self, *, rgb: Tuple[int, int, int] | None, temperature: int | None
+        self, *, rgb: tuple[int, int, int] | None, temperature: int | None
     ) -> None:
         if rgb:
             nrgb = [max(0, min(c, 255)) for c in rgb]
@@ -102,7 +101,7 @@ class PtRealMessage(GoveeMessage):
     command = "ptReal"
 
     def __init__(self, data: list[bytes]) -> None:
-        checksumed_data: list[bytes] = [
+        checksumed_data: list[str] = [
             base64.b64encode(self._with_checksum(d)).decode("utf-8") for d in data
         ]
         super().__init__({"command": checksumed_data})
@@ -115,7 +114,7 @@ class PtRealMessage(GoveeMessage):
 
 
 class SegmentColorMessages(PtRealMessage):
-    def __init__(self, segment: bytes, color: Tuple[int, int, int]) -> None:
+    def __init__(self, segment: bytes, color: tuple[int, int, int]) -> None:
         capped_color = [max(0, min(c, 255)) for c in color]
         data = (
             b"\x33\x05\x15\x01"
@@ -192,7 +191,7 @@ class StatusResponse(GoveeMessage):
 
 class MessageResponseFactory:
     def __init__(self) -> None:
-        self._messages: Set[Type[GoveeMessage]] = {ScanResponse, StatusResponse}
+        self._messages: set[type[GoveeMessage]] = {ScanResponse, StatusResponse}
 
     def create_message(self, data: bytes | bytearray | str) -> GoveeMessage | None:
         msg_json = json.loads(data)
@@ -204,7 +203,7 @@ class MessageResponseFactory:
             return None
         cmd: str = msg_json["msg"]["cmd"]
         message_data: dict[str, Any] = msg_json["msg"]["data"]
-        message: Type[GoveeMessage] = next(
+        message: type[GoveeMessage] = next(
             m for m in self._messages if m.command == cmd
         )
         if not message:

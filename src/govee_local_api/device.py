@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import datetime
-from typing import Any, Callable, Tuple
+from typing import Any
 
 from .light_capabilities import GoveeLightCapabilities
 from .message import StatusResponse
@@ -61,7 +62,7 @@ class GoveeDevice:
         return self._is_on
 
     @property
-    def rgb_color(self) -> Tuple[int, int, int]:
+    def rgb_color(self) -> tuple[int, int, int]:
         return self._rgb_color
 
     @property
@@ -72,11 +73,11 @@ class GoveeDevice:
     def temperature_color(self) -> int:
         return self._temperature_color
 
-    def get_segment_color(self, segment: int) -> Tuple[int, int, int]:
+    def get_segment_color(self, segment: int) -> tuple[int, int, int]:
         return self._segments_color[segment - 1]
 
     @property
-    def segments_color(self) -> list[Tuple[int, int, int]]:
+    def segments_color(self) -> list[tuple[int, int, int]]:
         return self._segments_color
 
     @property
@@ -95,7 +96,7 @@ class GoveeDevice:
         self._is_on = True
 
     async def set_segment_color(
-        self, segment: int, color: Tuple[int, int, int]
+        self, segment: int, color: tuple[int, int, int]
     ) -> None:
         self._segments_color[segment - 1] = color
         await self._controller.set_segment_color(self, segment, color)
