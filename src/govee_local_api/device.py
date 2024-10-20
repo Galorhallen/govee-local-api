@@ -73,9 +73,6 @@ class GoveeDevice:
     def temperature_color(self) -> int:
         return self._temperature_color
 
-    def get_segment_color(self, segment: int) -> tuple[int, int, int]:
-        return self._segments_color[segment - 1]
-
     @property
     def segments_color(self) -> list[tuple[int, int, int]]:
         return self._segments_color
@@ -95,11 +92,15 @@ class GoveeDevice:
         await self._controller.turn_on_off(self, True)
         self._is_on = True
 
-    async def set_segment_color(
-        self, segment: int, color: tuple[int, int, int]
+    async def set_segment_rgb_color(
+        self, segment: int, red: int, green: int, blue: int
     ) -> None:
-        self._segments_color[segment - 1] = color
-        await self._controller.set_segment_color(self, segment, color)
+        rgb: tuple[int, int, int] = (red, green, blue)
+        self._segments_color[segment - 1] = rgb
+        await self._controller.set_segment_rgb_color(self, segment, rgb)
+
+    def get_segment_rgb_color(self, segment: int) -> tuple[int, int, int]:
+        return self._segments_color[segment - 1]
 
     async def turn_off(self) -> None:
         await self._controller.turn_on_off(self, False)
@@ -113,10 +114,17 @@ class GoveeDevice:
         rgb = (red, green, blue)
         await self._controller.set_color(self, rgb=rgb, temperature=None)
         self._rgb_color = rgb
+        self._set_segments_color(rgb)
 
     async def set_temperature(self, temperature: int) -> None:
         await self._controller.set_color(self, temperature=temperature, rgb=None)
         self._temperature_color = temperature
+
+    async def set_scene(self, scene: str) -> None:
+        await self._controller.set_scene(self, scene)
+
+    async def set_music(self, music: str) -> None:
+        await self._controller.set_music(self, music)
 
     def update(self, message: StatusResponse) -> None:
         self._is_on = message.is_on
@@ -141,6 +149,10 @@ class GoveeDevice:
             "color": self._rgb_color,
             "colorTemperature": self._temperature_color,
         }
+
+    def _set_segments_color(self, color: tuple[int, int, int]) -> None:
+        for i in range(len(self._segments_color)):
+            self._segments_color[i] = color
 
     def __str__(self) -> str:
         result = f"<GoveeDevice ip={self.ip}, fingerprint={self.fingerprint}, sku={self.sku}, lastseen={self._lastseen}, is_on={self._is_on}"

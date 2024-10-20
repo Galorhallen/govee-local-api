@@ -18,12 +18,11 @@ async def print_status(controller: GoveeController, device: GoveeDevice):
     while True:
         if not device or not device.capabilities:
             continue
-        for seg in range(1, 1 + device.capabilities.segments_count):
-            await device.set_segment_color(seg, (255, 0, 0))
-            await asyncio.sleep(0.1)
-        for seg in range(1, 1 + device.capabilities.segments_count):
-            await device.set_segment_color(seg, (0, 0, 255))
-            await asyncio.sleep(0.1)
+        for music in device.capabilities.available_musics:
+            print(f"Music: {music}")
+            await device.set_music(music)
+            await asyncio.sleep(10)
+
         await asyncio.sleep(1)
 
 
