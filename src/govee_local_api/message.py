@@ -126,21 +126,23 @@ class SegmentColorMessages(PtRealMessage):
         super().__init__([data])
 
 
-class ColorModeMessage(PtRealMessage):
-    def __init__(self, mode: bytes) -> None:
+class SceneMessages(PtRealMessage):
+    def __init__(self, scene: bytes) -> None:
         data = (
-            b"\x33\x05\x15\x01"
-            + mode
+            b"\x33\x05\x04"
+            + scene
             + b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
         )
         super().__init__([data])
 
 
-class SceneMessages(PtRealMessage):
-    def __init__(self, scene: bytes) -> None:
+class MusicMessage(GoveeMessage):
+    command = "ptReal"
+
+    def __init__(self, music: bytes) -> None:
         data = (
-            b"\x33\x05\x15\x01"
-            + scene
+            b"\x33\x05\x13"
+            + b"\x05\x63"
             + b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
         )
         super().__init__([data])

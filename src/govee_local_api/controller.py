@@ -17,6 +17,8 @@ from .light_capabilities import (
 from .message import (
     BrightnessMessage,
     ColorMessage,
+    SceneMessages,
+    MusicMessage,
     GoveeMessage,
     MessageResponseFactory,
     OnOffMessage,
@@ -215,14 +217,14 @@ class GoveeController:
     async def turn_on_off(self, device: GoveeDevice, status: bool) -> None:
         self._send_message(OnOffMessage(status), device)
 
-    async def set_segment_color(
+    async def set_segment_rgb_color(
         self, device: GoveeDevice, segment: int, rgb: tuple[int, int, int]
     ) -> None:
         if not device.capabilities:
             self._logger.warning("Capabilities not available for device %s", device)
             return
 
-        if GoveeLightFeatures.SEGMENT_CONTROL not in device.capabilities.features:
+        if device.capabilities.features & GoveeLightFeatures.SEGMENT_CONTROL == 0:
             self._logger.warning(
                 "Segment control is not supported by device %s", device
             )
@@ -243,6 +245,38 @@ class GoveeController:
         message = SegmentColorMessages(segment_data, rgb)
         print(f"Sending message {message} to device {device}")
         self._send_message(message, device)
+
+    async def set_scene(self, device: GoveeDevice, scene: str) -> None:
+        if (
+            not device.capabilities
+            or device.capabilities.features & GoveeLightFeatures.SCENES == 0
+        ):
+            self._logger.warning("Scenes are not supported by device %s", device)
+            return
+
+        scene_code: bytes | None = device.capabilities.scenes.get(scene.lower(), None)
+        if not scene_code:
+            self._logger.warning(
+                "Scene %s is not available for device %s", scene, device
+            )
+            return
+        self._send_message(SceneMessages(scene_code), device)
+
+    async def set_music(self, device: GoveeDevice, music: str) -> None:
+        if (
+            not device.capabilities
+            or device.capabilities.features & GoveeLightFeatures.MUSIC == 0
+        ):
+            self._logger.warning("Music is not supported by device %s", device)
+            return
+
+        music_code: bytes | None = device.capabilities.musics.get(music.lower(), None)
+        if not music_code:
+            self._logger.warning(
+                "Music %s is not available for device %s", music, device
+            )
+            return
+        self._send_message(MusicMessage(music_code), device)
 
     async def set_brightness(self, device: GoveeDevice, brightness: int) -> None:
         self._send_message(BrightnessMessage(brightness), device)
@@ -343,8 +377,7 @@ class GoveeController:
     def _handle_status_update_response(self, message: StatusResponse, addr):
         print("Status update received from %s: %s", addr, message)
         ip = addr[0]
-        device = self.get_device_by_ip(ip)
-        if device:
+        if device := self.get_device_by_ip(ip):
             device.update(message)
 
     async def _handle_scan_response(self, message: ScanResponse) -> None:
