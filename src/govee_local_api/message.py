@@ -102,11 +102,13 @@ class PtRealMessage(GoveeMessage):
 
     def __init__(self, data: list[bytes]) -> None:
         checksumed_data: list[str] = [
-            base64.b64encode(self._with_checksum(d)).decode("utf-8") for d in data
+            base64.b64encode(PtRealMessage._with_checksum(d)).decode("utf-8")
+            for d in data
         ]
         super().__init__({"command": checksumed_data})
 
-    def _with_checksum(self, data: bytes) -> bytes:
+    @staticmethod
+    def _with_checksum(data: bytes) -> bytes:
         xor_result: int = 0
         for byte in data:
             xor_result ^= byte
