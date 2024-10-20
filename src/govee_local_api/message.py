@@ -136,18 +136,6 @@ class SceneMessages(PtRealMessage):
         super().__init__([data])
 
 
-class MusicMessage(GoveeMessage):
-    command = "ptReal"
-
-    def __init__(self, music: bytes) -> None:
-        data = (
-            b"\x33\x05\x13"
-            + b"\x05\x63"
-            + b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
-        )
-        super().__init__([data])
-
-
 class ScanResponse(GoveeMessage):
     command = "scan"
 

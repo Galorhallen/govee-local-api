@@ -18,9 +18,9 @@ async def print_status(controller: GoveeController, device: GoveeDevice):
     while True:
         if not device or not device.capabilities:
             continue
-        for music in device.capabilities.available_musics:
-            print(f"Music: {music}")
-            await device.set_music(music)
+        for scene in device.capabilities.available_scenes:
+            print(f"scene: {scene}")
+            await device.set_scene(scene)
             await asyncio.sleep(10)
 
         await asyncio.sleep(1)

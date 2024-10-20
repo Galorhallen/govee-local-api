@@ -9,7 +9,6 @@ class GoveeLightFeatures(IntFlag):
     BRIGHTNESS = 0x04
     SEGMENT_CONTROL = 0x08
     SCENES = 0x10
-    MUSIC = 0x20
 
 
 COMMON_FEATURES: GoveeLightFeatures = (
@@ -25,14 +24,12 @@ class GoveeLightCapabilities:
         features: GoveeLightFeatures,
         segments: list[bytes] = [],
         scenes: dict[str, bytes] = {},
-        musics: dict[str, bytes] = {},
     ) -> None:
         self.features = features
         self.segments = (
             segments if features & GoveeLightFeatures.SEGMENT_CONTROL else []
         )
         self.scenes = scenes if features & GoveeLightFeatures.SCENES else {}
-        self.musics = musics if features & GoveeLightFeatures.MUSIC else {}
 
     @property
     def segments_count(self) -> int:
@@ -41,10 +38,6 @@ class GoveeLightCapabilities:
     @property
     def available_scenes(self) -> list[str]:
         return list(self.scenes.keys())
-
-    @property
-    def available_musics(self) -> list[str]:
-        return list(self.musics.keys())
 
     def __repr__(self) -> str:
         return f"GoveeLightCapabilities(features={self.features!r}, segments={self.segments!r}, scenes={self.scenes!r})"
@@ -86,19 +79,9 @@ SCENE_CODES: dict[str, bytes] = {
     "rainbow": b"\x15",
 }
 
-MUSIC_MODES: dict[str, bytes] = {
-    "energetic": b"\x00",
-    "rhythm": b"\x03",
-}
-
 
 def create_with_capabilities(
-    rgb: bool,
-    temperature: bool,
-    brightness: bool,
-    segments: int,
-    scenes: bool,
-    music: bool,
+    rgb: bool, temperature: bool, brightness: bool, segments: int, scenes: bool
 ) -> GoveeLightCapabilities:
     features: GoveeLightFeatures = GoveeLightFeatures(0)
     segments_codes = []
@@ -115,24 +98,14 @@ def create_with_capabilities(
 
     if scenes:
         features = features | GoveeLightFeatures.SCENES
-    if music:
-        features = features | GoveeLightFeatures.MUSIC
 
     return GoveeLightCapabilities(
-        features,
-        segments_codes,
-        SCENE_CODES if scenes else {},
-        MUSIC_MODES if music else {},
+        features, segments_codes, SCENE_CODES if scenes else {}
     )
 
 
 COMMON_CAPABILITIES = create_with_capabilities(
-    rgb=True,
-    temperature=True,
-    brightness=True,
-    segments=0,
-    scenes=True,
-    music=True,
+    rgb=True, temperature=True, brightness=True, segments=0, scenes=True
 )
 
 GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
@@ -157,24 +130,24 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     "H6110": COMMON_CAPABILITIES,
     "H6117": COMMON_CAPABILITIES,
     "H6159": COMMON_CAPABILITIES,
-    "H615A": create_with_capabilities(True, True, True, 0, True, True),
-    "H615B": create_with_capabilities(True, True, True, 0, True, True),
-    "H615C": create_with_capabilities(True, True, True, 0, True, True),
-    "H615D": create_with_capabilities(True, True, True, 0, True, True),
-    "H615E": create_with_capabilities(True, True, True, 0, True, True),
+    "H615A": create_with_capabilities(True, True, True, 0, True),
+    "H615B": create_with_capabilities(True, True, True, 0, True),
+    "H615C": create_with_capabilities(True, True, True, 0, True),
+    "H615D": create_with_capabilities(True, True, True, 0, True),
+    "H615E": create_with_capabilities(True, True, True, 0, True),
     "H6163": COMMON_CAPABILITIES,
     "H6168": COMMON_CAPABILITIES,
     "H6172": COMMON_CAPABILITIES,
     "H6173": COMMON_CAPABILITIES,
-    "H618A": create_with_capabilities(True, True, True, 15, True, True),
-    "H618C": create_with_capabilities(True, True, True, 15, True, True),
-    "H618E": create_with_capabilities(True, True, True, 15, True, True),
-    "H618F": create_with_capabilities(True, True, True, 15, True, True),
-    "H619A": create_with_capabilities(True, True, True, 10, True, True),
-    "H619B": create_with_capabilities(True, True, True, 10, True, True),
-    "H619C": create_with_capabilities(True, True, True, 10, True, True),
-    "H619D": create_with_capabilities(True, True, True, 10, True, True),
-    "H619E": create_with_capabilities(True, True, True, 10, True, True),
+    "H618A": create_with_capabilities(True, True, True, 15, True),
+    "H618C": create_with_capabilities(True, True, True, 15, True),
+    "H618E": create_with_capabilities(True, True, True, 15, True),
+    "H618F": create_with_capabilities(True, True, True, 15, True),
+    "H619A": create_with_capabilities(True, True, True, 10, True),
+    "H619B": create_with_capabilities(True, True, True, 10, True),
+    "H619C": create_with_capabilities(True, True, True, 10, True),
+    "H619D": create_with_capabilities(True, True, True, 10, True),
+    "H619E": create_with_capabilities(True, True, True, 10, True),
     "H619Z": COMMON_CAPABILITIES,
     "H61A0": COMMON_CAPABILITIES,
     "H61A1": COMMON_CAPABILITIES,
@@ -233,6 +206,6 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     "H70B1": COMMON_CAPABILITIES,
     "H70A1": COMMON_CAPABILITIES,
     # Models with only brightness
-    "H7012": create_with_capabilities(False, False, True, 0, False, False),
-    "H7013": create_with_capabilities(False, False, True, 0, False, False),
+    "H7012": create_with_capabilities(False, False, True, 0, False),
+    "H7013": create_with_capabilities(False, False, True, 0, False),
 }

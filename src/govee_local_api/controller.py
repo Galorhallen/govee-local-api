@@ -18,7 +18,6 @@ from .message import (
     BrightnessMessage,
     ColorMessage,
     SceneMessages,
-    MusicMessage,
     GoveeMessage,
     MessageResponseFactory,
     OnOffMessage,
@@ -261,22 +260,6 @@ class GoveeController:
             )
             return
         self._send_message(SceneMessages(scene_code), device)
-
-    async def set_music(self, device: GoveeDevice, music: str) -> None:
-        if (
-            not device.capabilities
-            or device.capabilities.features & GoveeLightFeatures.MUSIC == 0
-        ):
-            self._logger.warning("Music is not supported by device %s", device)
-            return
-
-        music_code: bytes | None = device.capabilities.musics.get(music.lower(), None)
-        if not music_code:
-            self._logger.warning(
-                "Music %s is not available for device %s", music, device
-            )
-            return
-        self._send_message(MusicMessage(music_code), device)
 
     async def set_brightness(self, device: GoveeDevice, brightness: int) -> None:
         self._send_message(BrightnessMessage(brightness), device)
