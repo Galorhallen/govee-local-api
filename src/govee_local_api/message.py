@@ -36,7 +36,7 @@ class ScanMessage(GoveeMessage):
     command = "scan"
 
     def __init__(self) -> None:
-        super().__init__({"account_topic": "GA/123456789"})
+        super().__init__({"account_topic": "reserve"})
 
 
 class DevStatusMessage(GoveeMessage):
@@ -46,7 +46,7 @@ class DevStatusMessage(GoveeMessage):
         super().__init__({})
 
 
-class S111tatusMessage(GoveeMessage):
+class StatusMessage(GoveeMessage):
     command = "status"
 
     def __init__(self) -> None:

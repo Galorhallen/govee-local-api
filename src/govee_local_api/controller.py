@@ -338,8 +338,10 @@ class GoveeController:
         self._logger.debug("Disconnected")
 
     def datagram_received(self, data: bytes, addr: tuple):
-        if not data:
-            return
+        if data:
+            self._loop.create_task(self._handle_datagram_received(data, addr))
+
+    async def _handle_datagram_received(self, data: bytes, addr: tuple):
         message = self._message_factory.create_message(data)
         if not message:
             if self._logger.isEnabledFor(logging.DEBUG):
@@ -353,16 +355,13 @@ class GoveeController:
             return
 
         if message.command == ScanResponse.command:
-            self._loop.create_task(
-                self._handle_scan_response(cast(ScanResponse, message))
-            )
+            await self._handle_scan_response(cast(ScanResponse, message))
         elif message.command == DevStatusResponse.command:
-            self._handle_status_update_response(cast(DevStatusResponse, message), addr)
+            await self._handle_status_update_response(
+                cast(DevStatusResponse, message), addr
+            )
 
-    def _send_update_message(self, device: GoveeDevice):
-        self._send_message(DevStatusMessage(), device)
-
-    def _handle_status_update_response(self, message: DevStatusResponse, addr):
+    async def _handle_status_update_response(self, message: DevStatusResponse, addr):
         self._logger.debug("Status update received from {}: {}", addr, message)
         ip = addr[0]
         if device := self.get_device_by_ip(ip):
@@ -370,9 +369,11 @@ class GoveeController:
 
     async def _handle_scan_response(self, message: ScanResponse) -> None:
         fingerprint = message.device
-        device = self.get_device_by_fingerprint(fingerprint)
-
-        if device is None:
+        if device := self.get_device_by_fingerprint(fingerprint):
+            if self._call_discovered_callback(device, False):
+                device.update_lastseen()
+                self._logger.debug("Device updated: %s", device)
+        else:
             capabilities = GOVEE_LIGHT_CAPABILITIES.get(message.sku, None)
             if not capabilities:
                 capabilities = ON_OFF_CAPABILITIES
@@ -388,10 +389,6 @@ class GoveeController:
                 self._logger.debug("Device discovered: %s", device)
             else:
                 self._logger.debug("Device %s ignored", device)
-        else:
-            if self._call_discovered_callback(device, False):
-                device.update_lastseen()
-                self._logger.debug("Device updated: %s", device)
 
         if self._evict_enabled:
             self._evict()
@@ -403,6 +400,9 @@ class GoveeController:
 
     def _send_message(self, message: GoveeMessage, device: GoveeDevice) -> None:
         self._transport.sendto(bytes(message), (device.ip, self._device_command_port))
+
+    def _send_update_message(self, device: GoveeDevice):
+        self._send_message(DevStatusMessage(), device)
 
     def _evict(self) -> None:
         now = datetime.now()
