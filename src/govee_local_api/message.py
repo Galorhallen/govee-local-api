@@ -36,11 +36,18 @@ class ScanMessage(GoveeMessage):
     command = "scan"
 
     def __init__(self) -> None:
-        super().__init__({"account_topic": "reserve"})
+        super().__init__({"account_topic": "GA/123456789"})
 
 
-class StatusMessage(GoveeMessage):
+class DevStatusMessage(GoveeMessage):
     command = "devStatus"
+
+    def __init__(self) -> None:
+        super().__init__({})
+
+
+class S111tatusMessage(GoveeMessage):
+    command = "status"
 
     def __init__(self) -> None:
         super().__init__({})
@@ -87,24 +94,19 @@ class ColorMessage(GoveeMessage):
         super().__init__(data)
 
 
-class HexMessage(GoveeMessage):
-    command = "ptReal"
-
-    def __init__(self, data: list[str]) -> None:
-        encoded_data: list[str] = [
-            base64.b64encode(d.encode("utf-8")).decode("utf-8") for d in data
-        ]
-        super().__init__({"command": encoded_data})
-
-
 class PtRealMessage(GoveeMessage):
     command = "ptReal"
 
-    def __init__(self, data: list[bytes]) -> None:
-        checksumed_data: list[str] = [
-            base64.b64encode(PtRealMessage._with_checksum(d)).decode("utf-8")
-            for d in data
-        ]
+    def __init__(self, data: list[bytes], do_checksum: bool = True) -> None:
+        checksumed_data: list[str] = (
+            [
+                base64.b64encode(PtRealMessage._with_checksum(d)).decode("utf-8")
+                for d in data
+            ]
+            if do_checksum
+            else [base64.b64encode(d).decode("utf-8") for d in data]
+        )
+
         super().__init__({"command": checksumed_data})
 
     @staticmethod
@@ -113,6 +115,11 @@ class PtRealMessage(GoveeMessage):
         for byte in data:
             xor_result ^= byte
         return data + xor_result.to_bytes(1, "big")
+
+
+class HexMessage(PtRealMessage):
+    def __init__(self, data: list[str]) -> None:
+        super().__init__([bytes.fromhex(d) for d in data], do_checksum=False)
 
 
 class SegmentColorMessages(PtRealMessage):
@@ -157,7 +164,7 @@ class ScanResponse(GoveeMessage):
         return self._data["ip"]
 
 
-class StatusResponse(GoveeMessage):
+class DevStatusResponse(GoveeMessage):
     command = "devStatus"
 
     def __init__(self, data: dict[str, Any]) -> None:
@@ -181,16 +188,28 @@ class StatusResponse(GoveeMessage):
         return self._data["colorTemInKelvin"]
 
 
+class StatusResponse(GoveeMessage):
+    command = "status"
+
+    def __init__(self, data: dict[str, Any]) -> None:
+        super().__init__(data)
+
+    def hex(self) -> str:
+        return base64.b64decode(self._data["pt"]).hex()
+
+
 class MessageResponseFactory:
     def __init__(self) -> None:
-        self._messages: set[type[GoveeMessage]] = {ScanResponse, StatusResponse}
+        self._messages: set[type[GoveeMessage]] = {
+            ScanResponse,
+            DevStatusResponse,
+            StatusResponse,
+        }
 
     def create_message(self, data: bytes | bytearray | str) -> GoveeMessage | None:
         msg_json = json.loads(data)
-        if (
-            "msg" not in msg_json
-            or "cmd" not in msg_json["msg"]
-            and "data" not in msg_json["msg"]
+        if "msg" not in msg_json or (
+            "cmd" not in msg_json["msg"] and "data" not in msg_json["msg"]
         ):
             return None
         cmd: str = msg_json["msg"]["cmd"]

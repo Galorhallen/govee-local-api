@@ -108,6 +108,10 @@ COMMON_CAPABILITIES = create_with_capabilities(
     rgb=True, temperature=True, brightness=True, segments=0, scenes=True
 )
 
+ON_OFF_CAPABILITIES = create_with_capabilities(
+    rgb=False, temperature=False, brightness=False, segments=0, scenes=False
+)
+
 GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     # Models with common features
     "H6046": COMMON_CAPABILITIES,

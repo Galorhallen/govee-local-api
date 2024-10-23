@@ -11,10 +11,12 @@ from typing import Any, cast
 from .device import GoveeDevice
 from .light_capabilities import (
     GOVEE_LIGHT_CAPABILITIES,
+    ON_OFF_CAPABILITIES,
     GoveeLightCapabilities,
     GoveeLightFeatures,
 )
 from .message import (
+    HexMessage,
     BrightnessMessage,
     ColorMessage,
     SceneMessages,
@@ -24,8 +26,8 @@ from .message import (
     ScanMessage,
     ScanResponse,
     SegmentColorMessages,
-    StatusMessage,
-    StatusResponse,
+    DevStatusMessage,
+    DevStatusResponse,
 )
 
 BROADCAST_ADDRESS = "239.255.255.250"
@@ -128,7 +130,7 @@ class GoveeController:
         ip: str,
         sku: str,
         fingerprint,
-        capabilities: GoveeLightCapabilities | None,
+        capabilities: GoveeLightCapabilities,
     ) -> None:
         device: GoveeDevice = GoveeDevice(self, ip, fingerprint, sku, capabilities)
         self._devices[fingerprint] = device
@@ -242,7 +244,7 @@ class GoveeController:
             )
             return
         message = SegmentColorMessages(segment_data, rgb)
-        print(f"Sending message {message} to device {device}")
+        self._logger.debug(f"Sending message {message} to device {device}")
         self._send_message(message, device)
 
     async def set_scene(self, device: GoveeDevice, scene: str) -> None:
@@ -275,6 +277,9 @@ class GoveeController:
             self._send_message(ColorMessage(rgb=rgb, temperature=None), device)
         else:
             self._send_message(ColorMessage(rgb=None, temperature=temperature), device)
+
+    async def send_raw_command(self, device: GoveeDevice, command: str) -> None:
+        self._send_message(HexMessage([command]), device)
 
     def get_device_by_ip(self, ip: str) -> GoveeDevice | None:
         return next(
@@ -351,14 +356,14 @@ class GoveeController:
             self._loop.create_task(
                 self._handle_scan_response(cast(ScanResponse, message))
             )
-        elif message.command == StatusResponse.command:
-            self._handle_status_update_response(cast(StatusResponse, message), addr)
+        elif message.command == DevStatusResponse.command:
+            self._handle_status_update_response(cast(DevStatusResponse, message), addr)
 
     def _send_update_message(self, device: GoveeDevice):
-        self._send_message(StatusMessage(), device)
+        self._send_message(DevStatusMessage(), device)
 
-    def _handle_status_update_response(self, message: StatusResponse, addr):
-        print("Status update received from %s: %s", addr, message)
+    def _handle_status_update_response(self, message: DevStatusResponse, addr):
+        self._logger.debug("Status update received from {}: {}", addr, message)
         ip = addr[0]
         if device := self.get_device_by_ip(ip):
             device.update(message)
@@ -370,6 +375,7 @@ class GoveeController:
         if device is None:
             capabilities = GOVEE_LIGHT_CAPABILITIES.get(message.sku, None)
             if not capabilities:
+                capabilities = ON_OFF_CAPABILITIES
                 self._logger.warning(
                     "Device %s is not supported. Only power control is available. Please open an issue at 'https://github.com/Galorhallen/govee-local-api/issues'",
                     message.sku,
