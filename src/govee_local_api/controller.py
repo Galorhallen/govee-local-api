@@ -19,13 +19,11 @@ from .message import (
     BrightnessMessage,
     ColorMessage,
     SceneMessages,
-    GoveeMessage,
     MessageResponseFactory,
     OnOffMessage,
     ScanMessage,
     ScanResponse,
     SegmentColorMessages,
-    DevStatusMessage,
     DevStatusResponse,
 )
 
@@ -38,10 +36,12 @@ DISCOVERY_INTERVAL = 10
 EVICT_INTERVAL = DISCOVERY_INTERVAL * 3
 UPDATE_INTERVAL = 5
 
+
 class _GoveeDeviceAndProtocol:
     def __init__(self, device: GoveeDevice, protocol: GoveeLanProtocol) -> None:
         self.device = device
         self.protocol = protocol
+
 
 class GoveeController:
     def __init__(
