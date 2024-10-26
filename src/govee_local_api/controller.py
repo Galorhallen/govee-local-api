@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 import asyncio
-import ipaddress
 import logging
-import socket
 from collections.abc import Callable
 from datetime import datetime, timedelta
-from typing import Any, cast
+from typing import cast, Any
 
 from .device import GoveeDevice
+from .protocol import GoveeLanProtocol
 from .light_capabilities import (
     GOVEE_LIGHT_CAPABILITIES,
     ON_OFF_CAPABILITIES,
@@ -39,6 +38,10 @@ DISCOVERY_INTERVAL = 10
 EVICT_INTERVAL = DISCOVERY_INTERVAL * 3
 UPDATE_INTERVAL = 5
 
+class _GoveeDeviceAndProtocol:
+    def __init__(self, device: GoveeDevice, protocol: GoveeLanProtocol) -> None:
+        self.device = device
+        self.protocol = protocol
 
 class GoveeController:
     def __init__(
@@ -46,7 +49,7 @@ class GoveeController:
         loop=None,
         broadcast_address: str = BROADCAST_ADDRESS,
         broadcast_port: int = BROADCAST_PORT,
-        listening_address: str = "0.0.0.0",
+        listening_addresses: list[str] = ["0.0.0.0"],
         listening_port: int = LISTENING_PORT,
         device_command_port: int = COMMAND_PORT,
         discovery_enabled: bool = False,
@@ -76,19 +79,17 @@ class GoveeController:
             discovered_callback (Callable[GoveeDevice, bool]): An optional function to call when a device is discovered (or rediscovered). Default None
             evicted_callback (Callable[GoveeDevice]): An optional function to call when a device is evicted.
         """
-
-        self._transport: Any = None
-        self._protocol = None
+        self._protocols: list[GoveeLanProtocol] = []
         self._broadcast_address = broadcast_address
         self._broadcast_port = broadcast_port
-        self._listening_address = listening_address
+        self._listening_addresses = listening_addresses
         self._listening_port = listening_port
         self._device_command_port = device_command_port
 
         self._loop = loop or asyncio.get_running_loop()
         self._cleanup_done: asyncio.Event = asyncio.Event()
         self._message_factory = MessageResponseFactory()
-        self._devices: dict[str, GoveeDevice] = {}
+        self._devices: dict[str, _GoveeDeviceAndProtocol] = {}
 
         self._discovery_enabled = discovery_enabled
         self._discovery_interval = discovery_interval
@@ -105,10 +106,20 @@ class GoveeController:
         self._discovery_handle: asyncio.TimerHandle | None = None
         self._update_handle: asyncio.TimerHandle | None = None
 
-    async def start(self):
-        self._transport, self._protocol = await self._loop.create_datagram_endpoint(
-            lambda: self, local_addr=(self._listening_address, self._listening_port)
-        )
+    async def start(self) -> None:
+        for address in self._listening_addresses:
+            protocol: GoveeLanProtocol = GoveeLanProtocol(
+                self._loop,
+                self._broadcast_address,
+                self._broadcast_port,
+                address,
+                self._listening_port,
+                self._device_command_port,
+                self.datagram_received_callback,
+                self.connection_lost_callback,
+            )
+            self._protocols.append(protocol)
+            await protocol.start()
 
         if self._discovery_enabled:
             self.send_discovery_message()
@@ -116,14 +127,14 @@ class GoveeController:
             self.send_update_message()
 
     def cleanup(self) -> asyncio.Event:
-        self._cleanup_done.clear()
         self.set_update_enabled(False)
         self.set_discovery_enabled(False)
 
-        if self._transport:
-            self._transport.close()
+        for protocol in self._protocols:
+            protocol.cleanup()
+
         self._devices.clear()
-        return self._cleanup_done
+        return None
 
     def add_device(
         self,
@@ -192,22 +203,20 @@ class GoveeController:
 
     def send_discovery_message(self) -> None:
         message: ScanMessage = ScanMessage()
-        if self._transport:
-            self._transport.sendto(
-                bytes(message), (self._broadcast_address, self._broadcast_port)
-            )
+        for protocol in self._protocols:
+            protocol.broadcast(bytes(message))
 
-            if self._discovery_enabled:
-                self._discovery_handle = self._loop.call_later(
-                    self._discovery_interval, self.send_discovery_message
-                )
+        if self._discovery_enabled:
+            self._discovery_handle = self._loop.call_later(
+                self._discovery_interval, self.send_discovery_message
+            )
 
     def send_update_message(self, device: GoveeDevice | None = None) -> None:
         if self._transport:
             if device:
                 self._send_update_message(device=device)
             else:
-                for d in self._devices.values():
+                for devAndProtocol in self._devices.values():
                     self._send_update_message(device=d)
 
             if self._update_enabled:
@@ -299,49 +308,18 @@ class GoveeController:
     def devices(self) -> list[GoveeDevice]:
         return list(self._devices.values())
 
-    def connection_made(self, transport):
-        self._transport = transport
-        sock = self._transport.get_extra_info("socket")
+    def connection_lost_callback(self, protocol: GoveeLanProtocol) -> None:
+        self._protocols.remove(protocol)
 
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-
-        broadcast_ip = ipaddress.ip_address(self._broadcast_address)
-
-        if broadcast_ip.is_multicast:
-            sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
-
-            sock.setsockopt(
-                socket.SOL_IP,
-                socket.IP_MULTICAST_IF,
-                socket.inet_aton(self._listening_address),
-            )
-            sock.setsockopt(
-                socket.SOL_IP,
-                socket.IP_ADD_MEMBERSHIP,
-                socket.inet_aton(self._broadcast_address)
-                + socket.inet_aton(self._listening_address),
-            )
-
-    def connection_lost(self, *args, **kwargs):
-        if self._transport:
-            broadcast_ip = ipaddress.ip_address(self._broadcast_address)
-            if broadcast_ip.is_multicast:
-                sock = self._transport.get_extra_info("socket")
-                sock.setsockopt(
-                    socket.SOL_IP,
-                    socket.IP_DROP_MEMBERSHIP,
-                    socket.inet_aton(self._broadcast_address)
-                    + socket.inet_aton(self._listening_address),
-                )
-        self._cleanup_done.set()
-        self._logger.debug("Disconnected")
-
-    def datagram_received(self, data: bytes, addr: tuple):
+    def datagram_received_callback(
+        self, protocol: GoveeLanProtocol, data: bytes, addr: tuple[str | Any, int]
+    ) -> None:
         if data:
-            self._loop.create_task(self._handle_datagram_received(data, addr))
+            self._loop.create_task(self._handle_datagram_received(protocol, data, addr))
 
-    async def _handle_datagram_received(self, data: bytes, addr: tuple):
+    async def _handle_datagram_received(
+        self, protocol: GoveeLanProtocol, data: bytes, addr: tuple
+    ):
         message = self._message_factory.create_message(data)
         if not message:
             if self._logger.isEnabledFor(logging.DEBUG):
@@ -355,19 +333,23 @@ class GoveeController:
             return
 
         if message.command == ScanResponse.command:
-            await self._handle_scan_response(cast(ScanResponse, message))
+            await self._handle_scan_response(protocol, cast(ScanResponse, message))
         elif message.command == DevStatusResponse.command:
             await self._handle_status_update_response(
-                cast(DevStatusResponse, message), addr
+                protocol, cast(DevStatusResponse, message), addr
             )
 
-    async def _handle_status_update_response(self, message: DevStatusResponse, addr):
+    async def _handle_status_update_response(
+        self, protocol: GoveeLanProtocol, message: DevStatusResponse, addr
+    ) -> None:
         self._logger.debug("Status update received from {}: {}", addr, message)
         ip = addr[0]
         if device := self.get_device_by_ip(ip):
             device.update(message)
 
-    async def _handle_scan_response(self, message: ScanResponse) -> None:
+    async def _handle_scan_response(
+        self, protocol: GoveeLanProtocol, message: ScanResponse
+    ) -> None:
         fingerprint = message.device
         if device := self.get_device_by_fingerprint(fingerprint):
             if self._call_discovered_callback(device, False):
@@ -397,12 +379,6 @@ class GoveeController:
         if not self._device_discovered_callback:
             return True
         return self._device_discovered_callback(device, is_new)
-
-    def _send_message(self, message: GoveeMessage, device: GoveeDevice) -> None:
-        self._transport.sendto(bytes(message), (device.ip, self._device_command_port))
-
-    def _send_update_message(self, device: GoveeDevice):
-        self._send_message(DevStatusMessage(), device)
 
     def _evict(self) -> None:
         now = datetime.now()
