@@ -311,7 +311,17 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, set[GoveeLightCapability]] = {
         GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
         GoveeLightCapability.BRIGHTNESS,
     },
+    "H705D": {
+        GoveeLightCapability.COLOR_RGB,
+        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
+        GoveeLightCapability.BRIGHTNESS,
+    },
     "H705E": {
+        GoveeLightCapability.COLOR_RGB,
+        GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
+        GoveeLightCapability.BRIGHTNESS,
+    },
+    "H705F": {
         GoveeLightCapability.COLOR_RGB,
         GoveeLightCapability.COLOR_KELVIN_TEMPERATURE,
         GoveeLightCapability.BRIGHTNESS,
