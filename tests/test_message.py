@@ -1,9 +1,12 @@
-from __future__ import absolute_import
+from govee_local_api.message import (
+    ScanMessage,
+    ColorMessage,
+    BrightnessMessage,
+    OnOffMessage,
+)
 
-from govee_local_api.message import *
 
-
-def test_scan_message():
+def test_scan_message() -> None:
     msg: ScanMessage = ScanMessage()
     assert msg.as_dict() == {
         "msg": {"cmd": "scan", "data": {"account_topic": "reserve"}}
