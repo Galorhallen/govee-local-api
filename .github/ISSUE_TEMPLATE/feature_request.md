@@ -1,6 +1,6 @@
 ---
 name: Feature request
-about: Suggest an idea for this project
+about: Request support for a light model
 title: ''
 labels: enhancement
 assignees: Galorhallen
@@ -9,7 +9,6 @@ assignees: Galorhallen
 
 ## 🚀 Light Support Template for Govee LAN API Library
 ---
-
 
 ### 💡 Light Details
 Provide information about the Govee light(s) features:
