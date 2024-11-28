@@ -75,8 +75,7 @@ SCENE_CODES: dict[str, bytes] = {
     "snowflake": b"\x0f",
     "energetic": b"\x10",
     "breathe": b"\x0a",
-    "crossing": b"\x14",
-    "rainbow": b"\x15",
+    "crossing": b"\x15",
 }
 
 

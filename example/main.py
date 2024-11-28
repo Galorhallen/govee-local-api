@@ -37,6 +37,7 @@ async def create_controller() -> GoveeController:
 async def menu(device: GoveeDevice) -> None:
     print("\nDevice: ", device)
     print("Select an option:")
+    print("0. Exit")
     print("1. Turn on")
     print("2. Turn off")
     print("3. Set brightness (0-100)")
@@ -46,7 +47,6 @@ async def menu(device: GoveeDevice) -> None:
     print("7. Send raw hex")
     print("8. Clear screen")
     print("9. Clear Device")
-    print("10. Exit")
 
 
 async def handle_turn_on(device: GoveeDevice) -> None:
@@ -123,16 +123,14 @@ async def handle_set_segment_color(device: GoveeDevice, session: PromptSession) 
 async def handle_set_scene(device: GoveeDevice, session: PromptSession):
     while True:
         scenes = device.capabilities.available_scenes
-        for idx, scene in enumerate(scenes, 1):
+        for idx, scene in enumerate(scenes):
             print(f"{idx}: {scene}")
 
-        scene = await session.prompt_async(
-            f"Enter scene number (1-{len(scenes) - 1}): "
-        )
-        scene_name = scenes[int(scene) - 1]
+        scene = await session.prompt_async(f"Enter scene number (0-{len(scenes)}): ")
+        scene_name = scenes[int(scene)]
         if scene_name in device.capabilities.available_scenes:
             print(f"Setting scene to {scene}")
-            await device.set_scene(scene)
+            await device.set_scene(scene_name)
             break
         else:
             print("Invalid scene. Please choose from the available scenes.")
@@ -178,6 +176,7 @@ async def repl() -> None:
 
     # Dictionary of command handlers
     command_handlers = {
+        "0": handle_exit,
         "1": handle_turn_on,
         "2": handle_turn_off,
         "3": lambda device: handle_set_brightness(device, session),
@@ -186,7 +185,6 @@ async def repl() -> None:
         "6": lambda device: handle_set_scene(device, session),
         "7": lambda device: handle_send_hex(device, session),
         "8": handle_clear_screen,
-        "10": handle_exit,
     }
 
     controller: GoveeController = await create_controller()
