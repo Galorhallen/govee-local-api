@@ -1,7 +1,8 @@
-from __future__ import absolute_import, annotations
+from __future__ import annotations
 
+import base64
 import json
-from typing import Any, Tuple, TypeVar, Type, Set
+from typing import Any, TypeVar
 
 
 class GoveeMessage:
@@ -38,8 +39,15 @@ class ScanMessage(GoveeMessage):
         super().__init__({"account_topic": "reserve"})
 
 
-class StatusMessage(GoveeMessage):
+class DevStatusMessage(GoveeMessage):
     command = "devStatus"
+
+    def __init__(self) -> None:
+        super().__init__({})
+
+
+class StatusMessage(GoveeMessage):
+    command = "status"
 
     def __init__(self) -> None:
         super().__init__({})
@@ -66,7 +74,7 @@ class ColorMessage(GoveeMessage):
     command = "colorwc"
 
     def __init__(
-        self, *, rgb: Tuple[int, int, int] | None, temperature: int | None
+        self, *, rgb: tuple[int, int, int] | None, temperature: int | None
     ) -> None:
         if rgb:
             nrgb = [max(0, min(c, 255)) for c in rgb]
@@ -84,6 +92,57 @@ class ColorMessage(GoveeMessage):
             }
 
         super().__init__(data)
+
+
+class PtRealMessage(GoveeMessage):
+    command = "ptReal"
+
+    def __init__(self, data: list[bytes], do_checksum: bool = True) -> None:
+        checksumed_data: list[str] = (
+            [
+                base64.b64encode(PtRealMessage._with_checksum(d)).decode("utf-8")
+                for d in data
+            ]
+            if do_checksum
+            else [base64.b64encode(d).decode("utf-8") for d in data]
+        )
+
+        super().__init__({"command": checksumed_data})
+
+    @staticmethod
+    def _with_checksum(data: bytes) -> bytes:
+        xor_result: int = 0
+        for byte in data:
+            xor_result ^= byte
+        return data + xor_result.to_bytes(1, "big")
+
+
+class HexMessage(PtRealMessage):
+    def __init__(self, data: list[str]) -> None:
+        super().__init__([bytes.fromhex(d) for d in data], do_checksum=False)
+
+
+class SegmentColorMessages(PtRealMessage):
+    def __init__(self, segment: bytes, color: tuple[int, int, int]) -> None:
+        capped_color = [max(0, min(c, 255)) for c in color]
+        data = (
+            b"\x33\x05\x15\x01"
+            + bytes(capped_color)
+            + b"\x00\x00\x00\x00\x00"
+            + segment
+            + b"\x00\x00\x00\x00\x00"
+        )
+        super().__init__([data])
+
+
+class SceneMessages(PtRealMessage):
+    def __init__(self, scene: bytes) -> None:
+        data = (
+            b"\x33\x05\x04"
+            + scene
+            + b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        )
+        super().__init__([data])
 
 
 class ScanResponse(GoveeMessage):
@@ -105,7 +164,7 @@ class ScanResponse(GoveeMessage):
         return self._data["ip"]
 
 
-class StatusResponse(GoveeMessage):
+class DevStatusResponse(GoveeMessage):
     command = "devStatus"
 
     def __init__(self, data: dict[str, Any]) -> None:
@@ -129,21 +188,33 @@ class StatusResponse(GoveeMessage):
         return self._data["colorTemInKelvin"]
 
 
+class StatusResponse(GoveeMessage):
+    command = "status"
+
+    def __init__(self, data: dict[str, Any]) -> None:
+        super().__init__(data)
+
+    def hex(self) -> str:
+        return base64.b64decode(self._data["pt"]).hex()
+
+
 class MessageResponseFactory:
     def __init__(self) -> None:
-        self._messages: Set[Type[GoveeMessage]] = {ScanResponse, StatusResponse}
+        self._messages: set[type[GoveeMessage]] = {
+            ScanResponse,
+            DevStatusResponse,
+            StatusResponse,
+        }
 
     def create_message(self, data: bytes | bytearray | str) -> GoveeMessage | None:
         msg_json = json.loads(data)
-        if (
-            "msg" not in msg_json
-            or "cmd" not in msg_json["msg"]
-            and "data" not in msg_json["msg"]
+        if "msg" not in msg_json or (
+            "cmd" not in msg_json["msg"] and "data" not in msg_json["msg"]
         ):
             return None
         cmd: str = msg_json["msg"]["cmd"]
         message_data: dict[str, Any] = msg_json["msg"]["data"]
-        message: Type[GoveeMessage] = next(
+        message: type[GoveeMessage] = next(
             m for m in self._messages if m.command == cmd
         )
         if not message:

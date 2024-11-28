@@ -1,24 +1,33 @@
 from __future__ import annotations
 
 import asyncio
+import ipaddress
 import logging
 import socket
+from collections.abc import Callable
 from datetime import datetime, timedelta
-from typing import Callable, Tuple, Any, cast
-import ipaddress
+from typing import Any, cast
 
 from .device import GoveeDevice
-from .light_capabilities import GOVEE_LIGHT_CAPABILITIES, GoveeLightCapability
+from .light_capabilities import (
+    GOVEE_LIGHT_CAPABILITIES,
+    ON_OFF_CAPABILITIES,
+    GoveeLightCapabilities,
+    GoveeLightFeatures,
+)
 from .message import (
+    HexMessage,
     BrightnessMessage,
     ColorMessage,
+    SceneMessages,
     GoveeMessage,
     MessageResponseFactory,
     OnOffMessage,
     ScanMessage,
     ScanResponse,
-    StatusMessage,
-    StatusResponse,
+    SegmentColorMessages,
+    DevStatusMessage,
+    DevStatusResponse,
 )
 
 BROADCAST_ADDRESS = "239.255.255.250"
@@ -121,7 +130,7 @@ class GoveeController:
         ip: str,
         sku: str,
         fingerprint,
-        capabilities: set[GoveeLightCapability] | None,
+        capabilities: GoveeLightCapabilities,
     ) -> None:
         device: GoveeDevice = GoveeDevice(self, ip, fingerprint, sku, capabilities)
         self._devices[fingerprint] = device
@@ -209,6 +218,51 @@ class GoveeController:
     async def turn_on_off(self, device: GoveeDevice, status: bool) -> None:
         self._send_message(OnOffMessage(status), device)
 
+    async def set_segment_rgb_color(
+        self, device: GoveeDevice, segment: int, rgb: tuple[int, int, int]
+    ) -> None:
+        if not device.capabilities:
+            self._logger.warning("Capabilities not available for device %s", device)
+            return
+
+        if device.capabilities.features & GoveeLightFeatures.SEGMENT_CONTROL == 0:
+            self._logger.warning(
+                "Segment control is not supported by device %s", device
+            )
+            return
+
+        if segment < 1 or segment > len(device.capabilities.segments):
+            self._logger.warning(
+                "Segment index %s is not valid for device %s", segment, device
+            )
+            return
+
+        segment_data: bytes = device.capabilities.segments[segment - 1]
+        if not segment_data:
+            self._logger.warning(
+                "Segment %s is not supported by device %s", segment, device
+            )
+            return
+        message = SegmentColorMessages(segment_data, rgb)
+        self._logger.debug(f"Sending message {message} to device {device}")
+        self._send_message(message, device)
+
+    async def set_scene(self, device: GoveeDevice, scene: str) -> None:
+        if (
+            not device.capabilities
+            or device.capabilities.features & GoveeLightFeatures.SCENES == 0
+        ):
+            self._logger.warning("Scenes are not supported by device %s", device)
+            return
+
+        scene_code: bytes | None = device.capabilities.scenes.get(scene.lower(), None)
+        if not scene_code:
+            self._logger.warning(
+                "Scene %s is not available for device %s", scene, device
+            )
+            return
+        self._send_message(SceneMessages(scene_code), device)
+
     async def set_brightness(self, device: GoveeDevice, brightness: int) -> None:
         self._send_message(BrightnessMessage(brightness), device)
 
@@ -216,13 +270,16 @@ class GoveeController:
         self,
         device: GoveeDevice,
         *,
-        rgb: Tuple[int, int, int] | None,
+        rgb: tuple[int, int, int] | None,
         temperature: int | None,
     ) -> None:
         if rgb:
             self._send_message(ColorMessage(rgb=rgb, temperature=None), device)
         else:
             self._send_message(ColorMessage(rgb=None, temperature=temperature), device)
+
+    async def send_raw_command(self, device: GoveeDevice, command: str) -> None:
+        self._send_message(HexMessage([command]), device)
 
     def get_device_by_ip(self, ip: str) -> GoveeDevice | None:
         return next(
@@ -281,8 +338,10 @@ class GoveeController:
         self._logger.debug("Disconnected")
 
     def datagram_received(self, data: bytes, addr: tuple):
-        if not data:
-            return
+        if data:
+            self._loop.create_task(self._handle_datagram_received(data, addr))
+
+    async def _handle_datagram_received(self, data: bytes, addr: tuple):
         message = self._message_factory.create_message(data)
         if not message:
             if self._logger.isEnabledFor(logging.DEBUG):
@@ -296,28 +355,28 @@ class GoveeController:
             return
 
         if message.command == ScanResponse.command:
-            self._loop.create_task(
-                self._handle_scan_response(cast(ScanResponse, message))
+            await self._handle_scan_response(cast(ScanResponse, message))
+        elif message.command == DevStatusResponse.command:
+            await self._handle_status_update_response(
+                cast(DevStatusResponse, message), addr
             )
-        elif message.command == StatusResponse.command:
-            self._handle_status_update_response(cast(StatusResponse, message), addr)
 
-    def _send_update_message(self, device: GoveeDevice):
-        self._send_message(StatusMessage(), device)
-
-    def _handle_status_update_response(self, message: StatusResponse, addr):
+    async def _handle_status_update_response(self, message: DevStatusResponse, addr):
+        self._logger.debug("Status update received from {}: {}", addr, message)
         ip = addr[0]
-        device = self.get_device_by_ip(ip)
-        if device:
+        if device := self.get_device_by_ip(ip):
             device.update(message)
 
     async def _handle_scan_response(self, message: ScanResponse) -> None:
         fingerprint = message.device
-        device = self.get_device_by_fingerprint(fingerprint)
-
-        if device is None:
+        if device := self.get_device_by_fingerprint(fingerprint):
+            if self._call_discovered_callback(device, False):
+                device.update_lastseen()
+                self._logger.debug("Device updated: %s", device)
+        else:
             capabilities = GOVEE_LIGHT_CAPABILITIES.get(message.sku, None)
             if not capabilities:
+                capabilities = ON_OFF_CAPABILITIES
                 self._logger.warning(
                     "Device %s is not supported. Only power control is available. Please open an issue at 'https://github.com/Galorhallen/govee-local-api/issues'",
                     message.sku,
@@ -330,10 +389,6 @@ class GoveeController:
                 self._logger.debug("Device discovered: %s", device)
             else:
                 self._logger.debug("Device %s ignored", device)
-        else:
-            if self._call_discovered_callback(device, False):
-                device.update_lastseen()
-                self._logger.debug("Device updated: %s", device)
 
         if self._evict_enabled:
             self._evict()
@@ -345,6 +400,9 @@ class GoveeController:
 
     def _send_message(self, message: GoveeMessage, device: GoveeDevice) -> None:
         self._transport.sendto(bytes(message), (device.ip, self._device_command_port))
+
+    def _send_update_message(self, device: GoveeDevice):
+        self._send_message(DevStatusMessage(), device)
 
     def _evict(self) -> None:
         now = datetime.now()
