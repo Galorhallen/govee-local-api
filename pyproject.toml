@@ -26,15 +26,15 @@ packages = [
 # Duplicate the line above to add more files
 
 [tool.poetry.dependencies]
-python = "^3.10"
-poetry = "^1.8.4"
+python = "^3.13"
+poetry = "^1.8.5"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"
 prompt_toolkit = "^3.0.0"
 
 [tool.black]
-target-version = ["py310", "py311"]
+target-version = ["py310", "py311", "py312", "py313"]
 
 [tool.ruff.isort]
 force-sort-within-sections = true
