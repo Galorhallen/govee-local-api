@@ -26,7 +26,7 @@ packages = [
 # Duplicate the line above to add more files
 
 [tool.poetry.dependencies]
-python = ">=3.11"
+python = "^3.11"
 poetry = "^1.8.5"
 
 [tool.poetry.group.dev.dependencies]
