@@ -1,10 +1,23 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import datetime
-from typing import Any, Callable, Tuple
+from typing import Any
 
-from .light_capabilities import GoveeLightCapability
-from .message import StatusResponse
+from .light_capabilities import GoveeLightCapabilities, ON_OFF_CAPABILITIES
+from .message import DevStatusResponse
+
+
+class GoveeSegment:
+    def __init__(self, is_on: bool, color: tuple[int, int, int]) -> None:
+        self.is_on = is_on
+        self.color = color
+
+    def as_dict(self) -> dict[str, Any]:
+        return {"is_on": self.is_on, "color": self.color}
+
+    def __str__(self) -> str:
+        return f"<GoveeSegment is_on={self.is_on}, color={self.color}>"
 
 
 class GoveeDevice:
@@ -14,14 +27,14 @@ class GoveeDevice:
         ip: str,
         fingerprint: str,
         sku: str,
-        capabilities: set[GoveeLightCapability] | None,
+        capabilities: GoveeLightCapabilities = ON_OFF_CAPABILITIES,
     ) -> None:
         self._controller = controller
         self._fingerprint = fingerprint
         self._sku = sku
         self._ip = ip
         self._lastseen: datetime = datetime.now()
-        self._capabilities: set[GoveeLightCapability] | None = capabilities
+        self._capabilities: GoveeLightCapabilities = capabilities
 
         self._is_on: bool = False
         self._rgb_color = (0, 0, 0)
@@ -34,7 +47,7 @@ class GoveeDevice:
         return self._controller
 
     @property
-    def capabilities(self) -> set[GoveeLightCapability] | None:
+    def capabilities(self) -> GoveeLightCapabilities:
         return self._capabilities
 
     @property
@@ -58,7 +71,7 @@ class GoveeDevice:
         return self._is_on
 
     @property
-    def rgb_color(self) -> Tuple[int, int, int]:
+    def rgb_color(self) -> tuple[int, int, int]:
         return self._rgb_color
 
     @property
@@ -84,6 +97,15 @@ class GoveeDevice:
         await self._controller.turn_on_off(self, True)
         self._is_on = True
 
+    async def set_segment_rgb_color(
+        self, segment: int, red: int, green: int, blue: int
+    ) -> None:
+        rgb: tuple[int, int, int] = (red, green, blue)
+        await self._controller.set_segment_rgb_color(self, segment, rgb)
+
+    async def turn_segment_off(self, segment: int) -> None:
+        await self._controller.set_segment_rgb_color(self, segment, (0, 0, 0))
+
     async def turn_off(self) -> None:
         await self._controller.turn_on_off(self, False)
         self._is_on = False
@@ -101,7 +123,13 @@ class GoveeDevice:
         await self._controller.set_color(self, temperature=temperature, rgb=None)
         self._temperature_color = temperature
 
-    def update(self, message: StatusResponse) -> None:
+    async def set_scene(self, scene: str) -> None:
+        await self._controller.set_scene(self, scene)
+
+    async def send_raw_command(self, command: str) -> None:
+        await self._controller.send_raw_command(self, command)
+
+    def update(self, message: DevStatusResponse) -> None:
         self._is_on = message.is_on
         self._brightness = message.brightness
         self._rgb_color = message.color

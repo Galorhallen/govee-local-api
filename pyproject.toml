@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "govee-local-api"
-version = "1.5.3"
+version = "2.0.0"
 description = "Library to communicate with Govee local API"
 readme = "README.md"
 repository = "https://github.com/Galorhallen/govee-local-api"
@@ -26,13 +26,15 @@ packages = [
 # Duplicate the line above to add more files
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "^3.11"
+poetry = "^1.8.5"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"
+prompt_toolkit = "^3.0.0"
 
 [tool.black]
-target-version = ["py310", "py311"]
+target-version = ["py310", "py311", "py312", "py313"]
 
 [tool.ruff.isort]
 force-sort-within-sections = true
