@@ -1,26 +1,28 @@
-[tool.poetry]
+[project]
 name = "govee-local-api"
 version = "2.0.0a0"
+license = "Apache-2.0"
+authors = [{ name = "Galorhallen", email = "andrea.ponte1987@gmail.com" }]
 description = "Library to communicate with Govee local API"
 readme = "README.md"
-repository = "https://github.com/Galorhallen/govee-local-api"
+requires-python = ">=3.11"
+dynamic = ["classifiers", "dependencies", "optional-dependencies"]
 
-authors = ["Galorhallen <andrea.ponte1987@gmail.com>"]
+[project.urls]
+"Repository" = "https://github.com/Galorhallen/govee-local-api"
+"Bug Tracker" = "https://github.com/Galorhallen/govee-local-api/issues"
 
+[tool.poetry]
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
     "Intended Audience :: Developers",
     "Natural Language :: English",
     "Operating System :: OS Independent",
     "Topic :: Software Development :: Libraries",
-    "License :: OSI Approved :: Apache Software License",
 ]
 packages = [
     { include = "govee_local_api", from = "src" },
 ]
-
-[tool.poetry.urls]
-"Bug Tracker" = "https://github.com/Galorhallen/govee-local-api/issues"
 
 [tool.poetry_bumpversion.file."src/govee_local_api/__init__.py"]
 # Duplicate the line above to add more files
@@ -52,5 +54,5 @@ addopts = [
 ]
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = ["poetry-core>=2.0.0"]
 build-backend = "poetry.core.masonry.api"
