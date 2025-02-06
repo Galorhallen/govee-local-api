@@ -1,6 +1,6 @@
 [project]
 name = "govee-local-api"
-version = "2.0.1"
+version = "2.0.2"
 license = "Apache-2.0"
 authors = [{ name = "Galorhallen", email = "andrea.ponte1987@gmail.com" }]
 description = "Library to communicate with Govee local API"
