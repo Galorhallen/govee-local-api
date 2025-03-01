@@ -130,7 +130,7 @@ class GoveeController:
         return self._cleanup_done
 
     def add_device_to_discovery(self, ip: str) -> None:
-        self._registry.add_custom_device(ip)
+        self._registry.add_device_to_queue(ip)
         if not self._discovery_enabled:
             self.send_discovery_message()
 
@@ -202,7 +202,7 @@ class GoveeController:
 
         if self._registry.has_queued_devices:
             call_later = True
-            for ip in self._registry.manual_devices_queue:
+            for ip in self._registry.devices_queue:
                 self._transport.sendto(message, (ip, self._broadcast_port))
 
         manually_added_devices = [

@@ -2,9 +2,11 @@ from .device import GoveeDevice
 
 import logging
 
+from typing import Optional
+
 
 class DeviceRegistry:
-    def __init__(self, logger: logging.Logger) -> None:
+    def __init__(self, logger: Optional[logging.Logger] = None) -> None:
         self._discovered_devices: dict[str, GoveeDevice] = {}
         self._custom_devices_queue: set[str] = set()
         self._logger = logger or logging.getLogger(__name__)
@@ -25,7 +27,7 @@ class DeviceRegistry:
         if device in self._discovered_devices:
             del self._discovered_devices[device]
 
-    def add_custom_device(self, ip: str) -> None:
+    def add_device_to_queue(self, ip: str) -> None:
         self._custom_devices_queue.add(ip)
 
     def cleanup(self) -> None:
@@ -56,7 +58,7 @@ class DeviceRegistry:
         return self._discovered_devices
 
     @property
-    def manual_devices_queue(self) -> set[str]:
+    def devices_queue(self) -> set[str]:
         return self._custom_devices_queue
 
     @property

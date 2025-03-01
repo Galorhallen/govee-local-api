@@ -15,41 +15,40 @@ class TestDeviceRegistry(unittest.TestCase):
 
     def test_add_discovered_device(self):
         self.registry.add_discovered_device(self.device)
-        self.assertIn(self.device.fingerprint, self.registry.discovered_devices)
+        assert self.device.fingerprint in self.registry.discovered_devices
 
     def test_remove_discovered_device(self):
         self.registry.add_discovered_device(self.device)
         self.registry.remove_discovered_device(self.device)
-        self.assertNotIn(self.device.fingerprint, self.registry.discovered_devices)
+        assert self.device.fingerprint not in self.registry.discovered_devices
 
     def test_add_custom_device(self):
-        self.registry.add_custom_device("192.168.1.2")
-        self.assertIn("192.168.1.2", self.registry.custom_devices_queue)
+        self.registry.add_device_to_queue("192.168.1.2")
+        assert "192.168.1.2" in self.registry.devices_queue
 
     def test_discovery_custom_device(self):
-        self.registry.add_custom_device("192.168.1.2")
+        self.registry.add_device_to_queue("192.168.1.2")
         GoveeDevice(self._mock_controller, "192.168.1.2", "device2", "sku2", None)
-
-        self.assertIn("192.168.1.2", self.registry.custom_devices_queue)
+        assert "192.168.1.2" in self.registry.devices_queue
 
     def test_cleanup(self):
         self.registry.add_discovered_device(self.device)
-        self.registry.add_custom_device("192.168.1.2")
+        self.registry.add_device_to_queue("192.168.1.2")
         self.registry.cleanup()
-        self.assertEqual(len(self.registry.discovered_devices), 0)
-        self.assertEqual(len(self.registry.custom_devices_queue), 0)
+        assert len(self.registry.discovered_devices) == 0
+        assert len(self.registry.devices_queue) == 0
 
     def test_get_device_by_ip(self):
         self.registry.add_discovered_device(self.device)
         device = self.registry.get_device_by_ip("192.168.1.1")
-        self.assertEqual(device, self.device)
+        assert device == self.device
 
     def test_get_device_by_sku(self):
         self.registry.add_discovered_device(self.device)
         device = self.registry.get_device_by_sku("sku1")
-        self.assertEqual(device, self.device)
+        assert device == self.device
 
     def test_get_device_by_fingerprint(self):
         self.registry.add_discovered_device(self.device)
         device = self.registry.get_device_by_fingerprint("device1")
-        self.assertEqual(device, self.device)
+        assert device == self.device
