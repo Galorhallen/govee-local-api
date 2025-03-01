@@ -1,24 +1,33 @@
 from __future__ import annotations
 
 import asyncio
+import ipaddress
 import logging
 import socket
+from collections.abc import Callable
 from datetime import datetime, timedelta
-from typing import Callable, Tuple, Any, cast
+from typing import Any, cast
 
 from .device import GoveeDevice
-from .light_capabilities import GOVEE_LIGHT_CAPABILITIES
 from .device_registry import DeviceRegistry
+from .light_capabilities import (
+    GOVEE_LIGHT_CAPABILITIES,
+    ON_OFF_CAPABILITIES,
+    GoveeLightFeatures,
+)
 from .message import (
+    HexMessage,
     BrightnessMessage,
     ColorMessage,
+    SceneMessages,
     GoveeMessage,
     MessageResponseFactory,
     OnOffMessage,
     ScanMessage,
     ScanResponse,
-    StatusMessage,
-    StatusResponse,
+    SegmentColorMessages,
+    DevStatusMessage,
+    DevStatusResponse,
 )
 
 BROADCAST_ADDRESS = "239.255.255.250"
@@ -78,6 +87,7 @@ class GoveeController:
         self._device_command_port = device_command_port
 
         self._loop = loop or asyncio.get_running_loop()
+        self._cleanup_done: asyncio.Event = asyncio.Event()
         self._message_factory = MessageResponseFactory()
         self._registry: DeviceRegistry = DeviceRegistry(self._logger)
 
@@ -94,6 +104,11 @@ class GoveeController:
         self._discovery_handle: asyncio.TimerHandle | None = None
         self._update_handle: asyncio.TimerHandle | None = None
 
+        self._response_handler: dict[str, Callable] = {
+            ScanResponse.command: self._handle_scan_response,
+            DevStatusResponse.command: self._handle_status_update_response,
+        }
+
     async def start(self):
         self._transport, self._protocol = await self._loop.create_datagram_endpoint(
             lambda: self, local_addr=(self._listening_address, self._listening_port)
@@ -104,16 +119,30 @@ class GoveeController:
         if self._update_enabled:
             self.send_update_message()
 
-    def cleanup(self):
+    def cleanup(self) -> asyncio.Event:
+        self._cleanup_done.clear()
         self.set_update_enabled(False)
         self.set_discovery_enabled(False)
 
         if self._transport:
             self._transport.close()
         self._registry.cleanup()
+        return self._cleanup_done
 
-    def add_device(self, device: str) -> None:
-        self._registry.add_custom_device(device)
+    # def add_device(
+    #     self,
+    #     ip: str,
+    #     sku: str,
+    #     fingerprint,
+    #     capabilities: GoveeLightCapabilities,
+    # ) -> None:
+    #     device: GoveeDevice = GoveeDevice(self, ip, fingerprint, sku, capabilities)
+    #     self._devices[fingerprint] = device
+
+    def remove_device(self, device: str | GoveeDevice) -> None:
+        if isinstance(device, GoveeDevice):
+            device = device.fingerprint
+        self._registry.remove_discovered_device(device)
 
     @property
     def evict_enabled(self) -> bool:
@@ -194,6 +223,51 @@ class GoveeController:
     async def turn_on_off(self, device: GoveeDevice, status: bool) -> None:
         self._send_message(OnOffMessage(status), device)
 
+    async def set_segment_rgb_color(
+        self, device: GoveeDevice, segment: int, rgb: tuple[int, int, int]
+    ) -> None:
+        if not device.capabilities:
+            self._logger.warning("Capabilities not available for device %s", device)
+            return
+
+        if device.capabilities.features & GoveeLightFeatures.SEGMENT_CONTROL == 0:
+            self._logger.warning(
+                "Segment control is not supported by device %s", device
+            )
+            return
+
+        if segment < 1 or segment > len(device.capabilities.segments):
+            self._logger.warning(
+                "Segment index %s is not valid for device %s", segment, device
+            )
+            return
+
+        segment_data: bytes = device.capabilities.segments[segment - 1]
+        if not segment_data:
+            self._logger.warning(
+                "Segment %s is not supported by device %s", segment, device
+            )
+            return
+        message = SegmentColorMessages(segment_data, rgb)
+        self._logger.debug(f"Sending message {message} to device {device}")
+        self._send_message(message, device)
+
+    async def set_scene(self, device: GoveeDevice, scene: str) -> None:
+        if (
+            not device.capabilities
+            or device.capabilities.features & GoveeLightFeatures.SCENES == 0
+        ):
+            self._logger.warning("Scenes are not supported by device %s", device)
+            return
+
+        scene_code: bytes | None = device.capabilities.scenes.get(scene.lower(), None)
+        if not scene_code:
+            self._logger.warning(
+                "Scene %s is not available for device %s", scene, device
+            )
+            return
+        self._send_message(SceneMessages(scene_code), device)
+
     async def set_brightness(self, device: GoveeDevice, brightness: int) -> None:
         self._send_message(BrightnessMessage(brightness), device)
 
@@ -201,13 +275,16 @@ class GoveeController:
         self,
         device: GoveeDevice,
         *,
-        rgb: Tuple[int, int, int] | None,
+        rgb: tuple[int, int, int] | None,
         temperature: int | None,
     ) -> None:
         if rgb:
             self._send_message(ColorMessage(rgb=rgb, temperature=None), device)
         else:
             self._send_message(ColorMessage(rgb=None, temperature=temperature), device)
+
+    async def send_raw_command(self, device: GoveeDevice, command: str) -> None:
+        self._send_message(HexMessage([command]), device)
 
     def get_device_by_ip(self, ip: str) -> GoveeDevice | None:
         return self._registry.get_device_by_ip(ip)
@@ -224,17 +301,47 @@ class GoveeController:
 
     def connection_made(self, transport):
         self._transport = transport
-
         sock = self._transport.get_extra_info("socket")
+
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
+        broadcast_ip = ipaddress.ip_address(self._broadcast_address)
+
+        if broadcast_ip.is_multicast:
+            sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
+
+            sock.setsockopt(
+                socket.SOL_IP,
+                socket.IP_MULTICAST_IF,
+                socket.inet_aton(self._listening_address),
+            )
+            sock.setsockopt(
+                socket.SOL_IP,
+                socket.IP_ADD_MEMBERSHIP,
+                socket.inet_aton(self._broadcast_address)
+                + socket.inet_aton(self._listening_address),
+            )
+
     def connection_lost(self, *args, **kwargs):
+        if self._transport:
+            broadcast_ip = ipaddress.ip_address(self._broadcast_address)
+            if broadcast_ip.is_multicast:
+                sock = self._transport.get_extra_info("socket")
+                sock.setsockopt(
+                    socket.SOL_IP,
+                    socket.IP_DROP_MEMBERSHIP,
+                    socket.inet_aton(self._broadcast_address)
+                    + socket.inet_aton(self._listening_address),
+                )
+        self._cleanup_done.set()
         self._logger.debug("Disconnected")
 
     def datagram_received(self, data: bytes, addr: tuple):
-        if not data:
-            return
+        if data:
+            self._loop.create_task(self._handle_datagram_received(data, addr))
+
+    async def _handle_datagram_received(self, data: bytes, addr: tuple):
         message = self._message_factory.create_message(data)
         if not message:
             if self._logger.isEnabledFor(logging.DEBUG):
@@ -248,28 +355,28 @@ class GoveeController:
             return
 
         if message.command == ScanResponse.command:
-            self._loop.create_task(
-                self._handle_scan_response(cast(ScanResponse, message))
+            await self._handle_scan_response(cast(ScanResponse, message))
+        elif message.command == DevStatusResponse.command:
+            await self._handle_status_update_response(
+                cast(DevStatusResponse, message), addr
             )
-        elif message.command == StatusResponse.command:
-            self._handle_status_update_response(cast(StatusResponse, message), addr)
 
-    def _send_update_message(self, device: GoveeDevice):
-        self._send_message(StatusMessage(), device)
-
-    def _handle_status_update_response(self, message: StatusResponse, addr):
+    async def _handle_status_update_response(self, message: DevStatusResponse, addr):
+        self._logger.debug("Status update received from {}: {}", addr, message)
         ip = addr[0]
-        device = self.get_device_by_ip(ip)
-        if device:
+        if device := self.get_device_by_ip(ip):
             device.update(message)
 
     async def _handle_scan_response(self, message: ScanResponse) -> None:
         fingerprint = message.device
-        device = self._registry.get_device_by_fingerprint(fingerprint)
-
-        if device is None:
+        if device := self.get_device_by_fingerprint(fingerprint):
+            if self._call_discovered_callback(device, False):
+                device.update_lastseen()
+                self._logger.debug("Device updated: %s", device)
+        else:
             capabilities = GOVEE_LIGHT_CAPABILITIES.get(message.sku, None)
             if not capabilities:
+                capabilities = ON_OFF_CAPABILITIES
                 self._logger.warning(
                     "Device %s is not supported. Only power control is available. Please open an issue at 'https://github.com/Galorhallen/govee-local-api/issues'",
                     message.sku,
@@ -282,10 +389,6 @@ class GoveeController:
                 self._logger.debug("Device discovered: %s", device)
             else:
                 self._logger.debug("Device %s ignored", device)
-        else:
-            if self._call_discovered_callback(device, False):
-                device.update_lastseen()
-                self._logger.debug("Device updated: %s", device)
 
         if self._evict_enabled:
             self._evict()
@@ -297,6 +400,9 @@ class GoveeController:
 
     def _send_message(self, message: GoveeMessage, device: GoveeDevice) -> None:
         self._transport.sendto(bytes(message), (device.ip, self._device_command_port))
+
+    def _send_update_message(self, device: GoveeDevice):
+        self._send_message(DevStatusMessage(), device)
 
     def _evict(self) -> None:
         now = datetime.now()

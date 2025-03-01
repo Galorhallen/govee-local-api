@@ -1,31 +1,30 @@
 repos:
   - repo: https://github.com/psf/black
-    rev: 22.12.0
+    rev: 24.10.0
     hooks:
       - id: black
-        language_version: python3.11
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.8
+    rev: v0.7.0
     hooks:
       - id: ruff
-        args:
-          - --fix
+        types_or: ["python"]
+        args: ["--fix"]
       - id: ruff-format
         files: ^.+\.py$
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.2.2
+    rev: v2.3.0
     hooks:
       - id: codespell
         args:
           - --quiet-level=2
         exclude_types: [csv, json]
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: v5.0.0
     hooks:
       - id: check-executables-have-shebangs
         stages: [manual]
   - repo: https://github.com/cdce8p/python-typing-update
-    rev: v0.6.0
+    rev: v0.7.0
     hooks:
       # Run `python-typing-update` hook manually from time to time
       # to update python typing syntax.
@@ -34,7 +33,7 @@ repos:
       - id: python-typing-update
         stages: [manual]
         args:
-          - --py311-plus
+          - --py312-plus
           - --force
           - --keep-updates
         files: ^.+\.py$
@@ -43,6 +42,6 @@ repos:
     hooks:
       - id: prettier
   - repo: "https://github.com/pre-commit/mirrors-mypy"
-    rev: "v1.8.0"
+    rev: "v1.12.0"
     hooks:
       - id: mypy
