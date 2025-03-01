@@ -11,9 +11,11 @@ class DeviceRegistry:
 
     def add_discovered_device(self, device: GoveeDevice) -> GoveeDevice:
         if device.ip in self._custom_devices_queue:
-            self._logger.debug(f"Found custom device {device}")
+            self._logger.debug(
+                f"Found manullay added device {device}. Removing from queue."
+            )
             self._custom_devices_queue.remove(device.ip)
-            device.is_custom = True
+            device.is_manual = True
         self._discovered_devices[device.fingerprint] = device
         return device
 
@@ -54,9 +56,9 @@ class DeviceRegistry:
         return self._discovered_devices
 
     @property
-    def custom_devices_queue(self) -> set[str]:
+    def manual_devices_queue(self) -> set[str]:
         return self._custom_devices_queue
 
     @property
-    def has_custom_devices(self) -> bool:
+    def has_queued_devices(self) -> bool:
         return bool(self._custom_devices_queue)

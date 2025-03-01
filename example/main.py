@@ -18,35 +18,34 @@ def discovered_callback(device: GoveeDevice, is_new: bool) -> bool:
     return True
 
 
-async def create_controller() -> GoveeController:
+async def create_controller(
+    discovery_enabled: bool, manual_device_ip: str | None = None
+) -> GoveeController:
     controller = GoveeController(
         loop=asyncio.get_event_loop(),
         listening_address="0.0.0.0",
-        discovery_enabled=True,
+        discovery_enabled=discovery_enabled,
         discovered_callback=discovered_callback,
         evicted_callback=lambda device: print(f"Evicted {device}"),
     )
+
     await controller.start()
-    while not controller.devices:
-        print("Waiting for devices... ")
-        await asyncio.sleep(1)
-    print("Devices: ", [str(d) for d in controller.devices])
+
+    if discovery_enabled:
+        while not controller.devices:
+            print("Waiting for devices... ")
+            await asyncio.sleep(1)
+    else:
+        if not manual_device_ip:
+            raise ValueError(
+                "Manual device IP must be provided if discovery is disabled."
+            )
+        print(f"Discovery not enabled. Adding {manual_device_ip} to discovery.")
+        controller.add_device_to_discovery(manual_device_ip)
+        while not controller.devices:
+            print(f"Waiting for device {manual_device_ip} to be discovered...")
+            await asyncio.sleep(1)
     return controller
-
-
-async def menu(device: GoveeDevice) -> None:
-    print("\nDevice: ", device)
-    print("Select an option:")
-    print("0. Exit")
-    print("1. Turn on")
-    print("2. Turn off")
-    print("3. Set brightness (0-100)")
-    print("4. Set color (R G B)")
-    print("5. Set segment color (Segment, R G B)")
-    print("6. Set scene")
-    print("7. Send raw hex")
-    print("8. Clear screen")
-    print("9. Clear Device")
 
 
 async def handle_turn_on(device: GoveeDevice) -> None:
@@ -170,6 +169,29 @@ async def handle_send_hex(device: GoveeDevice, session: PromptSession) -> None:
     await device.send_raw_command(hex_data)
 
 
+async def handle_manual_device(
+    device: GoveeDevice, controller: GoveeController, session: PromptSession
+) -> None:
+    ip = await session.prompt_async("Enter device IP: ")
+    controller.add_device_to_discovery(ip)
+
+
+async def menu(device: GoveeDevice) -> None:
+    print("\nDevice: ", device)
+    print("Select an option:")
+    print("0. Exit")
+    print("1. Turn on")
+    print("2. Turn off")
+    print("3. Set brightness (0-100)")
+    print("4. Set color (R G B)")
+    print("5. Set segment color (Segment, R G B)")
+    print("6. Set scene")
+    print("7. Send raw hex")
+    print("8. Clear screen")
+    print("9. Clear Device")
+    print("10. Add device")
+
+
 async def repl() -> None:
     session = PromptSession()
     print("Welcome to the LED Control REPL.")
@@ -185,10 +207,19 @@ async def repl() -> None:
         "6": lambda device: handle_set_scene(device, session),
         "7": lambda device: handle_send_hex(device, session),
         "8": handle_clear_screen,
+        "10": lambda device: handle_manual_device(device, controller, session),
     }
 
-    controller: GoveeController = await create_controller()
+    enable_discovery = await session.prompt_async("Enable device discovery? (y/n): ")
+    discovery_enabled: bool = enable_discovery.lower() == "y"
     selected_device: GoveeDevice | None = None
+
+    manual_device_ip = None
+    if not discovery_enabled:
+        manual_device_ip = await session.prompt_async("Enter device IP: ")
+    controller: GoveeController = await create_controller(
+        discovery_enabled, manual_device_ip
+    )
 
     while True:
         if not selected_device:
@@ -196,7 +227,9 @@ async def repl() -> None:
 
         await menu(selected_device)
         with patch_stdout():
-            user_choice = await session.prompt_async("Choose an option (1-10): ")
+            user_choice = await session.prompt_async(
+                f"Choose an option (0-{len(command_handlers)}): "
+            )
             if user_choice == "9":
                 selected_device = None
                 continue

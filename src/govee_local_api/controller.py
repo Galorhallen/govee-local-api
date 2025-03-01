@@ -114,7 +114,7 @@ class GoveeController:
             lambda: self, local_addr=(self._listening_address, self._listening_port)
         )
 
-        if self._discovery_enabled or self._registry.has_custom_devices:
+        if self._discovery_enabled or self._registry.has_queued_devices:
             self.send_discovery_message()
         if self._update_enabled:
             self.send_update_message()
@@ -129,15 +129,10 @@ class GoveeController:
         self._registry.cleanup()
         return self._cleanup_done
 
-    # def add_device(
-    #     self,
-    #     ip: str,
-    #     sku: str,
-    #     fingerprint,
-    #     capabilities: GoveeLightCapabilities,
-    # ) -> None:
-    #     device: GoveeDevice = GoveeDevice(self, ip, fingerprint, sku, capabilities)
-    #     self._devices[fingerprint] = device
+    def add_device_to_discovery(self, ip: str) -> None:
+        self._registry.add_custom_device(ip)
+        if not self._discovery_enabled:
+            self.send_discovery_message()
 
     def remove_device(self, device: str | GoveeDevice) -> None:
         if isinstance(device, GoveeDevice):
@@ -195,20 +190,35 @@ class GoveeController:
 
     def send_discovery_message(self) -> None:
         message: bytes = bytes(ScanMessage())
-        if self._transport:
-            if self._discovery_enabled:
-                self._transport.sendto(
-                    message, (self._broadcast_address, self._broadcast_port)
-                )
+        call_later: bool = False
+        if not self._transport:
+            return
 
-            if self._registry.has_custom_devices:
-                for ip in self._registry.custom_devices_queue:
-                    self._transport.sendto(message, (ip, self._broadcast_port))
+        if self._discovery_enabled:
+            call_later = True
+            self._transport.sendto(
+                message, (self._broadcast_address, self._broadcast_port)
+            )
 
-            if self._discovery_enabled or self._registry.has_custom_devices:
-                self._discovery_handle = self._loop.call_later(
-                    self._discovery_interval, self.send_discovery_message
-                )
+        if self._registry.has_queued_devices:
+            call_later = True
+            for ip in self._registry.manual_devices_queue:
+                self._transport.sendto(message, (ip, self._broadcast_port))
+
+        manually_added_devices = [
+            device.ip
+            for device in self._registry.discovered_devices.values()
+            if device.is_manual
+        ]
+        if manually_added_devices:
+            call_later = True
+            for ip in manually_added_devices:
+                self._transport.sendto(message, (ip, self._broadcast_port))
+
+        if call_later:
+            self._discovery_handle = self._loop.call_later(
+                self._discovery_interval, self.send_discovery_message
+            )
 
     def send_update_message(self) -> None:
         if self._transport:
