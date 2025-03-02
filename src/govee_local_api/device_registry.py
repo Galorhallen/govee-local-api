@@ -27,8 +27,17 @@ class DeviceRegistry:
         if device in self._discovered_devices:
             del self._discovered_devices[device]
 
-    def add_device_to_queue(self, ip: str) -> None:
-        self._custom_devices_queue.add(ip)
+    def add_device_to_queue(self, ip: str) -> bool:
+        if ip not in self._custom_devices_queue:
+            self._custom_devices_queue.add(ip)
+            return True
+        return False
+
+    def remove_device_from_queue(self, ip: str) -> bool:
+        if ip in self._custom_devices_queue:
+            self._custom_devices_queue.remove(ip)
+            return True
+        return False
 
     def cleanup(self) -> None:
         self._discovered_devices.clear()
