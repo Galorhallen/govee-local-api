@@ -129,13 +129,13 @@ class GoveeController:
         self._registry.cleanup()
         return self._cleanup_done
 
-    def add_device_to_discovery(self, ip: str) -> bool:
+    def add_device_to_discovery_queue(self, ip: str) -> bool:
         ip_added: bool = self._registry.add_device_to_queue(ip)
         if not self._discovery_enabled and ip_added:
             self.send_discovery_message()
         return ip_added
 
-    def remove_device_from_discovery(self, ip: str) -> bool:
+    def remove_device_from_discovery_queue(self, ip: str) -> bool:
         return self._registry.remove_device_from_queue(ip)
 
     def remove_device(self, device: str | GoveeDevice) -> None:
