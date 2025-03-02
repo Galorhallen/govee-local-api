@@ -138,6 +138,10 @@ class GoveeController:
     def remove_device_from_discovery_queue(self, ip: str) -> bool:
         return self._registry.remove_device_from_queue(ip)
 
+    @property
+    def discovery_queue(self) -> set[str]:
+        return self._registry.devices_queue
+
     def remove_device(self, device: str | GoveeDevice) -> None:
         if isinstance(device, GoveeDevice):
             device = device.fingerprint
