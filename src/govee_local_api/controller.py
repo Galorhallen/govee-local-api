@@ -254,11 +254,9 @@ class GoveeController:
         max_retries: int = 10
     ) -> None:
         """Simple retry pattern without state verification."""
-        # Set up the retry pattern
-        delays = [0.2, 0.3, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0]
 
         # Send retries with increasing delays
-        for i, delay in enumerate(delays[:max_retries-1]):
+        for i, delay in enumerate(RETRY_PATTERN[:max_retries-1]):
             try:
                 await asyncio.sleep(delay)
                 # Check if we've been cancelled
