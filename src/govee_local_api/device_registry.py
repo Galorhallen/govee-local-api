@@ -36,6 +36,9 @@ class DeviceRegistry:
     def remove_device_from_queue(self, ip: str) -> bool:
         if ip in self._custom_devices_queue:
             self._custom_devices_queue.remove(ip)
+            if device := self.get_device_by_ip(ip):
+                if device.is_manual:
+                    self.remove_discovered_device(device)
             return True
         return False
 
