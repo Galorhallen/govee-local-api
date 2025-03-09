@@ -41,6 +41,7 @@ class GoveeDevice:
         self._temperature_color = 0
         self._brightness = 0
         self._update_callback: Callable[[GoveeDevice], None] | None = None
+        self.is_manual: bool = False
 
     @property
     def controller(self):
