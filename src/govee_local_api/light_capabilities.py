@@ -113,6 +113,7 @@ ON_OFF_CAPABILITIES = create_with_capabilities(
 
 GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     # Models with common features
+    "H6008": BASIC_CAPABILITIES,
     "H600D": BASIC_CAPABILITIES,
     "H6022": BASIC_CAPABILITIES,
     "H6042": create_with_capabilities(True, True, True, 5, True),
@@ -180,6 +181,7 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     "H61A5": BASIC_CAPABILITIES,
     "H61A8": BASIC_CAPABILITIES,
     "H61B2": BASIC_CAPABILITIES,
+    "H61B3": create_with_capabilities(True, True, True, 15, True),
     "H61B5": BASIC_CAPABILITIES,
     "H61BA": BASIC_CAPABILITIES,
     "H61BE": BASIC_CAPABILITIES,
@@ -240,4 +242,5 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     "H70BC": BASIC_CAPABILITIES,
     "H70D1": BASIC_CAPABILITIES,
     "H805C": BASIC_CAPABILITIES,
+    "H8072": create_with_capabilities(True, True, True, 8, True),
 }
