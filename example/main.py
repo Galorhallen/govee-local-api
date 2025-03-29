@@ -41,7 +41,7 @@ async def create_controller(
                 "Manual device IP must be provided if discovery is disabled."
             )
         print(f"Discovery not enabled. Adding {manual_device_ip} to discovery.")
-        controller.add_device_to_discovery(manual_device_ip)
+        controller.add_device_to_discovery_queue(manual_device_ip)
         while not controller.devices:
             print(f"Waiting for device {manual_device_ip} to be discovered...")
             await asyncio.sleep(1)
@@ -173,7 +173,7 @@ async def handle_manual_device(
     device: GoveeDevice, controller: GoveeController, session: PromptSession
 ) -> None:
     ip = await session.prompt_async("Enter device IP: ")
-    controller.add_device_to_discovery(ip)
+    controller.add_device_to_discovery_queue(ip)
 
 
 async def menu(device: GoveeDevice) -> None:
