@@ -31,7 +31,7 @@ packages = [
 python = "^3.11"
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^8.0.0"
+pytest = "^8.4.1"
 prompt_toolkit = "^3.0.0"
 
 [tool.ruff.isort]
