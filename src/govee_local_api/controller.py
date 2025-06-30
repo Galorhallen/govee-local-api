@@ -111,7 +111,9 @@ class GoveeController:
 
     async def start(self):
         self._transport, self._protocol = await self._loop.create_datagram_endpoint(
-            lambda: self, local_addr=(self._listening_address, self._listening_port)
+            lambda: self,
+            local_addr=(self._listening_address, self._listening_port),
+            reuse_port=True,
         )
 
         if self._discovery_enabled or self._registry.has_queued_devices:
