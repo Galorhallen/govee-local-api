@@ -375,6 +375,17 @@ class GoveeController:
             return
 
         if message.command == ScanResponse.command:
+            if not message.ip:
+                sender_ip, _sender_port = addr
+                self._logger.debug(
+                    "No ip returned in data from device %s!\nMessage: %s", message.device, data
+                )
+
+                message.set_ip(sender_ip)
+                self._logger.debug(
+                    "Set ip for device %s to %s (sending address).\nData: %s", message.device, sender_ip, message.data
+                )
+
             await self._handle_scan_response(cast(ScanResponse, message))
         elif message.command == DevStatusResponse.command:
             await self._handle_status_update_response(
