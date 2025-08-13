@@ -153,15 +153,18 @@ class ScanResponse(GoveeMessage):
 
     @property
     def device(self):
-        return self._data["device"]
+        return self._data.get("device", None)
 
     @property
     def sku(self):
-        return self._data["sku"]
+        return self._data.get("sku", None)
 
     @property
     def ip(self):
-        return self._data["ip"]
+        return self._data.get("ip", None)
+
+    def set_ip(self, ip_addr: str) -> None:
+        self._data["ip"] = ip_addr
 
 
 class DevStatusResponse(GoveeMessage):
