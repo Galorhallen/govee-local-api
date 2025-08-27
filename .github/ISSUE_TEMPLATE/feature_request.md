@@ -6,11 +6,18 @@ labels: enhancement
 assignees: Galorhallen
 ---
 
-## 🚀 Light Support Template for Govee LAN API Library
+## Light Support Template for Govee LAN API Library
 
 ---
 
-### 💡 Light Details
+### Important
+
+**The device will be added only if**
+
+- the device is on the [supported device list](https://app-h5.govee.com/user-manual/wlan-guide): [ ]
+- the device detected by Home Assistant: [ ]
+
+### Light Details
 
 Provide information about the Govee light(s) features:
 

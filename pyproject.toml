@@ -1,6 +1,6 @@
 [project]
 name = "govee-local-api"
-version = "2.1.0"
+version = "2.2.0"
 license = "Apache-2.0"
 authors = [{ name = "Galorhallen", email = "andrea.ponte1987@gmail.com" }]
 description = "Library to communicate with Govee local API"
@@ -31,8 +31,10 @@ packages = [
 python = "^3.11"
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^8.0.0"
+pytest = "^8.4.1"
 prompt_toolkit = "^3.0.0"
+pre-commit = "^4.3.0"
+
 
 [tool.ruff.isort]
 force-sort-within-sections = true

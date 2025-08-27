@@ -40,7 +40,7 @@ EVICT_INTERVAL = DISCOVERY_INTERVAL * 3
 UPDATE_INTERVAL = 5
 
 
-class GoveeController:
+class GoveeController(asyncio.DatagramProtocol):
     def __init__(
         self,
         loop=None,
@@ -111,7 +111,9 @@ class GoveeController:
 
     async def start(self):
         self._transport, self._protocol = await self._loop.create_datagram_endpoint(
-            lambda: self, local_addr=(self._listening_address, self._listening_port)
+            lambda: self,
+            local_addr=(self._listening_address, self._listening_port),
+            reuse_port=True,
         )
 
         if self._discovery_enabled or self._registry.has_queued_devices:
@@ -373,7 +375,24 @@ class GoveeController:
             return
 
         if message.command == ScanResponse.command:
-            await self._handle_scan_response(cast(ScanResponse, message))
+            scan_message = cast(ScanResponse, message)
+            if not scan_message.ip:
+                sender_ip, _sender_port = addr
+                self._logger.debug(
+                    "No ip returned in data from device %s!\nMessage: %s",
+                    scan_message.device,
+                    data,
+                )
+
+                scan_message.set_ip(sender_ip)
+                self._logger.debug(
+                    "Set ip for device %s to %s (sending address).\nData: %s",
+                    scan_message.device,
+                    sender_ip,
+                    scan_message.data,
+                )
+
+            await self._handle_scan_response(scan_message)
         elif message.command == DevStatusResponse.command:
             await self._handle_status_update_response(
                 cast(DevStatusResponse, message), addr
@@ -387,21 +406,39 @@ class GoveeController:
 
     async def _handle_scan_response(self, message: ScanResponse) -> None:
         fingerprint = message.device
+        if not fingerprint:
+            self._logger.warning(
+                "Scan response missing device fingerprint: %s", message
+            )
+            return
+
         if device := self.get_device_by_fingerprint(fingerprint):
             if self._call_discovered_callback(device, False):
                 device.update_lastseen()
                 self._logger.debug("Device updated: %s", device)
         else:
-            capabilities = GOVEE_LIGHT_CAPABILITIES.get(message.sku, None)
-            if not capabilities:
-                capabilities = ON_OFF_CAPABILITIES
+            sku = message.sku
+            if not sku:
                 self._logger.warning(
-                    "Device %s is not supported. Only power control is available. Please open an issue at 'https://github.com/Galorhallen/govee-local-api/issues'",
-                    message.sku,
+                    "Scan response missing sku for device %s", fingerprint
                 )
-            device = GoveeDevice(
-                self, message.ip, fingerprint, message.sku, capabilities
-            )
+                capabilities = ON_OFF_CAPABILITIES
+            else:
+                capabilities = GOVEE_LIGHT_CAPABILITIES.get(sku) or ON_OFF_CAPABILITIES
+                if sku not in GOVEE_LIGHT_CAPABILITIES:
+                    self._logger.warning(
+                        "Device %s is not supported. Only power control is available. Please open an issue at 'https://github.com/Galorhallen/govee-local-api/issues'",
+                        sku,
+                    )
+
+            ip = message.ip
+            if not ip:
+                self._logger.warning(
+                    "Scan response missing ip for device %s", fingerprint
+                )
+                return
+
+            device = GoveeDevice(self, ip, fingerprint, sku or "UNKNOWN", capabilities)
             if self._call_discovered_callback(device, True):
                 device = self._registry.add_discovered_device(device)
                 self._logger.debug("Device discovered: %s", device)
