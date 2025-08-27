@@ -116,6 +116,7 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     # Models with common features
     "H600D": BASIC_CAPABILITIES,
     "H6022": BASIC_CAPABILITIES,
+    "H6039": create_with_capabilities(True, True, True, 12, True),
     "H6042": create_with_capabilities(True, True, True, 5, True),
     "H6046": create_with_capabilities(True, True, True, 10, True),
     "H6047": BASIC_CAPABILITIES,
@@ -196,6 +197,7 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     "H61C5": BASIC_CAPABILITIES,
     "H61C3": BASIC_CAPABILITIES,
     "H61D3": BASIC_CAPABILITIES,
+    "H61D6": BASIC_CAPABILITIES,
     "H61D5": BASIC_CAPABILITIES,
     "H61E0": BASIC_CAPABILITIES,
     "H61E1": BASIC_CAPABILITIES,
@@ -230,6 +232,7 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     "H7062": BASIC_CAPABILITIES,
     "H7065": BASIC_CAPABILITIES,
     "H7066": BASIC_CAPABILITIES,
+    "H7067": create_with_capabilities(True, True, True, 0, True),
     "H706A": BASIC_CAPABILITIES,
     "H706B": BASIC_CAPABILITIES,
     "H706C": BASIC_CAPABILITIES,
