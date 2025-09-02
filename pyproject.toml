@@ -32,7 +32,7 @@ python = "^3.11"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.4.1"
-prompt_toolkit = "^3.0.0"
+prompt_toolkit = "^3.0.52"
 
 [tool.ruff.isort]
 force-sort-within-sections = true
