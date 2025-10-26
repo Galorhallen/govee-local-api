@@ -236,6 +236,7 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     "H706A": BASIC_CAPABILITIES,
     "H706B": BASIC_CAPABILITIES,
     "H706C": BASIC_CAPABILITIES,
+    "H7086": create_with_capabilities(True, True, True, 0, True),
     "H7093": create_with_capabilities(True, True, True, 2, True),
     "H7033": BASIC_CAPABILITIES,
     "H70C1": BASIC_CAPABILITIES,
