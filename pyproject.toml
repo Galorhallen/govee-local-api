@@ -33,6 +33,8 @@ python = "^3.11"
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.4.2"
 prompt_toolkit = "^3.0.0"
+pre-commit = "^4.3.0"
+
 
 [tool.ruff.isort]
 force-sort-within-sections = true
