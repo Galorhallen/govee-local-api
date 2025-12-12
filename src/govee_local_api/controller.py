@@ -39,6 +39,9 @@ DISCOVERY_INTERVAL = 10
 EVICT_INTERVAL = DISCOVERY_INTERVAL * 3
 UPDATE_INTERVAL = 5
 
+# This defines the wait times for retries (spread out over 30 seconds).
+RETRY_PATTERN = [0.2, 0.3, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0]
+
 
 class GoveeController(asyncio.DatagramProtocol):
     def __init__(
@@ -103,6 +106,8 @@ class GoveeController(asyncio.DatagramProtocol):
 
         self._discovery_handle: asyncio.TimerHandle | None = None
         self._update_handle: asyncio.TimerHandle | None = None
+        self._pending_command_tasks: dict[str, asyncio.Task] = {}
+        self._state_verification_events: dict[str, tuple[asyncio.Event, Callable]] = {}
 
         self._response_handler: dict[str, Callable] = {
             ScanResponse.command: self._handle_scan_response,
@@ -120,6 +125,156 @@ class GoveeController(asyncio.DatagramProtocol):
             self.send_discovery_message()
         if self._update_enabled:
             self.send_update_message()
+
+    async def _execute_command(
+        self,
+        device: GoveeDevice,
+        message: GoveeMessage,
+        verify_state_callback=None
+    ) -> None:
+        """
+        Execute a command with retry queue and optional state verification.
+
+        Args:
+            device: The target device
+            message: The message to send
+            verify_state_callback: Optional callback that returns True when desired state is reached
+        """
+        device_key = f"{device.fingerprint}_{message.command}"
+
+        # Cancel any existing task for this device and command
+        if device_key in self._pending_command_tasks:
+            existing_task = self._pending_command_tasks[device_key]
+            if not existing_task.done():
+                existing_task.cancel()
+                try:
+                    await existing_task
+                except asyncio.CancelledError:
+                    self._logger.debug(f"Cancelled pending {message.command} task for device {device}")
+
+        # Create and store the new task
+        task = self._loop.create_task(
+            self._execute_with_retries(device, message, verify_state_callback)
+        )
+        self._pending_command_tasks[device_key] = task
+
+        task.add_done_callback(
+            lambda t: self._pending_command_tasks.pop(device_key, None)
+        )
+
+        await task
+
+    async def _execute_with_retries(
+        self,
+        device: GoveeDevice,
+        message: GoveeMessage,
+        verify_state_callback=None,
+        max_retries: int = 10
+    ) -> None:
+        """
+        Execute a command with multiple retries and optional state verification.
+
+        Args:
+            device: The target device
+            message: The message to send
+            verify_state_callback: Function that returns True when desired state is reached
+            max_retries: Maximum number of retry attempts
+        """
+        # Send the initial message immediately
+        self._send_message(message, device)
+        # Always wait 100ms between msg and status update to lessen spam.
+        await asyncio.sleep(0.1)
+        # Request initial status update
+        self._send_update_message(device)
+
+        # If no verification callback, just use retries without verification
+        if not verify_state_callback:
+            return await self._execute_basic_retries(device, message, max_retries)
+
+        # Create a state verification event
+        state_changed_event = asyncio.Event()
+        device_key = device.fingerprint
+
+        # Register our event and verification callback
+        self._state_verification_events[device_key] = (state_changed_event, verify_state_callback)
+
+        try:
+            # Send retries with increasing delays
+            for i, delay in enumerate(RETRY_PATTERN[:max_retries-1]):
+                try:
+                    # Wait for either the delay to complete or the state to change
+                    state_changed_task = asyncio.create_task(state_changed_event.wait())
+                    delay_task = asyncio.create_task(asyncio.sleep(delay))
+
+                    # Wait for either task to complete
+                    try:
+                        done, pending = await asyncio.wait(
+                            [state_changed_task, delay_task],
+                            return_when=asyncio.FIRST_COMPLETED
+                        )
+
+                        # Cancel the pending task
+                        for task in pending:
+                            task.cancel()
+                            try:
+                                # Wait for the cancelled task to complete
+                                await task
+                            except asyncio.CancelledError:
+                                # This is expected for cancelled tasks
+                                pass
+
+                        # If state changed, we're done
+                        if state_changed_task in done and not state_changed_task.cancelled():
+                            if state_changed_task.result():
+                                self._logger.debug(f"Stopping retries for {device}: {message.command} - desired state reached")
+                                return
+                    except asyncio.CancelledError:
+                        state_changed_task.cancel()
+                        delay_task.cancel()
+                        try:
+                            await asyncio.gather(state_changed_task, delay_task, return_exceptions=True)
+                        except asyncio.CancelledError:
+                            pass
+                        raise
+
+                    # Check if we've been cancelled
+                    if asyncio.current_task().cancelled():
+                        return
+
+                    # Send the command again
+                    self._send_message(message, device)
+                    await asyncio.sleep(0.1)
+                    self._send_update_message(device)
+                    self._logger.debug(f"Retry {i+1} for {device}: {message.command}")
+                except asyncio.CancelledError:
+                    self._logger.debug(f"Cancelled during retry {i+1} for {device}")
+                    raise
+        finally:
+            # Clean up our event registration
+            self._state_verification_events.pop(device_key, None)
+
+    async def _execute_basic_retries(
+        self,
+        device: GoveeDevice,
+        message: GoveeMessage,
+        max_retries: int = 10
+    ) -> None:
+        """Simple retry pattern without state verification."""
+
+        # Send retries with increasing delays
+        for i, delay in enumerate(RETRY_PATTERN[:max_retries-1]):
+            try:
+                await asyncio.sleep(delay)
+                # Check if we've been cancelled
+                if asyncio.current_task().cancelled():
+                    return
+                self._send_message(message, device)
+                # Request a status update after sending the command
+                self._send_update_message(device)
+                self._logger.debug(f"Retry {i+1} for {device}: {message.command}")
+            except asyncio.CancelledError:
+                self._logger.debug(f"Cancelled during retry {i+1} for {device}")
+                raise
 
     def cleanup(self) -> asyncio.Event:
         self._cleanup_done.clear()
@@ -241,7 +396,14 @@ class GoveeController(asyncio.DatagramProtocol):
                 )
 
     async def turn_on_off(self, device: GoveeDevice, status: bool) -> None:
-        self._send_message(OnOffMessage(status), device)
+        """Send an on/off command with robust retry and confirmation."""
+        message = OnOffMessage(status)
+
+        # Verification callback to check if device status matches desired state
+        def verify_state(device_state):
+            return device_state.on == status
+
+        await self._execute_command(device, message, verify_state)
 
     async def set_segment_rgb_color(
         self, device: GoveeDevice, segment: int, rgb: tuple[int, int, int]
@@ -289,7 +451,14 @@ class GoveeController(asyncio.DatagramProtocol):
         self._send_message(SceneMessages(scene_code), device)
 
     async def set_brightness(self, device: GoveeDevice, brightness: int) -> None:
-        self._send_message(BrightnessMessage(brightness), device)
+        """Set brightness with robust retry and confirmation."""
+        message = BrightnessMessage(brightness)
+
+        # Verification callback to check if device brightness matches desired value
+        def verify_state(device_state):
+            return device_state.brightness == brightness
+
+        await self._execute_command(device, message, verify_state)
 
     async def set_color(
         self,
@@ -298,10 +467,20 @@ class GoveeController(asyncio.DatagramProtocol):
         rgb: tuple[int, int, int] | None,
         temperature: int | None,
     ) -> None:
-        if rgb:
-            self._send_message(ColorMessage(rgb=rgb, temperature=None), device)
-        else:
-            self._send_message(ColorMessage(rgb=None, temperature=temperature), device)
+        """Set color with robust retry and confirmation."""
+        message = ColorMessage(rgb=rgb, temperature=temperature)
+
+        # Verification callback to check if device color matches desired values
+        def verify_state(device_state):
+            if rgb and device_state._rgb_color:
+                # Allow for small differences in RGB values
+                return all(abs(a - b) <= 5 for a, b in zip(device_state._rgb_color, rgb))
+            elif temperature and device_state._temperature_color:
+                # Allow for small differences in temperature
+                return abs(device_state._temperature_color - temperature) <= 100
+            return False
+
+        await self._execute_command(device, message, verify_state)
 
     async def send_raw_command(self, device: GoveeDevice, command: str) -> None:
         self._send_message(HexMessage([command]), device)
@@ -399,10 +578,19 @@ class GoveeController(asyncio.DatagramProtocol):
             )
 
     async def _handle_status_update_response(self, message: DevStatusResponse, addr):
-        self._logger.debug("Status update received from {}: {}", addr, message)
+        self._logger.debug(f"Status update received from {addr}: {message}")
         ip = addr[0]
         if device := self.get_device_by_ip(ip):
             device.update(message)
+
+            # Check if we're waiting for a state verification on this device
+            device_key = device.fingerprint
+            if device_key in self._state_verification_events:
+                event, verify_callback = self._state_verification_events[device_key]
+                # Check if the new state matches what we're waiting for
+                if verify_callback(device):
+                    self._logger.debug(f"Device {device} reached desired state")
+                    event.set()
 
     async def _handle_scan_response(self, message: ScanResponse) -> None:
         fingerprint = message.device
