@@ -22,6 +22,7 @@ from .message import (
     SceneMessages,
     GoveeMessage,
     MessageResponseFactory,
+    MultiSegmentColorMessage,
     OnOffMessage,
     ScanMessage,
     ScanResponse,
@@ -269,6 +270,43 @@ class GoveeController(asyncio.DatagramProtocol):
             )
             return
         message = SegmentColorMessages(segment_data, rgb)
+        self._logger.debug(f"Sending message {message} to device {device}")
+        self._send_message(message, device)
+
+    async def set_segments_rgb_color(
+        self,
+        device: GoveeDevice,
+        segments: list[int],
+        rgb: tuple[int, int, int],
+        brightness: int = 100,
+    ) -> None:
+        """Set multiple segments to the same color simultaneously.
+
+        Args:
+            device: The target device
+            segments: List of segment indices (1-based)
+            rgb: RGB color tuple (0-255 per channel)
+            brightness: Brightness percentage (0-100), applied by scaling RGB
+        """
+        if not device.capabilities:
+            self._logger.warning("Capabilities not available for device %s", device)
+            return
+
+        if device.capabilities.features & GoveeLightFeatures.SEGMENT_CONTROL == 0:
+            self._logger.warning(
+                "Segment control is not supported by device %s", device
+            )
+            return
+
+        max_segment = device.capabilities.segments_count
+        valid_segments = [s for s in segments if 1 <= s <= max_segment]
+        if not valid_segments:
+            self._logger.warning(
+                "No valid segment indices provided for device %s", device
+            )
+            return
+
+        message = MultiSegmentColorMessage(valid_segments, rgb, brightness)
         self._logger.debug(f"Sending message {message} to device {device}")
         self._send_message(message, device)
 

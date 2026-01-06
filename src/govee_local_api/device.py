@@ -107,6 +107,30 @@ class GoveeDevice:
     async def turn_segment_off(self, segment: int) -> None:
         await self._controller.set_segment_rgb_color(self, segment, (0, 0, 0))
 
+    async def set_segments_rgb_color(
+        self,
+        segments: list[int],
+        red: int,
+        green: int,
+        blue: int,
+        brightness: int = 100,
+    ) -> None:
+        """Set multiple segments to the same color simultaneously.
+
+        Args:
+            segments: List of segment indices (1-based)
+            red: Red component (0-255)
+            green: Green component (0-255)
+            blue: Blue component (0-255)
+            brightness: Brightness percentage (0-100), applied by scaling RGB
+        """
+        rgb: tuple[int, int, int] = (red, green, blue)
+        await self._controller.set_segments_rgb_color(self, segments, rgb, brightness)
+
+    async def turn_segments_off(self, segments: list[int]) -> None:
+        """Turn off multiple segments by setting their color to black."""
+        await self._controller.set_segments_rgb_color(self, segments, (0, 0, 0))
+
     async def turn_off(self) -> None:
         await self._controller.turn_on_off(self, False)
         self._is_on = False
