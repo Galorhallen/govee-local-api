@@ -135,6 +135,38 @@ class SegmentColorMessages(PtRealMessage):
         super().__init__([data])
 
 
+class MultiSegmentColorMessage(PtRealMessage):
+    """Set multiple segments to the same color simultaneously using bitmask.
+
+    Brightness is applied by scaling RGB values (0-100%).
+    """
+
+    def __init__(
+        self,
+        segments: list[int],
+        color: tuple[int, int, int],
+        brightness: int = 100,
+    ) -> None:
+        bitmask = 0
+        for seg in segments:
+            if 1 <= seg <= 15:
+                bitmask |= 1 << (seg - 1)
+
+        segment_bytes = bitmask.to_bytes(2, "little")
+        brightness_factor = max(0, min(brightness, 100)) / 100.0
+        scaled_color = [
+            int(max(0, min(c, 255)) * brightness_factor) for c in color
+        ]
+        data = (
+            b"\x33\x05\x15\x01"
+            + bytes(scaled_color)
+            + b"\x00\x00\x00\x00\x00"
+            + segment_bytes
+            + b"\x00\x00\x00\x00\x00"
+        )
+        super().__init__([data])
+
+
 class SceneMessages(PtRealMessage):
     def __init__(self, scene: bytes) -> None:
         data = (
