@@ -154,9 +154,7 @@ class MultiSegmentColorMessage(PtRealMessage):
 
         segment_bytes = bitmask.to_bytes(2, "little")
         brightness_factor = max(0, min(brightness, 100)) / 100.0
-        scaled_color = [
-            int(max(0, min(c, 255)) * brightness_factor) for c in color
-        ]
+        scaled_color = [int(max(0, min(c, 255)) * brightness_factor) for c in color]
         data = (
             b"\x33\x05\x15\x01"
             + bytes(scaled_color)
