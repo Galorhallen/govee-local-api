@@ -2,6 +2,8 @@
 
 [![Upload Python Package](https://github.com/Galorhallen/govee-local-api/actions/workflows/deploy.yml/badge.svg?event=release)](https://github.com/Galorhallen/govee-local-api/actions/workflows/deploy.yml)
 
+Please note that scene and segment support is still **very** experimental.
+
 # Requirements
 
 - Python >= 3.9

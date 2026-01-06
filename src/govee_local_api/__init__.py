@@ -10,4 +10,4 @@ __all__ = [
     "GoveeLightCapabilities",
 ]
 
-__version__ = "2.0.0a0"
+__version__ = "2.3.0"
