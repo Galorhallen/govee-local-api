@@ -116,6 +116,7 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     # Models with common features
     "H6004": BASIC_CAPABILITIES,
     "H6008": BASIC_CAPABILITIES,
+    "H600A": BASIC_CAPABILITIES,
     "H600D": BASIC_CAPABILITIES,
     "H6020": create_with_capabilities(True, True, True, 0, True),
     "H6022": BASIC_CAPABILITIES,
