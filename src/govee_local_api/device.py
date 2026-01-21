@@ -142,6 +142,9 @@ class GoveeDevice:
     def update_lastseen(self) -> None:
         self._lastseen = datetime.now()
 
+    def update_ip(self, ip: str) -> None:
+        self._ip = ip
+
     def as_dict(self) -> dict[str, Any]:
         return {
             "ip": self._ip,

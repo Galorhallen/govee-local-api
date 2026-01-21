@@ -414,6 +414,14 @@ class GoveeController(asyncio.DatagramProtocol):
 
         if device := self.get_device_by_fingerprint(fingerprint):
             if self._call_discovered_callback(device, False):
+                if message.ip and message.ip != device.ip:
+                    self._logger.debug(
+                        "Device %s IP changed from %s to %s",
+                        fingerprint,
+                        device.ip,
+                        message.ip,
+                    )
+                    device.update_ip(message.ip)
                 device.update_lastseen()
                 self._logger.debug("Device updated: %s", device)
         else:
