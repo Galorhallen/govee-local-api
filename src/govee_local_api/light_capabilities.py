@@ -115,12 +115,20 @@ ON_OFF_CAPABILITIES = create_with_capabilities(
 GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     # Models with common features
     "H6004": BASIC_CAPABILITIES,
+    "H6006": create_with_capabilities(
+        True, False, True, 0, True
+    ),  # Issue #133 - no temp
     "H6008": BASIC_CAPABILITIES,
+    "H600A": BASIC_CAPABILITIES,
     "H600D": BASIC_CAPABILITIES,
+    "H601A": BASIC_CAPABILITIES,  # Issue #129
     "H6020": create_with_capabilities(True, True, True, 0, True),
     "H6022": BASIC_CAPABILITIES,
     "H6039": create_with_capabilities(True, True, True, 12, True),
     "H6042": create_with_capabilities(True, True, True, 5, True),
+    "H6043": create_with_capabilities(
+        True, False, True, 10, True
+    ),  # Issue #254 - TV Light Bars 2, no temp
     "H6046": create_with_capabilities(True, True, True, 10, True),
     "H6047": create_with_capabilities(True, True, True, 10, True),
     "H6048": create_with_capabilities(True, True, True, 24, True),
@@ -147,8 +155,10 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     "H60A1": create_with_capabilities(True, True, True, 13, True),
     "H60A4": create_with_capabilities(True, True, True, 11, False),
     "H60A6": create_with_capabilities(True, True, True, 0, False),
+    "H60B0": BASIC_CAPABILITIES,  # Issue #252 - segments TBD
     "H60B1": create_with_capabilities(True, True, True, 3, True),
     "H60B2": create_with_capabilities(True, True, True, 3, True),
+    "H60C1": create_with_capabilities(True, True, True, 3, True),  # Issue #232
     "H6072": create_with_capabilities(True, True, True, 8, True),
     "H6073": BASIC_CAPABILITIES,
     "H6076": create_with_capabilities(True, True, True, 7, True),
@@ -206,7 +216,7 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     "H61C2": BASIC_CAPABILITIES,
     "H61C5": BASIC_CAPABILITIES,
     "H61C3": BASIC_CAPABILITIES,
-    "H61D3": BASIC_CAPABILITIES,
+    "H61D3": create_with_capabilities(True, True, True, 15, True),
     "H61D6": BASIC_CAPABILITIES,
     "H61D5": BASIC_CAPABILITIES,
     "H61E0": BASIC_CAPABILITIES,
@@ -227,7 +237,11 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     "H7025": create_with_capabilities(True, False, True, 15, True),
     "H7026": create_with_capabilities(True, False, True, 30, True),
     "H7028": BASIC_CAPABILITIES,
+    "H702A": create_with_capabilities(
+        True, True, True, 15, True
+    ),  # Issue #245 - Outdoor S14 Bulb String Lights 2
     "H702B": create_with_capabilities(True, True, True, 0, True),
+    "H702C": BASIC_CAPABILITIES,  # Issue #262 - segments TBD
     "H7041": BASIC_CAPABILITIES,
     "H7042": BASIC_CAPABILITIES,
     "H7050": BASIC_CAPABILITIES,
@@ -279,6 +293,7 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     "H802A": BASIC_CAPABILITIES,
     "H80A1": create_with_capabilities(True, True, True, 14, True),
     "H80C5": create_with_capabilities(True, True, True, 10, True),
+    "H80D1": BASIC_CAPABILITIES,  # Issue #261 - Icicle lights
     "H805A": create_with_capabilities(True, True, True, 0, True),
     "H805C": create_with_capabilities(True, True, True, 9, True),
     "H8072": create_with_capabilities(True, True, True, 8, True),
