@@ -199,6 +199,19 @@ class GoveeController(asyncio.DatagramProtocol):
         """
         self._logger = logger or logging.getLogger(__name__)
 
+        # Handle deprecated listening_address parameter
+        if listening_address is not None:
+            import warnings
+
+            warnings.warn(
+                "listening_address is deprecated, use listening_addresses instead",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            # Use the deprecated parameter if listening_addresses wasn't explicitly set
+            if listening_addresses == "0.0.0.0":
+                listening_addresses = listening_address
+
         self._transports: list[Any] = []
         self._protocols: list[Any] = []
         self._broadcast_address = broadcast_address
@@ -630,8 +643,17 @@ class GoveeController(asyncio.DatagramProtocol):
                             listening_addr, network_mask
                         )
 
+                        if network is None:
+                            self._logger.warning(
+                                "Invalid network mask for interface %d (%s/%s)",
+                                i,
+                                listening_addr,
+                                network_mask,
+                            )
+                            continue
+
                         # Check if target is in this network
-                        if network and target_addr in network:
+                        if target_addr in network:
                             self._logger.debug(
                                 "Selected transport %d (%s/%s) for target %s (subnet match)",
                                 i,
