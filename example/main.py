@@ -23,7 +23,7 @@ async def create_controller(
 ) -> GoveeController:
     controller = GoveeController(
         loop=asyncio.get_event_loop(),
-        listening_address="0.0.0.0",
+        listening_addresses="0.0.0.0",
         discovery_enabled=discovery_enabled,
         discovered_callback=discovered_callback,
         evicted_callback=lambda device: print(f"Evicted {device}"),

@@ -57,29 +57,25 @@ controller = GoveeController(
 
 ## Network Mask Configuration
 
-For precise subnet-aware device routing (recommended for enterprise/VLAN environments):
+For precise subnet-aware device routing (recommended for enterprise/VLAN environments), embed the network mask directly in the address using CIDR or netmask notation:
 
 ```python
-# Precise subnet matching with network masks
+# Precise subnet matching with embedded network masks
 controller = GoveeController(
     listening_addresses=[
-        "192.168.1.100",    # Main LAN
-        "192.168.10.100",   # IoT VLAN
-        "10.0.0.100"        # Management network
-    ],
-    network_masks=[
-        "/24",              # 192.168.1.0/24
-        "255.255.255.0",    # 192.168.10.0/24 (alternative notation)
-        "/8"                # 10.0.0.0/8
+        "192.168.1.100/24",             # Main LAN (CIDR)
+        "192.168.10.100/255.255.255.0", # IoT VLAN (dotted netmask)
+        "10.0.0.100/8"                  # Management network
     ]
 )
 ```
 
 ### Supported Network Mask Formats
 
-- **CIDR Notation**: `/24`, `/16`, `/8`, `/30`, etc.
-- **Dotted Decimal**: `255.255.255.0`, `255.255.0.0`, `255.0.0.0`, etc.
-- **Mixed**: You can use both formats in the same configuration
+- **CIDR Notation**: `192.168.1.100/24`, `10.0.0.100/8`, etc.
+- **Dotted Decimal**: `192.168.1.100/255.255.255.0`, etc.
+- **No mask**: `192.168.1.100` (uses heuristic subnet matching)
+- **Wildcard**: `0.0.0.0` (listens on all interfaces, no subnet matching)
 
 ## Advanced Features
 
@@ -88,8 +84,7 @@ controller = GoveeController(
 ```python
 async def discover_and_control():
     controller = GoveeController(
-        listening_addresses=["192.168.1.100", "192.168.10.100"],
-        network_masks=["/24", "/24"]
+        listening_addresses=["192.168.1.100/24", "192.168.10.100/24"]
     )
 
     # Scan for devices across all networks
