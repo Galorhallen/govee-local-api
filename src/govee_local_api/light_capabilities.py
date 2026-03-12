@@ -303,9 +303,9 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     "H70D2": create_with_capabilities(True, True, True, 10, True),
     "H8022": BASIC_CAPABILITIES,
     "H802A": BASIC_CAPABILITIES,
+    "H808A": create_with_capabilities(True, True, True, 5, True),
     "H80A1": create_with_capabilities(True, True, True, 14, True),
     "H80C5": create_with_capabilities(True, True, True, 10, True),
-    "H808A": create_with_capabilities(True, True, True, 5, True),
     "H80D1": BASIC_CAPABILITIES,  # Issue #261 - Icicle lights
     "H805A": create_with_capabilities(True, True, True, 0, True),
     "H805C": create_with_capabilities(True, True, True, 9, True),
