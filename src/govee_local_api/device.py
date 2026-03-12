@@ -5,7 +5,11 @@ from collections.abc import Callable
 from datetime import datetime
 from typing import Any
 
-from .light_capabilities import GoveeLightCapabilities, ON_OFF_CAPABILITIES
+from .light_capabilities import (
+    GoveeLightCapabilities,
+    ON_OFF_CAPABILITIES,
+    TemperatureRange,
+)
 from .message import DevStatusResponse
 
 
@@ -91,6 +95,10 @@ class GoveeDevice:
     @property
     def temperature_color(self) -> int:
         return self._temperature_color
+
+    @property
+    def temperature_range(self) -> TemperatureRange:
+        return self._capabilities.temperature_range
 
     @property
     def update_callback(self) -> Callable[[GoveeDevice], None] | None:

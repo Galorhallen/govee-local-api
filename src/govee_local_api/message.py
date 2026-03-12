@@ -4,6 +4,8 @@ import base64
 import json
 from typing import Any, TypeVar
 
+from .light_capabilities import DEFAULT_TEMPERATURE_RANGE, TemperatureRange
+
 
 class GoveeMessage:
     command: str = ""
@@ -68,13 +70,14 @@ class BrightnessMessage(GoveeMessage):
 
 
 class ColorMessage(GoveeMessage):
-    TEMPERATURE_MAX_KELVIN = 9000
-    TEMPERATURE_MIN_KELVIN = 2000
-
     command = "colorwc"
 
     def __init__(
-        self, *, rgb: tuple[int, int, int] | None, temperature: int | None
+        self,
+        *,
+        rgb: tuple[int, int, int] | None,
+        temperature: int | None,
+        temperature_range: TemperatureRange = DEFAULT_TEMPERATURE_RANGE,
     ) -> None:
         if rgb:
             nrgb = [max(0, min(c, 255)) for c in rgb]
@@ -86,8 +89,8 @@ class ColorMessage(GoveeMessage):
             data = {
                 "color": {"r": 0, "g": 0, "b": 0},
                 "colorTemInKelvin": max(
-                    self.TEMPERATURE_MIN_KELVIN,
-                    min(temperature, self.TEMPERATURE_MAX_KELVIN),
+                    temperature_range.min_kelvin,
+                    min(temperature, temperature_range.max_kelvin),
                 ),
             }
 

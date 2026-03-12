@@ -1,4 +1,14 @@
+from dataclasses import dataclass
 from enum import IntFlag
+
+
+@dataclass(frozen=True)
+class TemperatureRange:
+    min_kelvin: int = 2000
+    max_kelvin: int = 9000
+
+
+DEFAULT_TEMPERATURE_RANGE = TemperatureRange()
 
 
 class GoveeLightFeatures(IntFlag):
@@ -24,12 +34,14 @@ class GoveeLightCapabilities:
         features: GoveeLightFeatures,
         segments: list[bytes] = [],
         scenes: dict[str, bytes] = {},
+        temperature_range: TemperatureRange = DEFAULT_TEMPERATURE_RANGE,
     ) -> None:
         self.features = features
         self.segments = (
             segments if features & GoveeLightFeatures.SEGMENT_CONTROL else []
         )
         self.scenes = scenes if features & GoveeLightFeatures.SCENES else {}
+        self._temperature_range = temperature_range
 
     @property
     def segments_count(self) -> int:
@@ -39,11 +51,21 @@ class GoveeLightCapabilities:
     def available_scenes(self) -> list[str]:
         return list(self.scenes.keys())
 
+    @property
+    def temperature_range(self) -> TemperatureRange:
+        return self._temperature_range
+
     def __repr__(self) -> str:
-        return f"GoveeLightCapabilities(features={self.features!r}, segments={self.segments!r}, scenes={self.scenes!r})"
+        result = f"GoveeLightCapabilities(features={self.features!r}, segments={self.segments!r}, scenes={self.scenes!r}"
+        if self._temperature_range != DEFAULT_TEMPERATURE_RANGE:
+            result += f", temperature_range={self._temperature_range.min_kelvin}-{self._temperature_range.max_kelvin}K"
+        return result + ")"
 
     def __str__(self) -> str:
-        return f"GoveeLightCapabilities(features={self.features!r}, segments={len(self.segments)}, scenes={len(self.scenes)})"
+        result = f"GoveeLightCapabilities(features={self.features!r}, segments={len(self.segments)}, scenes={len(self.scenes)}"
+        if self._temperature_range != DEFAULT_TEMPERATURE_RANGE:
+            result += f", temperature_range={self._temperature_range.min_kelvin}-{self._temperature_range.max_kelvin}K"
+        return result + ")"
 
 
 SEGMENT_CODES: list[bytes] = [
@@ -80,7 +102,12 @@ SCENE_CODES: dict[str, bytes] = {
 
 
 def create_with_capabilities(
-    rgb: bool, temperature: bool, brightness: bool, segments: int, scenes: bool
+    rgb: bool,
+    temperature: bool,
+    brightness: bool,
+    segments: int,
+    scenes: bool,
+    temperature_range: TemperatureRange = DEFAULT_TEMPERATURE_RANGE,
 ) -> GoveeLightCapabilities:
     features: GoveeLightFeatures = GoveeLightFeatures(0)
     segments_codes = []
@@ -99,7 +126,10 @@ def create_with_capabilities(
         features = features | GoveeLightFeatures.SCENES
 
     return GoveeLightCapabilities(
-        features, segments_codes, SCENE_CODES if scenes else {}
+        features,
+        segments_codes,
+        SCENE_CODES if scenes else {},
+        temperature_range,
     )
 
 
@@ -151,7 +181,14 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     "H607C": BASIC_CAPABILITIES,
     "H608B": create_with_capabilities(True, True, True, 15, True),
     "H608D": BASIC_CAPABILITIES,
-    "H60A1": create_with_capabilities(True, True, True, 13, True),
+    "H60A1": create_with_capabilities(
+        True,
+        True,
+        True,
+        13,
+        True,
+        temperature_range=TemperatureRange(2200, 6500),
+    ),
     "H60A4": create_with_capabilities(True, True, True, 11, False),
     "H60A6": create_with_capabilities(True, True, True, 0, False),
     "H60B0": BASIC_CAPABILITIES,  # Issue #252 - segments TBD
@@ -160,7 +197,14 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     "H60C1": create_with_capabilities(True, True, True, 3, True),  # Issue #232
     "H6072": create_with_capabilities(True, True, True, 8, True),
     "H6073": BASIC_CAPABILITIES,
-    "H6076": create_with_capabilities(True, True, True, 7, True),
+    "H6076": create_with_capabilities(
+        True,
+        True,
+        True,
+        7,
+        True,
+        temperature_range=TemperatureRange(2700, 6500),
+    ),
     "H6078": BASIC_CAPABILITIES,
     "H6087": create_with_capabilities(True, True, True, 12, True),
     "H610A": BASIC_CAPABILITIES,

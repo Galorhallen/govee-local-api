@@ -1,3 +1,4 @@
+from govee_local_api.light_capabilities import TemperatureRange
 from govee_local_api.message import (
     ScanMessage,
     ColorMessage,
@@ -99,3 +100,38 @@ def test_on_off():
 
     msg: OnOffMessage = OnOffMessage(False)
     assert msg.as_dict() == {"msg": {"cmd": "turn", "data": {"value": 0}}}
+
+
+def test_color_message_custom_temperature_range():
+    # Within custom range
+    msg = ColorMessage(
+        rgb=None,
+        temperature=3500,
+        temperature_range=TemperatureRange(3000, 6500),
+    )
+    assert msg.data["colorTemInKelvin"] == 3500
+
+    # Below custom min — clamps to min
+    msg = ColorMessage(
+        rgb=None,
+        temperature=2000,
+        temperature_range=TemperatureRange(3000, 6500),
+    )
+    assert msg.data["colorTemInKelvin"] == 3000
+
+    # Above custom max — clamps to max
+    msg = ColorMessage(
+        rgb=None,
+        temperature=8000,
+        temperature_range=TemperatureRange(3000, 6500),
+    )
+    assert msg.data["colorTemInKelvin"] == 6500
+
+
+def test_color_message_default_temperature_range():
+    # Default range still works as before (2000-9000)
+    msg = ColorMessage(rgb=None, temperature=1500)
+    assert msg.data["colorTemInKelvin"] == 2000
+
+    msg = ColorMessage(rgb=None, temperature=10000)
+    assert msg.data["colorTemInKelvin"] == 9000
