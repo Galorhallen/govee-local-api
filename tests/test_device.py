@@ -3,6 +3,7 @@ import unittest
 from unittest.mock import Mock
 from govee_local_api.device import GoveeDevice
 from govee_local_api.controller import GoveeController
+from govee_local_api.protocol import GoveeControllerProtocol
 from govee_local_api.message import ScanResponse
 
 
@@ -37,6 +38,8 @@ class TestControllerIpUpdate(unittest.TestCase):
         self.device = GoveeDevice(
             self.controller, "192.168.1.100", "AA:BB:CC:DD:EE:FF", "H6001", None
         )
+        self.mock_protocol = Mock(spec=GoveeControllerProtocol)
+        self.mock_protocol.transport = Mock()
 
     def test_scan_response_updates_ip_when_changed(self):
         self.controller._registry.get_device_by_fingerprint = Mock(
@@ -50,7 +53,9 @@ class TestControllerIpUpdate(unittest.TestCase):
         }
         scan_response = ScanResponse(scan_data)
 
-        asyncio.run(self.controller._handle_scan_response(scan_response))
+        asyncio.run(
+            self.controller._handle_scan_response(scan_response, self.mock_protocol)
+        )
 
         assert self.device.ip == "192.168.1.200"
 
@@ -66,7 +71,9 @@ class TestControllerIpUpdate(unittest.TestCase):
         }
         scan_response = ScanResponse(scan_data)
 
-        asyncio.run(self.controller._handle_scan_response(scan_response))
+        asyncio.run(
+            self.controller._handle_scan_response(scan_response, self.mock_protocol)
+        )
 
         assert self.device.ip == "192.168.1.100"
         # Logger should not have logged an IP change
@@ -85,7 +92,9 @@ class TestControllerIpUpdate(unittest.TestCase):
         scan_response = ScanResponse(scan_data)
 
         original_ip = self.device.ip
-        asyncio.run(self.controller._handle_scan_response(scan_response))
+        asyncio.run(
+            self.controller._handle_scan_response(scan_response, self.mock_protocol)
+        )
 
         # IP should remain unchanged when message has no IP
         assert self.device.ip == original_ip

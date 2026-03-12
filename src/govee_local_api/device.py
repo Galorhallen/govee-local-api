@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Callable
 from datetime import datetime
 from typing import Any
@@ -40,12 +41,20 @@ class GoveeDevice:
         self._rgb_color = (0, 0, 0)
         self._temperature_color = 0
         self._brightness = 0
+        self._transport: asyncio.DatagramTransport | None = None
         self._update_callback: Callable[[GoveeDevice], None] | None = None
         self.is_manual: bool = False
 
     @property
     def controller(self):
         return self._controller
+
+    @property
+    def transport(self) -> asyncio.DatagramTransport | None:
+        return self._transport
+
+    def update_transport(self, transport: asyncio.DatagramTransport) -> None:
+        self._transport = transport
 
     @property
     def capabilities(self) -> GoveeLightCapabilities:

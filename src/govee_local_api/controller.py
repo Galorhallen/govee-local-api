@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import ipaddress
 import logging
-import socket
 from collections.abc import Callable
 from datetime import datetime, timedelta
 from typing import Any, cast
@@ -29,6 +28,11 @@ from .message import (
     DevStatusMessage,
     DevStatusResponse,
 )
+from .network import (
+    _parse_listening_addresses,
+    _is_ip_in_same_network_heuristic,
+)
+from .protocol import GoveeControllerProtocol
 
 BROADCAST_ADDRESS = "239.255.255.250"
 BROADCAST_PORT = 4001
@@ -38,121 +42,6 @@ COMMAND_PORT = 4003
 DISCOVERY_INTERVAL = 10
 EVICT_INTERVAL = DISCOVERY_INTERVAL * 3
 UPDATE_INTERVAL = 5
-
-
-def _normalize_to_list(value: str | list[str]) -> list[str]:
-    """Convert a single string or list of strings to a normalized list."""
-    if isinstance(value, str):
-        return [value]
-    return value.copy()
-
-
-def _create_network_from_address_and_mask(
-    address: str, mask: str
-) -> ipaddress.IPv4Network | None:
-    """Create a network object from an address and mask, handling different notation formats."""
-    try:
-        if "/" in mask:
-            network = ipaddress.ip_network(f"{address}{mask}", strict=False)
-        else:
-            network = ipaddress.ip_network(f"{address}/{mask}", strict=False)
-
-        if isinstance(network, ipaddress.IPv4Network):
-            return network
-        return None
-    except (ValueError, ipaddress.AddressValueError):
-        return None
-
-
-def _is_ip_in_same_network_heuristic(
-    ip1: ipaddress.IPv4Address, ip2: ipaddress.IPv4Address
-) -> bool:
-    """
-    Best-effort check if two IPs are likely on the same network.
-    Uses common subnet assumptions for private networks.
-    """
-    # Check if both are in the same /24 network (common case)
-    if ip1.packed[:3] == ip2.packed[:3]:
-        return True
-
-    # Check if both are in the same /16 network for 192.168.x.x
-    if (
-        ip1.is_private
-        and ip2.is_private
-        and str(ip1).startswith("192.168.")
-        and str(ip2).startswith("192.168.")
-        and ip1.packed[:2] == ip2.packed[:2]
-    ):
-        return True
-
-    # Check if both are in the same /8 network for 10.x.x.x
-    if (
-        ip1.is_private
-        and ip2.is_private
-        and str(ip1).startswith("10.")
-        and str(ip2).startswith("10.")
-        and ip1.packed[0] == ip2.packed[0]
-    ):
-        return True
-
-    return False
-
-
-class GoveeControllerProtocol(asyncio.DatagramProtocol):
-    """Protocol handler for a single network interface."""
-
-    def __init__(self, controller: "GoveeController", listening_address: str):
-        self.controller = controller
-        self.listening_address = listening_address
-        self.transport = None
-
-    def connection_made(self, transport):
-        self.transport = transport
-        sock = transport.get_extra_info("socket")
-
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-
-        self.controller._logger.debug(
-            "Protocol connected for listening address: %s", self.listening_address
-        )
-
-        broadcast_ip = ipaddress.ip_address(self.controller._broadcast_address)
-
-        if broadcast_ip.is_multicast:
-            sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
-
-            sock.setsockopt(
-                socket.SOL_IP,
-                socket.IP_MULTICAST_IF,
-                socket.inet_aton(self.listening_address),
-            )
-            sock.setsockopt(
-                socket.SOL_IP,
-                socket.IP_ADD_MEMBERSHIP,
-                socket.inet_aton(self.controller._broadcast_address)
-                + socket.inet_aton(self.listening_address),
-            )
-
-    def connection_lost(self, *args, **kwargs):
-        if self.transport:
-            broadcast_ip = ipaddress.ip_address(self.controller._broadcast_address)
-            if broadcast_ip.is_multicast:
-                sock = self.transport.get_extra_info("socket")
-                sock.setsockopt(
-                    socket.SOL_IP,
-                    socket.IP_DROP_MEMBERSHIP,
-                    socket.inet_aton(self.controller._broadcast_address)
-                    + socket.inet_aton(self.listening_address),
-                )
-        self.controller._logger.debug("Disconnected from %s", self.listening_address)
-        self.controller._protocol_disconnected()
-
-    def datagram_received(self, data: bytes, addr: tuple):
-        if data:
-            self.controller._loop.create_task(
-                self.controller._handle_datagram_received(data, addr)
-            )
 
 
 class GoveeController(asyncio.DatagramProtocol):
@@ -173,10 +62,6 @@ class GoveeController(asyncio.DatagramProtocol):
         discovered_callback: Callable[[GoveeDevice, bool], bool] | None = None,
         evicted_callback: Callable[[GoveeDevice], None] | None = None,
         logger: logging.Logger | None = None,
-        # New parameter for network masks
-        network_masks: str | list[str] | None = None,
-        # Deprecated parameter for backward compatibility
-        listening_address: str | None = None,
     ) -> None:
         """Build a controller that handle Govee devices that support local API on local network.
 
@@ -184,7 +69,10 @@ class GoveeController(asyncio.DatagramProtocol):
             loop: The asyncio event loop. If None the loop is retrieved by calling ``asyncio.get_running_loop()``
             broadcast_address (str): The multicast address to use to send discovery messages. Default: 239.255.255.250
             broadcast_port (int): Devices port where discovery messages are sent. Default: 4001
-            listening_addresses (str | list[str]): Local IP addresses on which the controller listens for incoming devices' messages. Can be a single address or a list of addresses. Default: "0.0.0.0"
+            listening_addresses (str | list[str]): Local IP addresses on which the controller listens for incoming
+                devices' messages. Can be a single address or a list of addresses. Supports optional CIDR or netmask
+                notation (e.g., "192.168.1.100/24" or "192.168.1.100/255.255.255.0"). When a mask is provided,
+                precise subnet matching is used for transport selection. Default: "0.0.0.0"
             listening_port (int): Local UDP port on which the controller listen for incoming devices' messages
             device_command_port (int): The devices' port where the commands should be sent
             discovery_enabled (bool): If true a discovery message is sent every ``discovery_interval`` seconds. Default: False
@@ -195,22 +83,8 @@ class GoveeController(asyncio.DatagramProtocol):
             update_interval (int): Interval between a status update is requested to devices.
             discovered_callback (Callable[GoveeDevice, bool]): An optional function to call when a device is discovered (or rediscovered). Default None
             evicted_callback (Callable[GoveeDevice]): An optional function to call when a device is evicted.
-            network_masks (str | list[str] | None): Network masks corresponding to each listening address (e.g., "255.255.255.0" or "/24"). If None, uses heuristic matching. Default: None
         """
         self._logger = logger or logging.getLogger(__name__)
-
-        # Handle deprecated listening_address parameter
-        if listening_address is not None:
-            import warnings
-
-            warnings.warn(
-                "listening_address is deprecated, use listening_addresses instead",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            # Use the deprecated parameter if listening_addresses wasn't explicitly set
-            if listening_addresses == "0.0.0.0":
-                listening_addresses = listening_address
 
         self._transports: list[Any] = []
         self._protocols: list[Any] = []
@@ -218,19 +92,9 @@ class GoveeController(asyncio.DatagramProtocol):
         self._broadcast_port = broadcast_port
         self._listening_port = listening_port
         self._device_command_port = device_command_port
-        self._listening_addresses = _normalize_to_list(listening_addresses)
-
-        if network_masks is None:
-            self._network_masks = None
-        else:
-            self._network_masks = _normalize_to_list(network_masks)
-
-            # Validate that we have matching counts
-            if len(self._network_masks) != len(self._listening_addresses):
-                raise ValueError(
-                    f"Number of network_masks ({len(self._network_masks)}) must match "
-                    f"number of listening_addresses ({len(self._listening_addresses)})"
-                )
+        self._listening_addresses, self._networks = _parse_listening_addresses(
+            listening_addresses
+        )
 
         # Initialize loop, handling case when no loop is running (for testing)
         try:
@@ -343,9 +207,9 @@ class GoveeController(asyncio.DatagramProtocol):
         return self._listening_addresses.copy()
 
     @property
-    def network_masks(self) -> list[str] | None:
-        """Get the list of network masks, if configured."""
-        return self._network_masks.copy() if self._network_masks else None
+    def networks(self) -> list[ipaddress.IPv4Network | None]:
+        """Get the list of parsed networks for each listening address."""
+        return self._networks.copy()
 
     def set_device_discovered_callback(
         self, callback: Callable[[GoveeDevice, bool], bool] | None
@@ -509,7 +373,9 @@ class GoveeController(asyncio.DatagramProtocol):
         if not active_transports:
             self._cleanup_done.set()
 
-    async def _handle_datagram_received(self, data: bytes, addr: tuple):
+    async def _handle_datagram_received(
+        self, data: bytes, addr: tuple, protocol: GoveeControllerProtocol
+    ):
         message = self._message_factory.create_message(data)
         if not message:
             if self._logger.isEnabledFor(logging.DEBUG):
@@ -540,19 +406,25 @@ class GoveeController(asyncio.DatagramProtocol):
                     scan_message.data,
                 )
 
-            await self._handle_scan_response(scan_message)
+            await self._handle_scan_response(scan_message, protocol)
         elif message.command == DevStatusResponse.command:
             await self._handle_status_update_response(
-                cast(DevStatusResponse, message), addr
+                cast(DevStatusResponse, message), addr, protocol
             )
 
-    async def _handle_status_update_response(self, message: DevStatusResponse, addr):
+    async def _handle_status_update_response(
+        self, message: DevStatusResponse, addr, protocol: GoveeControllerProtocol
+    ):
         self._logger.debug("Status update received from {}: {}", addr, message)
         ip = addr[0]
         if device := self.get_device_by_ip(ip):
+            if protocol.transport:
+                device.update_transport(protocol.transport)
             device.update(message)
 
-    async def _handle_scan_response(self, message: ScanResponse) -> None:
+    async def _handle_scan_response(
+        self, message: ScanResponse, protocol: GoveeControllerProtocol
+    ) -> None:
         fingerprint = message.device
         if not fingerprint:
             self._logger.warning(
@@ -570,6 +442,8 @@ class GoveeController(asyncio.DatagramProtocol):
                         message.ip,
                     )
                     device.update_ip(message.ip)
+                if protocol.transport:
+                    device.update_transport(protocol.transport)
                 device.update_lastseen()
                 self._logger.debug("Device updated: %s", device)
         else:
@@ -595,6 +469,8 @@ class GoveeController(asyncio.DatagramProtocol):
                 return
 
             device = GoveeDevice(self, ip, fingerprint, sku or "UNKNOWN", capabilities)
+            if protocol.transport:
+                device.update_transport(protocol.transport)
             if self._call_discovered_callback(device, True):
                 device = self._registry.add_discovered_device(device)
                 self._logger.debug("Device discovered: %s", device)
@@ -611,14 +487,18 @@ class GoveeController(asyncio.DatagramProtocol):
 
     def _send_message(self, message: GoveeMessage, device: GoveeDevice) -> None:
         if self._transports:
-            # Use the most appropriate transport for sending messages to this device
-            transport = self._get_best_transport_for_ip(device.ip)
-            transport.sendto(bytes(message), (device.ip, self._device_command_port))
+            # Prefer the transport the device was discovered on
+            transport = device.transport
+            if transport is None or transport.is_closing():
+                transport = self._get_best_transport_for_ip(device.ip)
+            if transport is not None:
+                transport.sendto(bytes(message), (device.ip, self._device_command_port))
 
     def _get_best_transport_for_ip(self, target_ip: str) -> Any:
         """
         Select the best transport for communicating with a specific IP address.
-        Uses network masks for accurate subnet matching when available.
+        Uses parsed network information for accurate subnet matching when available,
+        falling back to heuristic matching for addresses without a mask.
         """
         if not self._transports:
             raise RuntimeError("No transports available")
@@ -629,75 +509,42 @@ class GoveeController(asyncio.DatagramProtocol):
         try:
             target_addr = ipaddress.ip_address(target_ip)
 
-            # If we have network masks, use precise subnet matching
-            if self._network_masks:
-                for i, (listening_addr, network_mask) in enumerate(
-                    zip(self._listening_addresses, self._network_masks)
-                ):
-                    if listening_addr == "0.0.0.0":
-                        continue  # Skip wildcard addresses for network matching
+            for i, (listening_addr, network) in enumerate(
+                zip(self._listening_addresses, self._networks)
+            ):
+                if listening_addr == "0.0.0.0":
+                    continue
 
-                    try:
-                        # Create network object from listening address and mask
-                        network = _create_network_from_address_and_mask(
-                            listening_addr, network_mask
-                        )
-
-                        if network is None:
-                            self._logger.warning(
-                                "Invalid network mask for interface %d (%s/%s)",
-                                i,
-                                listening_addr,
-                                network_mask,
-                            )
-                            continue
-
-                        # Check if target is in this network
-                        if target_addr in network:
-                            self._logger.debug(
-                                "Selected transport %d (%s/%s) for target %s (subnet match)",
-                                i,
-                                listening_addr,
-                                network_mask,
-                                target_ip,
-                            )
-                            return self._transports[i]
-
-                    except (ValueError, ipaddress.AddressValueError) as e:
-                        self._logger.warning(
-                            "Invalid network configuration for interface %d (%s/%s): %s",
+                # Use precise subnet matching if a network mask was provided
+                if network is not None:
+                    if target_addr in network:
+                        self._logger.debug(
+                            "Selected transport %d (%s/%s) for target %s (subnet match)",
                             i,
                             listening_addr,
-                            network_mask,
-                            e,
+                            network.prefixlen,
+                            target_ip,
                         )
-                        continue
-            else:
-                # Fallback to heuristic matching when no masks provided
-                for i, listening_addr in enumerate(self._listening_addresses):
-                    if listening_addr == "0.0.0.0":
-                        continue  # Skip wildcard addresses for network matching
-
+                        return self._transports[i]
+                else:
+                    # Fallback to heuristic matching for addresses without a mask
                     try:
                         listen_addr = ipaddress.ip_address(listening_addr)
-
-                        # For IPv4, try to match by attempting to determine if they're on the same subnet
                         if (
                             target_addr.version == listen_addr.version == 4
                             and isinstance(target_addr, ipaddress.IPv4Address)
                             and isinstance(listen_addr, ipaddress.IPv4Address)
-                        ):
-                            # Check if they're in common private network ranges
-                            if _is_ip_in_same_network_heuristic(
+                            and _is_ip_in_same_network_heuristic(
                                 target_addr, listen_addr
-                            ):
-                                self._logger.debug(
-                                    "Selected transport %d (%s) for target %s (heuristic match)",
-                                    i,
-                                    listening_addr,
-                                    target_ip,
-                                )
-                                return self._transports[i]
+                            )
+                        ):
+                            self._logger.debug(
+                                "Selected transport %d (%s) for target %s (heuristic match)",
+                                i,
+                                listening_addr,
+                                target_ip,
+                            )
+                            return self._transports[i]
                     except ValueError:
                         continue
 
