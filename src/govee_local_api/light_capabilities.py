@@ -115,9 +115,7 @@ ON_OFF_CAPABILITIES = create_with_capabilities(
 GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     # Models with common features
     "H6004": BASIC_CAPABILITIES,
-    "H6006": create_with_capabilities(
-        True, False, True, 0, True
-    ),  # Issue #133 - no temp
+    "H6006": BASIC_CAPABILITIES,  # Issue #133 - temp confirmed via Cloud API (2000-9000K)
     "H6008": BASIC_CAPABILITIES,
     "H600A": BASIC_CAPABILITIES,
     "H600D": BASIC_CAPABILITIES,
@@ -146,6 +144,7 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     "H6067": BASIC_CAPABILITIES,
     "H606A": BASIC_CAPABILITIES,
     "H6088": create_with_capabilities(True, True, True, 6, True),
+    "H6093": create_with_capabilities(False, True, True, 0, True),
     "H6095": create_with_capabilities(True, True, True, 0, True),
     "H608A": BASIC_CAPABILITIES,
     "H6079": BASIC_CAPABILITIES,
@@ -166,6 +165,8 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     "H6087": create_with_capabilities(True, True, True, 12, True),
     "H610A": BASIC_CAPABILITIES,
     "H610B": BASIC_CAPABILITIES,
+    "H610E": create_with_capabilities(True, True, True, 7, False),
+    "H610F": create_with_capabilities(True, True, True, 7, False),
     "H6110": BASIC_CAPABILITIES,
     "H6117": BASIC_CAPABILITIES,
     "H612A": BASIC_CAPABILITIES,
@@ -181,6 +182,7 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     "H615C": create_with_capabilities(True, True, True, 0, True),
     "H615D": create_with_capabilities(True, True, True, 0, True),
     "H615E": create_with_capabilities(True, True, True, 0, True),
+    "H616D": create_with_capabilities(True, True, True, 15, True),
     "H6163": BASIC_CAPABILITIES,
     "H6167": create_with_capabilities(True, True, True, 12, True),
     "H6168": BASIC_CAPABILITIES,
@@ -189,6 +191,7 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     "H6173": BASIC_CAPABILITIES,
     "H6175": BASIC_CAPABILITIES,
     "H6176": BASIC_CAPABILITIES,
+    "H617E": create_with_capabilities(True, True, True, 0, True),
     "H618A": create_with_capabilities(True, True, True, 15, True),
     "H618C": create_with_capabilities(True, True, True, 15, True),
     "H618E": create_with_capabilities(True, True, True, 15, True),
@@ -230,6 +233,7 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     "H6609": create_with_capabilities(True, True, True, 18, True),
     "H6640": create_with_capabilities(True, True, True, 14, True),
     "H6641": create_with_capabilities(True, True, True, 14, True),
+    "H6800": BASIC_CAPABILITIES,
     "H6810": create_with_capabilities(True, True, True, 0, False),
     "H6871": create_with_capabilities(True, True, True, 0, True),
     "H7012": create_with_capabilities(False, False, True, 0, False),
@@ -248,6 +252,7 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     "H7050": BASIC_CAPABILITIES,
     "H7051": BASIC_CAPABILITIES,
     "H7053": create_with_capabilities(True, True, True, 0, True),
+    "H7056": BASIC_CAPABILITIES,
     "H7057": create_with_capabilities(True, True, True, 0, True),
     "H7058": create_with_capabilities(True, True, True, 0, True),
     "H7055": BASIC_CAPABILITIES,
@@ -264,6 +269,7 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     "H7065": BASIC_CAPABILITIES,
     "H7066": BASIC_CAPABILITIES,
     "H7067": create_with_capabilities(True, True, True, 0, True),
+    "H7070": BASIC_CAPABILITIES,
     "H706A": BASIC_CAPABILITIES,
     "H706B": BASIC_CAPABILITIES,
     "H706C": BASIC_CAPABILITIES,
@@ -288,12 +294,14 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     "H70A3": create_with_capabilities(True, True, True, 15, True),
     "H70B1": BASIC_CAPABILITIES,
     "H70B3": BASIC_CAPABILITIES,
+    "H70B5": create_with_capabilities(True, True, True, 3, True),
     "H70B6": create_with_capabilities(True, True, True, 0, True),
     "H70BC": BASIC_CAPABILITIES,
     "H70D1": create_with_capabilities(True, True, True, 10, True),
     "H70D2": create_with_capabilities(True, True, True, 10, True),
     "H8022": BASIC_CAPABILITIES,
     "H802A": BASIC_CAPABILITIES,
+    "H808A": create_with_capabilities(True, True, True, 5, True),
     "H80A1": create_with_capabilities(True, True, True, 14, True),
     "H80C5": create_with_capabilities(True, True, True, 10, True),
     "H80D1": BASIC_CAPABILITIES,  # Issue #261 - Icicle lights
