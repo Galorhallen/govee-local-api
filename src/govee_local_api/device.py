@@ -87,6 +87,11 @@ class GoveeDevice:
     def update_callback(self) -> Callable[[GoveeDevice], None] | None:
         return self._update_callback
 
+    @property
+    def is_connected(self) -> bool:
+        """Return True if the device has been seen in the last 30 seconds."""
+        return (datetime.now() - self._lastseen).total_seconds() < 30
+
     def set_update_callback(
         self, callback: Callable[[GoveeDevice], None] | None
     ) -> Callable[[GoveeDevice], None] | None:

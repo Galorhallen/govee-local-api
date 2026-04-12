@@ -1,3 +1,5 @@
+import json
+import os
 from enum import IntFlag
 
 
@@ -76,6 +78,10 @@ SCENE_CODES: dict[str, bytes] = {
     "energetic": b"\x10",
     "breathe": b"\x0a",
     "crossing": b"\x15",
+    "rainbow": b"\x16",
+    "fire": b"\x17",
+    "forest": b"\x18",
+    "ocean": b"\x19",
 }
 
 
@@ -110,6 +116,26 @@ BASIC_CAPABILITIES = create_with_capabilities(
 ON_OFF_CAPABILITIES = create_with_capabilities(
     rgb=False, temperature=False, brightness=False, segments=0, scenes=False
 )
+
+
+def load_custom_capabilities(file_path: str):
+    """Load custom capabilities from a JSON file and merge them into the registry."""
+    if not os.path.exists(file_path):
+        return
+
+    try:
+        with open(file_path, "r") as f:
+            custom_data = json.load(f)
+            for sku, caps in custom_data.items():
+                GOVEE_LIGHT_CAPABILITIES[sku] = create_with_capabilities(
+                    rgb=caps.get("rgb", True),
+                    temperature=caps.get("temperature", True),
+                    brightness=caps.get("brightness", True),
+                    segments=caps.get("segments", 0),
+                    scenes=caps.get("scenes", True),
+                )
+    except Exception as e:
+        print(f"Error loading custom capabilities: {e}")
 
 
 GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {

@@ -14,6 +14,7 @@ from .light_capabilities import (
     GOVEE_LIGHT_CAPABILITIES,
     ON_OFF_CAPABILITIES,
     GoveeLightFeatures,
+    load_custom_capabilities,
 )
 from .message import (
     HexMessage,
@@ -57,6 +58,7 @@ class GoveeController(asyncio.DatagramProtocol):
         update_interval: int = UPDATE_INTERVAL,
         discovered_callback: Callable[[GoveeDevice, bool], bool] | None = None,
         evicted_callback: Callable[[GoveeDevice], None] | None = None,
+        custom_capabilities_path: str | None = None,
         logger: logging.Logger | None = None,
     ) -> None:
         """Build a controller that handle Govee devices that support local API on local network.
@@ -109,6 +111,9 @@ class GoveeController(asyncio.DatagramProtocol):
             DevStatusResponse.command: self._handle_status_update_response,
         }
 
+        if custom_capabilities_path:
+            load_custom_capabilities(custom_capabilities_path)
+
     async def start(self):
         self._transport, self._protocol = await self._loop.create_datagram_endpoint(
             lambda: self,
@@ -136,6 +141,12 @@ class GoveeController(asyncio.DatagramProtocol):
         if not self._discovery_enabled and ip_added:
             self.send_discovery_message()
         return ip_added
+
+    def reconnect(self) -> None:
+        """Trigger a fresh discovery and update all known devices."""
+        self._logger.info("Triggering aggressive reconnection/discovery...")
+        self.send_discovery_message()
+        self.send_update_message()
 
     def remove_device_from_discovery_queue(self, ip: str) -> bool:
         return self._registry.remove_device_from_queue(ip)
