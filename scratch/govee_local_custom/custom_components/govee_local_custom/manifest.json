@@ -1,0 +1,17 @@
+﻿{
+    "domain":  "govee_local_custom",
+    "name":  "Govee lights local (Custom)",
+    "codeowners":  [
+                       "@Galorhallen"
+                   ],
+    "config_flow":  true,
+    "dependencies":  [
+                         "network"
+                     ],
+    "documentation":  "https://www.home-assistant.io/integrations/govee_light_local",
+    "iot_class":  "local_push",
+    "requirements":  [
+
+                     ],
+    "version":  "1.0.0"
+}

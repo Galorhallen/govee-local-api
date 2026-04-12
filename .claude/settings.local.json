@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:developer.govee.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:app-h5.govee.com)"
+    ]
+  }
+}

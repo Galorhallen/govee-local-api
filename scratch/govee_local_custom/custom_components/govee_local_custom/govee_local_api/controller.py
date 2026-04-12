@@ -14,6 +14,7 @@ from .light_capabilities import (
     GOVEE_LIGHT_CAPABILITIES,
     ON_OFF_CAPABILITIES,
     GoveeLightFeatures,
+    load_custom_capabilities,
 )
 from .message import (
     HexMessage,
@@ -57,6 +58,7 @@ class GoveeController(asyncio.DatagramProtocol):
         update_interval: int = UPDATE_INTERVAL,
         discovered_callback: Callable[[GoveeDevice, bool], bool] | None = None,
         evicted_callback: Callable[[GoveeDevice], None] | None = None,
+        custom_capabilities_path: str | None = None,
         logger: logging.Logger | None = None,
     ) -> None:
         """Build a controller that handle Govee devices that support local API on local network.
@@ -108,6 +110,9 @@ class GoveeController(asyncio.DatagramProtocol):
             ScanResponse.command: self._handle_scan_response,
             DevStatusResponse.command: self._handle_status_update_response,
         }
+
+        if custom_capabilities_path:
+            load_custom_capabilities(custom_capabilities_path)
 
     async def start(self):
         self._transport, self._protocol = await self._loop.create_datagram_endpoint(
