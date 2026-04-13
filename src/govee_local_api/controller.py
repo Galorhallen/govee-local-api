@@ -137,6 +137,12 @@ class GoveeController(asyncio.DatagramProtocol):
             self.send_discovery_message()
         return ip_added
 
+    def reconnect(self) -> None:
+        """Trigger a fresh discovery and update all known devices."""
+        self._logger.info("Triggering aggressive reconnection/discovery...")
+        self.send_discovery_message()
+        self.send_update_message()
+
     def remove_device_from_discovery_queue(self, ip: str) -> bool:
         return self._registry.remove_device_from_queue(ip)
 
