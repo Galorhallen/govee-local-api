@@ -155,6 +155,11 @@ class GoveeController(asyncio.DatagramProtocol):
         self._registry.cleanup()
         return self._cleanup_done
 
+    @property
+    def protocols(self) -> list:
+        """Return the list of active protocols."""
+        return self._protocols
+
     def add_device_to_discovery_queue(self, ip: str) -> bool:
         ip_added: bool = self._registry.add_device_to_queue(ip)
         if not self._discovery_enabled and ip_added:
