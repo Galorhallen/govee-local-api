@@ -146,12 +146,13 @@ class GoveeController(asyncio.DatagramProtocol):
         self.set_update_enabled(False)
         self.set_discovery_enabled(False)
 
-        for transport in self._transports:
-            if transport:
-                transport.close()
+        if not self._transports:
+            self._cleanup_done.set()
+        else:
+            for transport in self._transports:
+                if transport:
+                    transport.close()
 
-        self._transports.clear()
-        self._protocols.clear()
         self._registry.cleanup()
         return self._cleanup_done
 
@@ -373,9 +374,10 @@ class GoveeController(asyncio.DatagramProtocol):
 
     def _protocol_disconnected(self):
         """Called when a protocol is disconnected. Sets cleanup done when all protocols are disconnected."""
-        # Check if all transports are closed
         active_transports = [t for t in self._transports if not t.is_closing()]
         if not active_transports:
+            self._transports.clear()
+            self._protocols.clear()
             self._cleanup_done.set()
 
     async def _handle_datagram_received(
@@ -420,7 +422,7 @@ class GoveeController(asyncio.DatagramProtocol):
     async def _handle_status_update_response(
         self, message: DevStatusResponse, addr, protocol: GoveeControllerProtocol
     ):
-        self._logger.debug("Status update received from {}: {}", addr, message)
+        self._logger.debug("Status update received from %s: %s", addr, message)
         ip = addr[0]
         if device := self.get_device_by_ip(ip):
             if protocol.transport:

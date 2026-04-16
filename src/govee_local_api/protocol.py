@@ -46,16 +46,6 @@ class GoveeControllerProtocol(asyncio.DatagramProtocol):
             )
 
     def connection_lost(self, *args, **kwargs):
-        if self.transport:
-            broadcast_ip = ipaddress.ip_address(self.controller._broadcast_address)
-            if broadcast_ip.is_multicast:
-                sock = self.transport.get_extra_info("socket")
-                sock.setsockopt(
-                    socket.SOL_IP,
-                    socket.IP_DROP_MEMBERSHIP,
-                    socket.inet_aton(self.controller._broadcast_address)
-                    + socket.inet_aton(self.listening_address),
-                )
         self.controller._logger.debug("Disconnected from %s", self.listening_address)
         self.controller._protocol_disconnected()
 
