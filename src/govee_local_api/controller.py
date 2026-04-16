@@ -96,6 +96,25 @@ class GoveeController(asyncio.DatagramProtocol):
             listening_addresses
         )
 
+        # If specific addresses are provided alongside 0.0.0.0, drop the wildcard
+        # to avoid duplicate packet processing (0.0.0.0 receives on all interfaces)
+        if (
+            len(self._listening_addresses) > 1
+            and "0.0.0.0" in self._listening_addresses
+        ):
+            self._logger.warning(
+                "Wildcard address 0.0.0.0 mixed with specific addresses %s; "
+                "dropping 0.0.0.0 to avoid duplicate packet processing",
+                [a for a in self._listening_addresses if a != "0.0.0.0"],
+            )
+            filtered = [
+                (addr, net)
+                for addr, net in zip(self._listening_addresses, self._networks)
+                if addr != "0.0.0.0"
+            ]
+            self._listening_addresses = [a for a, _ in filtered]
+            self._networks = [n for _, n in filtered]
+
         # Initialize loop, handling case when no loop is running (for testing)
         try:
             self._loop = loop or asyncio.get_running_loop()
@@ -262,7 +281,7 @@ class GoveeController(asyncio.DatagramProtocol):
         if self._registry.has_queued_devices:
             call_later = True
             # Send to specific devices using the most appropriate transport for each IP
-            for ip in self._registry.devices_queue:
+            for ip in list(self._registry.devices_queue):
                 transport = self._get_best_transport_for_ip(ip)
                 transport.sendto(message, (ip, self._broadcast_port))
 

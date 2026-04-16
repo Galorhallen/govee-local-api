@@ -120,21 +120,23 @@ class TestNetworkMaskFunctionality(unittest.TestCase):
         self.assertEqual(selected, t3)
 
     def test_wildcard_address_handling_with_masks(self):
-        """Test that wildcard addresses are skipped in network matching."""
+        """Test that wildcard address is dropped when mixed with specific addresses."""
         controller = GoveeController(
             listening_addresses=["0.0.0.0/24", "192.168.1.100/24"],
         )
 
+        # 0.0.0.0 should be filtered out, leaving only the specific address
+        self.assertEqual(controller.listening_addresses, ["192.168.1.100"])
+
         transport1 = Mock()
-        transport2 = Mock()
-        controller._transports = [transport1, transport2]
+        controller._transports = [transport1]
 
+        # Single transport is always returned
         selected = controller._get_best_transport_for_ip("192.168.1.200")
-        self.assertEqual(selected, transport2)
+        self.assertEqual(selected, transport1)
 
-        # Non-matching IP prefers specific address over wildcard
         selected = controller._get_best_transport_for_ip("10.0.0.100")
-        self.assertEqual(selected, transport2)
+        self.assertEqual(selected, transport1)
 
     def test_fallback_to_heuristic_without_masks(self):
         """Test fallback to heuristic matching when no masks provided."""
