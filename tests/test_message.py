@@ -1,8 +1,11 @@
+import base64
+
 from govee_local_api.message import (
     ScanMessage,
     ColorMessage,
     BrightnessMessage,
     OnOffMessage,
+    MultiSegmentColorMessage,
 )
 
 
@@ -99,3 +102,55 @@ def test_on_off():
 
     msg: OnOffMessage = OnOffMessage(False)
     assert msg.as_dict() == {"msg": {"cmd": "turn", "data": {"value": 0}}}
+
+
+def test_multi_segment_color_single():
+    """Test single segment color message."""
+    msg = MultiSegmentColorMessage([1], (255, 0, 0))
+    data = msg.data["command"][0]
+    decoded = base64.b64decode(data)
+    assert decoded[0:4] == b"\x33\x05\x15\x01"
+    assert decoded[4:7] == bytes([255, 0, 0])
+    assert decoded[12:14] == b"\x01\x00"
+
+
+def test_multi_segment_color_multiple():
+    """Test multiple segments color message with bitmask."""
+    msg = MultiSegmentColorMessage([1, 2, 3], (0, 255, 0))
+    data = msg.data["command"][0]
+    decoded = base64.b64decode(data)
+    assert decoded[4:7] == bytes([0, 255, 0])
+    assert decoded[12:14] == b"\x07\x00"
+
+
+def test_multi_segment_color_all_nine():
+    """Test all 9 segments (bitmask 0x1FF)."""
+    msg = MultiSegmentColorMessage([1, 2, 3, 4, 5, 6, 7, 8, 9], (0, 0, 255))
+    data = msg.data["command"][0]
+    decoded = base64.b64decode(data)
+    assert decoded[4:7] == bytes([0, 0, 255])
+    assert decoded[12:14] == b"\xff\x01"
+
+
+def test_multi_segment_color_with_brightness():
+    """Test segment color with brightness scaling."""
+    msg = MultiSegmentColorMessage([1], (255, 100, 50), brightness=50)
+    data = msg.data["command"][0]
+    decoded = base64.b64decode(data)
+    assert decoded[4:7] == bytes([127, 50, 25])
+
+
+def test_multi_segment_color_brightness_zero():
+    """Test segment with 0% brightness (off)."""
+    msg = MultiSegmentColorMessage([1, 2, 3], (255, 255, 255), brightness=0)
+    data = msg.data["command"][0]
+    decoded = base64.b64decode(data)
+    assert decoded[4:7] == bytes([0, 0, 0])
+
+
+def test_multi_segment_color_invalid_segments():
+    """Test that invalid segment indices are ignored."""
+    msg = MultiSegmentColorMessage([0, 1, 16, 20], (255, 0, 0))
+    data = msg.data["command"][0]
+    decoded = base64.b64decode(data)
+    assert decoded[12:14] == b"\x01\x00"
