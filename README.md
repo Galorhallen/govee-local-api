@@ -9,7 +9,7 @@ Please note that scene and segment support is still **very** experimental.
 - Python >= 3.9
 - Govee Local API enabled. Refer to https://app-h5.govee.com/user-manual/wlan-guide
 
-# Installaction
+# Installation
 
 From your terminal, run
 
