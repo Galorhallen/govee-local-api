@@ -27,6 +27,9 @@ packages = [
 [tool.poetry_bumpversion.file."src/govee_local_api/__init__.py"]
 # Duplicate the line above to add more files
 
+[tool.black]
+target-version = ["py313"]
+
 [tool.poetry.dependencies]
 python = "^3.11"
 
