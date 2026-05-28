@@ -21,8 +21,16 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
       - uses: psf/black@stable
+        with:
+          options: "--check --diff"
   test:
     needs:
       - lint
