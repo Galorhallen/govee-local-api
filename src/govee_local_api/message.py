@@ -90,6 +90,11 @@ class ColorMessage(GoveeMessage):
                     min(temperature, self.TEMPERATURE_MAX_KELVIN),
                 ),
             }
+        else:
+            raise ValueError(
+                "ColorMessage requires either a non-empty rgb tuple or a "
+                "non-zero temperature"
+            )
 
         super().__init__(data)
 
@@ -173,22 +178,26 @@ class DevStatusResponse(GoveeMessage):
     def __init__(self, data: dict[str, Any]) -> None:
         super().__init__(data)
 
+    # All accessors use .get() with safe defaults. A firmware variant or a
+    # malformed payload that omits a field must not crash device.update()
+    # partway through (which would leave the device half-updated).
+
     @property
     def is_on(self) -> bool:
-        return bool(self._data["onOff"])
+        return bool(self._data.get("onOff", 0))
 
     @property
     def color(self) -> tuple[int, int, int]:
-        color = self._data["color"]
-        return (color["r"], color["g"], color["b"])
+        color = self._data.get("color") or {}
+        return (color.get("r", 0), color.get("g", 0), color.get("b", 0))
 
     @property
     def brightness(self) -> int:
-        return self._data["brightness"]
+        return int(self._data.get("brightness", 0))
 
     @property
     def color_temperature(self) -> int:
-        return self._data["colorTemInKelvin"]
+        return int(self._data.get("colorTemInKelvin", 0))
 
 
 class StatusResponse(GoveeMessage):
@@ -210,16 +219,20 @@ class MessageResponseFactory:
         }
 
     def create_message(self, data: bytes | bytearray | str) -> GoveeMessage | None:
-        msg_json = json.loads(data)
-        if "msg" not in msg_json or (
-            "cmd" not in msg_json["msg"] and "data" not in msg_json["msg"]
-        ):
+        # Background UDP noise (mDNS, SSDP, other devices) lands on port 4002
+        # too. Treat any parse failure as "not for us" and drop silently
+        # instead of raising into the datagram handler.
+        try:
+            msg_json = json.loads(data)
+            inner = msg_json["msg"]
+            cmd = inner["cmd"]
+            message_data = inner["data"]
+        except (json.JSONDecodeError, KeyError, TypeError):
             return None
-        cmd: str = msg_json["msg"]["cmd"]
-        message_data: dict[str, Any] = msg_json["msg"]["data"]
-        message: type[GoveeMessage] = next(
-            m for m in self._messages if m.command == cmd
+
+        message_cls = next(
+            (m for m in self._messages if m.command == cmd), None
         )
-        if not message:
+        if message_cls is None:
             return None
-        return message(message_data)
+        return message_cls(message_data)

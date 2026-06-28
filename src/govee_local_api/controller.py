@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import ipaddress
 import logging
+import socket
 from collections.abc import Callable
 from datetime import datetime, timedelta
 from typing import Any, cast
@@ -96,6 +97,31 @@ class GoveeController(asyncio.DatagramProtocol):
             listening_addresses
         )
 
+        # Reject obviously bad input up front so it doesn't surface as a
+        # cryptic OSError from socket.bind() later.
+        for addr in self._listening_addresses:
+            try:
+                ipaddress.IPv4Address(addr)
+            except (ipaddress.AddressValueError, ValueError) as exc:
+                raise ValueError(f"Invalid IPv4 listening address: {addr!r}") from exc
+
+        # Drop duplicate entries while preserving order; two sockets bound to
+        # the same (ip, port) get load-balanced by SO_REUSEPORT and flip the
+        # device's preferred transport on every status frame.
+        seen: set[str] = set()
+        deduped: list[tuple[str, ipaddress.IPv4Network | None]] = []
+        for addr, net in zip(self._listening_addresses, self._networks):
+            if addr in seen:
+                self._logger.warning(
+                    "Duplicate listening address %s; ignoring extra entry",
+                    addr,
+                )
+                continue
+            seen.add(addr)
+            deduped.append((addr, net))
+        self._listening_addresses = [a for a, _ in deduped]
+        self._networks = [n for _, n in deduped]
+
         # If specific addresses are provided alongside 0.0.0.0, drop the wildcard
         # to avoid duplicate packet processing (0.0.0.0 receives on all interfaces)
         if (
@@ -114,6 +140,11 @@ class GoveeController(asyncio.DatagramProtocol):
             ]
             self._listening_addresses = [a for a, _ in filtered]
             self._networks = [n for _, n in filtered]
+
+        # Empty configuration (e.g. user passed []) would silently produce a
+        # working-looking controller that never binds anything. Fail loudly.
+        if not self._listening_addresses:
+            raise ValueError("listening_addresses resulted in an empty configuration")
 
         # Initialize loop, handling case when no loop is running (for testing)
         try:
@@ -138,6 +169,7 @@ class GoveeController(asyncio.DatagramProtocol):
 
         self._discovery_handle: asyncio.TimerHandle | None = None
         self._update_handle: asyncio.TimerHandle | None = None
+        self._cleanup_timeout_handle: asyncio.TimerHandle | None = None
 
         self._response_handler: dict[str, Callable] = {
             ScanResponse.command: self._handle_scan_response,
@@ -145,13 +177,19 @@ class GoveeController(asyncio.DatagramProtocol):
         }
 
     async def start(self):
-        # Create datagram endpoints for each listening address
+        # Create datagram endpoints for each listening address. We build the
+        # socket by hand so SO_REUSEADDR / SO_REUSEPORT / SO_BROADCAST are set
+        # before bind() — the kernel only honors them at bind time.
         for listening_address in self._listening_addresses:
-            transport, protocol = await self._loop.create_datagram_endpoint(
-                lambda addr=listening_address: GoveeControllerProtocol(self, addr),
-                local_addr=(listening_address, self._listening_port),
-                reuse_port=True,
-            )
+            sock = self._create_listening_socket(listening_address)
+            try:
+                transport, protocol = await self._loop.create_datagram_endpoint(
+                    lambda addr=listening_address: GoveeControllerProtocol(self, addr),
+                    sock=sock,
+                )
+            except Exception:
+                sock.close()
+                raise
             self._transports.append(transport)
             self._protocols.append(protocol)
 
@@ -160,20 +198,83 @@ class GoveeController(asyncio.DatagramProtocol):
         if self._update_enabled:
             self.send_update_message()
 
-    def cleanup(self) -> asyncio.Event:
+    def _create_listening_socket(self, listening_address: str) -> socket.socket:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        # SO_REUSEPORT is the right primitive for "multiple sockets share this
+        # port" on Linux >=3.9 and macOS, but is missing on Windows and some
+        # older systems — fall through if the kernel rejects it.
+        reuse_port = getattr(socket, "SO_REUSEPORT", None)
+        if reuse_port is not None:
+            try:
+                sock.setsockopt(socket.SOL_SOCKET, reuse_port, 1)
+            except OSError:
+                pass
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        try:
+            sock.bind((listening_address, self._listening_port))
+        except OSError:
+            sock.close()
+            raise
+        return sock
+
+    def cleanup(self, timeout: float = 2.0) -> asyncio.Event:
+        # Idempotent: if a previous cleanup() already finished, hand the
+        # already-set event back without clearing it. Second callers
+        # would otherwise wait forever because the transports are gone
+        # and nothing will fire connection_lost again.
+        if not self._transports and self._cleanup_done.is_set():
+            return self._cleanup_done
+
         self._cleanup_done.clear()
         self.set_update_enabled(False)
         self.set_discovery_enabled(False)
+        # Stop the eviction loop before tearing down transports so an
+        # in-flight _handle_scan_response task can't invoke the user's
+        # evicted_callback mid-shutdown.
+        self.set_evict_enabled(False)
 
         if not self._transports:
             self._cleanup_done.set()
-        else:
-            for transport in self._transports:
-                if transport:
-                    transport.close()
+            self._registry.cleanup()
+            return self._cleanup_done
+
+        for transport in self._transports:
+            if transport is not None and not transport.is_closing():
+                transport.close()
+
+        # Safety net: a transport whose fd was revoked (NIC unplugged,
+        # container network teardown) may never deliver connection_lost.
+        # Without this timer, HA's async_unload_entry hangs forever.
+        if self._cleanup_timeout_handle is not None:
+            self._cleanup_timeout_handle.cancel()
+        self._cleanup_timeout_handle = self._loop.call_later(
+            timeout, self._force_cleanup_done
+        )
 
         self._registry.cleanup()
         return self._cleanup_done
+
+    def _force_cleanup_done(self) -> None:
+        self._cleanup_timeout_handle = None
+        if self._cleanup_done.is_set():
+            return
+        stragglers = [
+            self._listening_addresses[i]
+            for i, t in enumerate(self._transports)
+            if t is not None
+            and not t.is_closing()
+            and i < len(self._listening_addresses)
+        ]
+        if stragglers:
+            self._logger.warning(
+                "cleanup() timed out waiting for connection_lost; "
+                "forcing completion. Stragglers: %s",
+                stragglers,
+            )
+        self._transports.clear()
+        self._protocols.clear()
+        self._cleanup_done.set()
 
     @property
     def protocols(self) -> list:
@@ -298,6 +399,12 @@ class GoveeController(asyncio.DatagramProtocol):
                 transport.sendto(message, (ip, self._broadcast_port))
 
         if call_later:
+            # Cancel any prior pending tick — external triggers like
+            # add_device_to_discovery_queue() can call this method between
+            # scheduled ticks, and without cancelling we'd accumulate
+            # parallel timer chains and storm the network.
+            if self._discovery_handle is not None:
+                self._discovery_handle.cancel()
             self._discovery_handle = self._loop.call_later(
                 self._discovery_interval, self.send_discovery_message
             )
@@ -308,6 +415,8 @@ class GoveeController(asyncio.DatagramProtocol):
                 self._send_update_message(device=d)
 
             if self._update_enabled:
+                if self._update_handle is not None:
+                    self._update_handle.cancel()
                 self._update_handle = self._loop.call_later(
                     self._update_interval, self.send_update_message
                 )
@@ -397,45 +506,55 @@ class GoveeController(asyncio.DatagramProtocol):
         if not active_transports:
             self._transports.clear()
             self._protocols.clear()
+            if self._cleanup_timeout_handle is not None:
+                self._cleanup_timeout_handle.cancel()
+                self._cleanup_timeout_handle = None
             self._cleanup_done.set()
 
     async def _handle_datagram_received(
         self, data: bytes, addr: tuple, protocol: GoveeControllerProtocol
     ):
-        message = self._message_factory.create_message(data)
-        if not message:
-            if self._logger.isEnabledFor(logging.DEBUG):
-                self._logger.debug(
-                    "Unknown message received from %s. Message: %s", addr, data
+        # datagram_received() schedules this coroutine via create_task() and
+        # never observes the resulting task, so an uncaught exception here
+        # surfaces only as asyncio's generic "Task exception was never
+        # retrieved" with no context. Contain it.
+        try:
+            message = self._message_factory.create_message(data)
+            if not message:
+                self._logger.warning(
+                    "Unknown message received from %s: %r", addr, data[:128]
                 )
-            self._logger.warning(
-                "Unknown message received from %s. Message: %s", addr, data[:50]
-            )
+                return
 
-            return
+            if message.command == ScanResponse.command:
+                scan_message = cast(ScanResponse, message)
+                if not scan_message.ip:
+                    sender_ip, _sender_port = addr
+                    self._logger.debug(
+                        "No ip returned in data from device %s!\nMessage: %s",
+                        scan_message.device,
+                        data,
+                    )
 
-        if message.command == ScanResponse.command:
-            scan_message = cast(ScanResponse, message)
-            if not scan_message.ip:
-                sender_ip, _sender_port = addr
-                self._logger.debug(
-                    "No ip returned in data from device %s!\nMessage: %s",
-                    scan_message.device,
-                    data,
+                    scan_message.set_ip(sender_ip)
+                    self._logger.debug(
+                        "Set ip for device %s to %s (sending address).\nData: %s",
+                        scan_message.device,
+                        sender_ip,
+                        scan_message.data,
+                    )
+
+                await self._handle_scan_response(scan_message, protocol)
+            elif message.command == DevStatusResponse.command:
+                await self._handle_status_update_response(
+                    cast(DevStatusResponse, message), addr, protocol
                 )
-
-                scan_message.set_ip(sender_ip)
-                self._logger.debug(
-                    "Set ip for device %s to %s (sending address).\nData: %s",
-                    scan_message.device,
-                    sender_ip,
-                    scan_message.data,
-                )
-
-            await self._handle_scan_response(scan_message, protocol)
-        elif message.command == DevStatusResponse.command:
-            await self._handle_status_update_response(
-                cast(DevStatusResponse, message), addr, protocol
+        except Exception:
+            self._logger.exception(
+                "Datagram handler crashed (addr=%s, interface=%s, data=%r)",
+                addr,
+                protocol.listening_address,
+                data[:64],
             )
 
     async def _handle_status_update_response(
@@ -459,6 +578,13 @@ class GoveeController(asyncio.DatagramProtocol):
             return
 
         if device := self.get_device_by_fingerprint(fingerprint):
+            # The scan response itself is evidence the device is alive, so
+            # refresh lastseen unconditionally — otherwise the eviction tick
+            # removes a device that just answered us. The callback's
+            # return value gates re-notification of the integration and
+            # the IP/transport updates that are tied to that, not the
+            # liveness bookkeeping.
+            device.update_lastseen()
             if self._call_discovered_callback(device, False):
                 if message.ip and message.ip != device.ip:
                     self._logger.debug(
@@ -470,7 +596,6 @@ class GoveeController(asyncio.DatagramProtocol):
                     device.update_ip(message.ip)
                 if protocol.transport:
                     device.update_transport(protocol.transport)
-                device.update_lastseen()
                 self._logger.debug("Device updated: %s", device)
         else:
             sku = message.sku
@@ -574,9 +699,20 @@ class GoveeController(asyncio.DatagramProtocol):
                     except ValueError:
                         continue
 
-            # If no network match found, prefer non-wildcard addresses
+            # If no network match found, prefer non-wildcard addresses. This
+            # is a best-effort fallback: the packet leaves with a source IP
+            # that may not belong to the target's subnet, so the device's
+            # reply may never come back. Warn so this is diagnosable.
             for i, listening_addr in enumerate(self._listening_addresses):
                 if listening_addr != "0.0.0.0":
+                    self._logger.warning(
+                        "No interface matches target %s; falling back to "
+                        "transport %d (%s). Device may not reply if its "
+                        "subnet is not reachable from this interface.",
+                        target_ip,
+                        i,
+                        listening_addr,
+                    )
                     self._logger.debug(
                         "Selected transport %d (%s) for target %s (first specific address)",
                         i,
@@ -606,7 +742,6 @@ class GoveeController(asyncio.DatagramProtocol):
         for fingerprint, device in devices.items():
             diff: timedelta = now - device.lastseen
             if diff.total_seconds() >= self._evict_interval:
-                device._controller = None
                 self._registry.remove_discovered_device(fingerprint)
                 self._logger.debug("Device evicted: %s", device)
                 if self._device_evicted_callback and callable(

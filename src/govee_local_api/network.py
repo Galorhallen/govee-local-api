@@ -4,10 +4,10 @@ import ipaddress
 
 
 def _normalize_to_list(value: str | list[str]) -> list[str]:
-    """Convert a single string or list of strings to a normalized list."""
+    """Convert a single string or iterable of strings to a normalized list."""
     if isinstance(value, str):
         return [value]
-    return value.copy()
+    return list(value)
 
 
 def _parse_address_and_mask(
@@ -59,6 +59,9 @@ def _parse_listening_addresses(
     return (ips, networks)
 
 
+_RFC1918_172_16 = ipaddress.IPv4Network("172.16.0.0/12")
+
+
 def _is_ip_in_same_network_heuristic(
     ip1: ipaddress.IPv4Address, ip2: ipaddress.IPv4Address
 ) -> bool:
@@ -70,24 +73,19 @@ def _is_ip_in_same_network_heuristic(
     if ip1.packed[:3] == ip2.packed[:3]:
         return True
 
-    # Check if both are in the same /16 network for 192.168.x.x
-    if (
-        ip1.is_private
-        and ip2.is_private
-        and str(ip1).startswith("192.168.")
-        and str(ip2).startswith("192.168.")
-        and ip1.packed[:2] == ip2.packed[:2]
-    ):
+    if not (ip1.is_private and ip2.is_private):
+        return False
+
+    # 192.168.0.0/16
+    if ip1.packed[:2] == b"\xc0\xa8" and ip2.packed[:2] == b"\xc0\xa8":
         return True
 
-    # Check if both are in the same /8 network for 10.x.x.x
-    if (
-        ip1.is_private
-        and ip2.is_private
-        and str(ip1).startswith("10.")
-        and str(ip2).startswith("10.")
-        and ip1.packed[0] == ip2.packed[0]
-    ):
+    # 10.0.0.0/8
+    if ip1.packed[0] == 10 and ip2.packed[0] == 10:
+        return True
+
+    # 172.16.0.0/12 — RFC1918 mid-range; same /12 means they're peers.
+    if ip1 in _RFC1918_172_16 and ip2 in _RFC1918_172_16:
         return True
 
     return False
