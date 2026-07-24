@@ -1,82 +1,45 @@
-# Lint and test on every push/PR; publish to PyPI when a release is
-# published, or to TestPyPI on a push to the test-publish branch.
+# Publish the package: to PyPI when a release is published, or to
+# TestPyPI via a manual "Run workflow" dispatch (any branch) for dry-runs.
 # Publishing uses PyPI trusted publishing (OIDC) — no API tokens.
+#
+# NOTE: keep this filename (deploy.yml) — the PyPI and TestPyPI trusted
+# publishers are configured against it; renaming the file breaks
+# publishing until the publishers are updated on both indexes.
 
 name: Upload Python Package
 
 on:
   release:
     types: [published]
-  push:
-    # PR branches are covered by the pull_request trigger; listing them
-    # here too would run every pipeline twice per push.
-    branches: [develop, master, test-publish]
-  pull_request:
+  # Manual TestPyPI dry-run from the Actions tab or
+  # `gh workflow run deploy.yml --ref <branch>`.
+  workflow_dispatch:
 
 permissions:
   contents: read
 
-# A force-push or rapid successive pushes should replace the running
-# pipeline, not queue behind it. Release refs are tags, so publish runs
-# get their own group and are never cancelled by branch pushes.
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
-  lint:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.13"
-      # Run the same hooks as local pre-commit (black, ruff, ruff-format,
-      # codespell, prettier, mypy) so CI can't disagree with them.
-      - uses: pre-commit/action@v3.0.1
-  test:
-    needs:
-      - lint
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    strategy:
-      matrix:
-        python-version: ["3.11", "3.12", "3.13", "3.14"]
-
-    steps:
-      - uses: actions/checkout@v4
-      # Poetry must be on PATH before setup-python so its cache: poetry
-      # integration can resolve the environment from poetry.lock.
-      - uses: snok/install-poetry@v1
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: poetry
-      - name: Install dependencies
-        run: |
-          poetry install --no-interaction --no-root
-      - name: Test with pytest
-        run: |
-          poetry run pytest
-  # One job for both indexes: a published release goes to PyPI, a push to
-  # the test-publish branch goes to TestPyPI. Building needs only Poetry
-  # itself (poetry-core backend) — no dependency install, no git history.
+  # Re-run the full CI (lint + test matrix) on the exact ref being
+  # published, so a release or dry-run can't ship untested code.
+  ci:
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
   publish:
     needs:
-      - test
+      - ci
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
       id-token: write
-    if: github.event_name == 'release' || (github.event_name == 'push' && github.ref_name == 'test-publish')
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
+      # Building needs only Poetry itself (poetry-core backend) — no
+      # dependency install, no git history.
       - uses: snok/install-poetry@v1
       - name: Build package
         run: poetry build
