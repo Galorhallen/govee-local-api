@@ -1,10 +1,6 @@
-# This workflow will upload a Python Package using Twine when a release is created
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python#publishing-to-package-registries
-
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
+# Lint and test on every push/PR; publish to PyPI when a release is
+# published, or to TestPyPI on a push to the test-publish branch.
+# Publishing uses PyPI trusted publishing (OIDC) — no API tokens.
 
 name: Upload Python Package
 
@@ -12,85 +8,79 @@ on:
   release:
     types: [published]
   push:
+    # PR branches are covered by the pull_request trigger; listing them
+    # here too would run every pipeline twice per push.
+    branches: [develop, master, test-publish]
   pull_request:
 
 permissions:
   contents: read
 
+# A force-push or rapid successive pushes should replace the running
+# pipeline, not queue behind it. Release refs are tags, so publish runs
+# get their own group and are never cancelled by branch pushes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v3
-      - uses: psf/black@stable
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      # Run the same hooks as local pre-commit (black, ruff, ruff-format,
+      # codespell, prettier, mypy) so CI can't disagree with them.
+      - uses: pre-commit/action@v3.0.1
   test:
     needs:
       - lint
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     strategy:
       matrix:
-        python-version: ["3.11", "3.12", "3.13"]
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      # Poetry must be on PATH before setup-python so its cache: poetry
+      # integration can resolve the environment from poetry.lock.
+      - uses: snok/install-poetry@v1
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Display Python version
-        run: python -c "import sys; print(sys.version)"
-      - uses: snok/install-poetry@v1
+          cache: poetry
       - name: Install dependencies
         run: |
           poetry install --no-interaction --no-root
       - name: Test with pytest
         run: |
           poetry run pytest
+  # One job for both indexes: a published release goes to PyPI, a push to
+  # the test-publish branch goes to TestPyPI. Building needs only Poetry
+  # itself (poetry-core backend) — no dependency install, no git history.
   publish:
     needs:
       - test
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       id-token: write
-    if: ${{ github.event_name == 'release' }}
+    if: github.event_name == 'release' || (github.event_name == 'push' && github.ref_name == 'test-publish')
     steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
+      - uses: actions/checkout@v4
       - name: Set up Python
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v5
         with:
           python-version: "3.13"
       - uses: snok/install-poetry@v1
-      - name: Install dependencies
-        run: |
-          poetry install --no-interaction --no-root
-      - name: Build package
-        run: poetry build
-      - name: Publish package
-        uses: pypa/gh-action-pypi-publish@v1.13.0
-  publish-test:
-    needs:
-      - test
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-    if: ${{ github.event_name == 'push' && github.ref_name == 'test-publish' }}
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      - name: Set up Python
-        uses: actions/setup-python@v3
-        with:
-          python-version: "3.13"
-      - uses: snok/install-poetry@v1
-      - name: Install dependencies
-        run: |
-          poetry install --no-interaction --no-root
       - name: Build package
         run: poetry build
       - name: Publish package
         uses: pypa/gh-action-pypi-publish@v1.13.0
         with:
-          repository-url: https://test.pypi.org/legacy/
+          repository-url: ${{ github.event_name == 'release' && 'https://upload.pypi.org/legacy/' || 'https://test.pypi.org/legacy/' }}
