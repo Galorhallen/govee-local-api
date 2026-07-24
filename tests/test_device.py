@@ -3,6 +3,7 @@ import unittest
 from unittest.mock import Mock
 from govee_local_api.device import GoveeDevice
 from govee_local_api.controller import GoveeController
+from govee_local_api.protocol import GoveeControllerProtocol
 from govee_local_api.message import ScanResponse
 
 
@@ -26,6 +27,23 @@ class TestGoveeDevice(unittest.TestCase):
         self.device.update_ip("10.0.0.50")
         assert self.device.ip == "10.0.0.50"
 
+    def _backdate_lastseen(self, seconds):
+        from datetime import datetime, timedelta, timezone
+
+        self.device._lastseen = datetime.now(timezone.utc) - timedelta(seconds=seconds)
+
+    def test_is_connected_uses_controller_evict_interval(self):
+        self._mock_controller.evict_interval = 60
+        self._backdate_lastseen(45)
+        assert self.device.is_connected
+
+        self._mock_controller.evict_interval = 30
+        assert not self.device.is_connected
+
+    def test_is_connected_fresh_device(self):
+        self._mock_controller.evict_interval = 30
+        assert self.device.is_connected
+
 
 class TestControllerIpUpdate(unittest.TestCase):
     def setUp(self):
@@ -37,6 +55,8 @@ class TestControllerIpUpdate(unittest.TestCase):
         self.device = GoveeDevice(
             self.controller, "192.168.1.100", "AA:BB:CC:DD:EE:FF", "H6001", None
         )
+        self.mock_protocol = Mock(spec=GoveeControllerProtocol)
+        self.mock_protocol.transport = Mock()
 
     def test_scan_response_updates_ip_when_changed(self):
         self.controller._registry.get_device_by_fingerprint = Mock(
@@ -50,7 +70,11 @@ class TestControllerIpUpdate(unittest.TestCase):
         }
         scan_response = ScanResponse(scan_data)
 
-        asyncio.run(self.controller._handle_scan_response(scan_response))
+        asyncio.run(
+            self.controller._handle_scan_response(
+                scan_response, ("192.168.1.100", 4002), self.mock_protocol
+            )
+        )
 
         assert self.device.ip == "192.168.1.200"
 
@@ -66,7 +90,11 @@ class TestControllerIpUpdate(unittest.TestCase):
         }
         scan_response = ScanResponse(scan_data)
 
-        asyncio.run(self.controller._handle_scan_response(scan_response))
+        asyncio.run(
+            self.controller._handle_scan_response(
+                scan_response, ("192.168.1.100", 4002), self.mock_protocol
+            )
+        )
 
         assert self.device.ip == "192.168.1.100"
         # Logger should not have logged an IP change
@@ -85,7 +113,11 @@ class TestControllerIpUpdate(unittest.TestCase):
         scan_response = ScanResponse(scan_data)
 
         original_ip = self.device.ip
-        asyncio.run(self.controller._handle_scan_response(scan_response))
+        asyncio.run(
+            self.controller._handle_scan_response(
+                scan_response, ("192.168.1.100", 4002), self.mock_protocol
+            )
+        )
 
         # IP should remain unchanged when message has no IP
         assert self.device.ip == original_ip
