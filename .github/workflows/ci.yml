@@ -1,0 +1,59 @@
+# Lint and test on every push/PR. Also callable from deploy.yml
+# (workflow_call) so a release can't publish untested code.
+
+name: CI
+
+on:
+  push:
+    # PR branches are covered by the pull_request trigger; listing them
+    # here too would run every pipeline twice per push.
+    branches: [develop, master]
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+# A force-push or rapid successive pushes should replace the running
+# pipeline, not queue behind it.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      # Run the same hooks as local pre-commit (black, ruff, ruff-format,
+      # codespell, prettier, mypy) so CI can't disagree with them.
+      - uses: pre-commit/action@v3.0.1
+  test:
+    needs:
+      - lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
+
+    steps:
+      - uses: actions/checkout@v4
+      # Poetry must be on PATH before setup-python so its cache: poetry
+      # integration can resolve the environment from poetry.lock.
+      - uses: snok/install-poetry@v1
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: poetry
+      - name: Install dependencies
+        run: |
+          poetry install --no-interaction --no-root
+      - name: Test with pytest
+        run: |
+          poetry run pytest
