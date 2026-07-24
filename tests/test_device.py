@@ -27,6 +27,23 @@ class TestGoveeDevice(unittest.TestCase):
         self.device.update_ip("10.0.0.50")
         assert self.device.ip == "10.0.0.50"
 
+    def _backdate_lastseen(self, seconds):
+        from datetime import datetime, timedelta, timezone
+
+        self.device._lastseen = datetime.now(timezone.utc) - timedelta(seconds=seconds)
+
+    def test_is_connected_uses_controller_evict_interval(self):
+        self._mock_controller.evict_interval = 60
+        self._backdate_lastseen(45)
+        assert self.device.is_connected
+
+        self._mock_controller.evict_interval = 30
+        assert not self.device.is_connected
+
+    def test_is_connected_fresh_device(self):
+        self._mock_controller.evict_interval = 30
+        assert self.device.is_connected
+
 
 class TestControllerIpUpdate(unittest.TestCase):
     def setUp(self):
@@ -54,7 +71,9 @@ class TestControllerIpUpdate(unittest.TestCase):
         scan_response = ScanResponse(scan_data)
 
         asyncio.run(
-            self.controller._handle_scan_response(scan_response, self.mock_protocol)
+            self.controller._handle_scan_response(
+                scan_response, ("192.168.1.100", 4002), self.mock_protocol
+            )
         )
 
         assert self.device.ip == "192.168.1.200"
@@ -72,7 +91,9 @@ class TestControllerIpUpdate(unittest.TestCase):
         scan_response = ScanResponse(scan_data)
 
         asyncio.run(
-            self.controller._handle_scan_response(scan_response, self.mock_protocol)
+            self.controller._handle_scan_response(
+                scan_response, ("192.168.1.100", 4002), self.mock_protocol
+            )
         )
 
         assert self.device.ip == "192.168.1.100"
@@ -93,7 +114,9 @@ class TestControllerIpUpdate(unittest.TestCase):
 
         original_ip = self.device.ip
         asyncio.run(
-            self.controller._handle_scan_response(scan_response, self.mock_protocol)
+            self.controller._handle_scan_response(
+                scan_response, ("192.168.1.100", 4002), self.mock_protocol
+            )
         )
 
         # IP should remain unchanged when message has no IP

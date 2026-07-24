@@ -282,20 +282,41 @@ class TestCleanupMultipleTransports(unittest.TestCase):
     def test_cleanup_done_waits_for_all_protocols(self):
         controller = _make_controller(["192.168.1.100/24", "10.0.0.100/8"])
         t1, t2 = _attach_transports(controller, 2)
+        p1, p2 = controller._protocols
+        for t in (t1, t2):
+            t.is_closing = Mock(return_value=False)
 
-        # Simulate "one transport still open."
-        t1.is_closing = Mock(return_value=True)
-        t2.is_closing = Mock(return_value=False)
-        controller._cleanup_done.clear()
-        controller._protocol_disconnected()
+        controller.cleanup()
+
+        # Every transport reports is_closing() right after close(), so
+        # completion must be counted per connection_lost, not inferred
+        # from is_closing().
+        controller._protocol_disconnected(p1)
         self.assertFalse(controller._cleanup_done.is_set())
 
-        # Now both are closing → cleanup_done fires.
-        t2.is_closing = Mock(return_value=True)
-        controller._protocol_disconnected()
+        controller._protocol_disconnected(p2)
         self.assertTrue(controller._cleanup_done.is_set())
         self.assertEqual(controller._transports, [])
         self.assertEqual(controller._protocols, [])
+
+    def test_double_cleanup_while_draining_does_not_reset_countdown(self):
+        controller = _make_controller(["192.168.1.100/24", "10.0.0.100/8"])
+        t1, t2 = _attach_transports(controller, 2)
+        p1, p2 = controller._protocols
+        for t in (t1, t2):
+            t.is_closing = Mock(return_value=False)
+
+        controller.cleanup()
+        for t in (t1, t2):
+            t.is_closing = Mock(return_value=True)
+        controller._protocol_disconnected(p1)
+
+        # A second cleanup() mid-drain must not reset _pending_close,
+        # or the remaining callback could never reach zero.
+        controller.cleanup()
+        controller._protocol_disconnected(p2)
+
+        self.assertTrue(controller._cleanup_done.is_set())
 
     # --- Cleanup resilience (safety timer, idempotency, eviction race) ---
 
@@ -400,9 +421,9 @@ class TestCleanupMultipleTransports(unittest.TestCase):
         self.assertIs(controller._cleanup_timeout_handle, handle)
 
         # All transports drain naturally → the safety timer must be cancelled.
-        for t in (t1, t2):
-            t.is_closing = Mock(return_value=True)
-        controller._protocol_disconnected()
+        p1, p2 = controller._protocols
+        controller._protocol_disconnected(p1)
+        controller._protocol_disconnected(p2)
 
         handle.cancel.assert_called_once()
         self.assertIsNone(controller._cleanup_timeout_handle)
@@ -654,26 +675,22 @@ class TestRediscoveryRefreshesLastseen(unittest.TestCase):
 
     def _make(self, callback_return):
         controller = _make_controller(["192.168.1.100/24"])
-        controller.set_device_discovered_callback(
-            Mock(return_value=callback_return)
-        )
+        controller.set_device_discovered_callback(Mock(return_value=callback_return))
         device = GoveeDevice(
             controller, "192.168.1.42", "fp-x", "H6008", ON_OFF_CAPABILITIES
         )
         controller._registry.add_discovered_device(device)
         # Backdate lastseen so we can verify it actually got refreshed.
-        from datetime import datetime, timedelta
+        from datetime import datetime, timedelta, timezone
 
-        old = datetime.now() - timedelta(seconds=60)
+        old = datetime.now(timezone.utc) - timedelta(seconds=60)
         device._lastseen = old
         return controller, device, old
 
     def _scan_response(self):
         from govee_local_api.message import ScanResponse
 
-        return ScanResponse(
-            {"device": "fp-x", "sku": "H6008", "ip": "192.168.1.42"}
-        )
+        return ScanResponse({"device": "fp-x", "sku": "H6008", "ip": "192.168.1.42"})
 
     def test_lastseen_refreshed_when_callback_returns_true(self):
         controller, device, old = self._make(callback_return=True)
@@ -681,7 +698,9 @@ class TestRediscoveryRefreshesLastseen(unittest.TestCase):
         protocol.transport = Mock()
 
         asyncio.run(
-            controller._handle_scan_response(self._scan_response(), protocol)
+            controller._handle_scan_response(
+                self._scan_response(), ("192.168.1.42", 4002), protocol
+            )
         )
 
         self.assertGreater(device.lastseen, old)
@@ -692,7 +711,9 @@ class TestRediscoveryRefreshesLastseen(unittest.TestCase):
         protocol.transport = Mock()
 
         asyncio.run(
-            controller._handle_scan_response(self._scan_response(), protocol)
+            controller._handle_scan_response(
+                self._scan_response(), ("192.168.1.42", 4002), protocol
+            )
         )
 
         # Even though the callback opted out, the response is evidence the
@@ -705,7 +726,9 @@ class TestRediscoveryRefreshesLastseen(unittest.TestCase):
         protocol.transport = Mock()
 
         asyncio.run(
-            controller._handle_scan_response(self._scan_response(), protocol)
+            controller._handle_scan_response(
+                self._scan_response(), ("192.168.1.42", 4002), protocol
+            )
         )
 
         self.assertGreater(device.lastseen, old)
@@ -729,9 +752,7 @@ class TestProtocolErrorReceived(unittest.TestCase):
         args = logger.warning.call_args[0]
         self.assertIn("192.168.1.100", args)
         # Format-args carry the OSError representation.
-        self.assertTrue(
-            any("Network is unreachable" in repr(a) for a in args[1:])
-        )
+        self.assertTrue(any("Network is unreachable" in repr(a) for a in args[1:]))
 
 
 class TestEvictionDoesNotDanglePointer(unittest.TestCase):
@@ -740,11 +761,11 @@ class TestEvictionDoesNotDanglePointer(unittest.TestCase):
     evicted device; that should be a harmless no-op, not AttributeError."""
 
     def _evict_device(self, controller, device):
-        from datetime import datetime, timedelta
+        from datetime import datetime, timedelta, timezone
 
         controller._registry.add_discovered_device(device)
         # Force eviction by backdating lastseen.
-        device._lastseen = datetime.now() - timedelta(
+        device._lastseen = datetime.now(timezone.utc) - timedelta(
             seconds=controller._evict_interval + 1
         )
         controller._evict()
@@ -776,6 +797,399 @@ class TestEvictionDoesNotDanglePointer(unittest.TestCase):
         # No exception — and since no transports are attached, sendto is
         # never called.
         asyncio.run(device.turn_on())
+
+
+class TestManualDeviceEvictionRequeue(unittest.TestCase):
+    """An evicted manually-added device must go back on the discovery queue,
+    otherwise it is never probed again while discovery is disabled and stays
+    gone until the user re-adds it."""
+
+    def _add_expired_device(self, controller, ip, fingerprint, manual):
+        from datetime import datetime, timedelta, timezone
+
+        device = GoveeDevice(controller, ip, fingerprint, "H6008", ON_OFF_CAPABILITIES)
+        device.is_manual = manual
+        controller._registry.add_discovered_device(device)
+        # Force eviction by backdating lastseen.
+        device._lastseen = datetime.now(timezone.utc) - timedelta(
+            seconds=controller._evict_interval + 1
+        )
+        return device
+
+    def test_evicted_manual_device_is_requeued(self):
+        controller = _make_controller(["192.168.1.100/24"])
+        self._add_expired_device(controller, "192.168.1.42", "fp-manual", True)
+
+        controller._evict()
+
+        self.assertIsNone(controller.get_device_by_fingerprint("fp-manual"))
+        self.assertIn("192.168.1.42", controller.discovery_queue)
+
+    def test_evicted_discovered_device_is_not_requeued(self):
+        controller = _make_controller(["192.168.1.100/24"])
+        self._add_expired_device(controller, "192.168.1.43", "fp-auto", False)
+
+        controller._evict()
+
+        self.assertIsNone(controller.get_device_by_fingerprint("fp-auto"))
+        self.assertNotIn("192.168.1.43", controller.discovery_queue)
+
+    def test_requeued_manual_device_comes_back_as_manual(self):
+        """Once the device answers a scan again it must be manual again and
+        leave the queue (the existing add_discovered_device mechanism)."""
+        controller = _make_controller(["192.168.1.100/24"])
+        self._add_expired_device(controller, "192.168.1.42", "fp-manual", True)
+        controller._evict()
+
+        rediscovered = GoveeDevice(
+            controller, "192.168.1.42", "fp-manual", "H6008", ON_OFF_CAPABILITIES
+        )
+        controller._registry.add_discovered_device(rediscovered)
+
+        self.assertTrue(rediscovered.is_manual)
+        self.assertNotIn("192.168.1.42", controller.discovery_queue)
+
+
+class TestDiscoveryToggleKeepsManualProbing(unittest.TestCase):
+    """Turning discovery off must not stop the timer chain that also probes
+    queued and manually-added device IPs; only cleanup() stops it."""
+
+    def _controller_with_chain(self):
+        controller = _make_controller(["192.168.1.100/24"])
+        controller._discovery_enabled = True
+        controller._loop = Mock()
+        handle1, handle2 = Mock(name="handle1"), Mock(name="handle2")
+        controller._loop.call_later = Mock(side_effect=[handle1, handle2])
+        _attach_transports(controller, 1)
+        return controller, handle1, handle2
+
+    def test_disable_discovery_keeps_chain_for_queued_devices(self):
+        controller, handle1, handle2 = self._controller_with_chain()
+        controller._registry.add_device_to_queue("192.168.1.42")
+        controller.send_discovery_message()
+        self.assertIs(controller._discovery_handle, handle1)
+
+        controller.set_discovery_enabled(False)
+
+        handle1.cancel.assert_called_once()
+        # The chain was restarted because the queued IP still needs probing.
+        self.assertIs(controller._discovery_handle, handle2)
+
+    def test_disable_discovery_keeps_chain_for_manual_devices(self):
+        controller, handle1, handle2 = self._controller_with_chain()
+        device = GoveeDevice(
+            controller, "192.168.1.42", "fp-m", "H6008", ON_OFF_CAPABILITIES
+        )
+        device.is_manual = True
+        controller._registry.add_discovered_device(device)
+        controller.send_discovery_message()
+        self.assertIs(controller._discovery_handle, handle1)
+
+        controller.set_discovery_enabled(False)
+
+        handle1.cancel.assert_called_once()
+        self.assertIs(controller._discovery_handle, handle2)
+
+    def test_disable_discovery_stops_chain_when_nothing_to_probe(self):
+        controller, handle1, _handle2 = self._controller_with_chain()
+        controller.send_discovery_message()
+        self.assertIs(controller._discovery_handle, handle1)
+
+        controller.set_discovery_enabled(False)
+
+        handle1.cancel.assert_called_once()
+        self.assertIsNone(controller._discovery_handle)
+
+    def test_cleanup_cancels_chain_even_with_queued_devices(self):
+        controller = _make_controller(["192.168.1.100/24"])
+        controller._loop = Mock()
+        chain_handle = Mock(name="chain_handle")
+        controller._loop.call_later = Mock(return_value=chain_handle)
+        (t1,) = _attach_transports(controller, 1)
+        t1.is_closing = Mock(return_value=False)
+
+        # Queued IP with discovery disabled starts the probing chain.
+        controller.add_device_to_discovery_queue("192.168.1.42")
+        self.assertIs(controller._discovery_handle, chain_handle)
+
+        controller.cleanup()
+
+        chain_handle.cancel.assert_called_once()
+        self.assertIsNone(controller._discovery_handle)
+
+
+class TestEvictionTimer(unittest.TestCase):
+    """Eviction must run on its own periodic timer: relying only on the
+    scan-response path means nothing is ever evicted when *no* device
+    answers — exactly when eviction matters most."""
+
+    def _expired_device(self, controller, ip, fingerprint):
+        from datetime import datetime, timedelta, timezone
+
+        device = GoveeDevice(controller, ip, fingerprint, "H6008", ON_OFF_CAPABILITIES)
+        controller._registry.add_discovered_device(device)
+        device._lastseen = datetime.now(timezone.utc) - timedelta(
+            seconds=controller._evict_interval + 1
+        )
+        return device
+
+    def test_enable_evict_schedules_periodic_check(self):
+        controller = _make_controller(["192.168.1.100/24"])
+        controller._loop = Mock()
+        handle = Mock()
+        controller._loop.call_later = Mock(return_value=handle)
+
+        controller.set_evict_enabled(True)
+
+        controller._loop.call_later.assert_called_once_with(
+            controller._evict_interval, controller._evict_tick
+        )
+        self.assertIs(controller._evict_handle, handle)
+
+    def test_tick_evicts_without_any_scan_response_and_reschedules(self):
+        controller = _make_controller(["192.168.1.100/24"])
+        controller._loop = Mock()
+        controller._loop.call_later = Mock(return_value=Mock())
+        evicted = []
+        controller._device_evicted_callback = evicted.append
+        controller._evict_enabled = True
+        self._expired_device(controller, "192.168.1.42", "fp-dead")
+
+        controller._evict_tick()
+
+        self.assertIsNone(controller.get_device_by_fingerprint("fp-dead"))
+        self.assertEqual([d.fingerprint for d in evicted], ["fp-dead"])
+        # The chain rescheduled itself.
+        controller._loop.call_later.assert_called_once_with(
+            controller._evict_interval, controller._evict_tick
+        )
+
+    def test_tick_is_noop_when_disabled(self):
+        controller = _make_controller(["192.168.1.100/24"])
+        controller._loop = Mock()
+        controller._loop.call_later = Mock()
+        self._expired_device(controller, "192.168.1.42", "fp-dead")
+
+        controller._evict_tick()
+
+        # Device survives and no new tick is scheduled.
+        self.assertIsNotNone(controller.get_device_by_fingerprint("fp-dead"))
+        controller._loop.call_later.assert_not_called()
+
+    def test_disable_evict_cancels_timer(self):
+        controller = _make_controller(["192.168.1.100/24"])
+        controller._loop = Mock()
+        handle = Mock()
+        controller._loop.call_later = Mock(return_value=handle)
+
+        controller.set_evict_enabled(True)
+        controller.set_evict_enabled(False)
+
+        handle.cancel.assert_called_once()
+        self.assertIsNone(controller._evict_handle)
+
+    def test_cleanup_cancels_evict_timer(self):
+        controller = _make_controller(["192.168.1.100/24"])
+        controller._loop = Mock()
+        handle = Mock()
+        controller._loop.call_later = Mock(return_value=handle)
+        controller.set_evict_enabled(True)
+
+        controller.cleanup()
+
+        handle.cancel.assert_called_once()
+        self.assertIsNone(controller._evict_handle)
+        self.assertFalse(controller.evict_enabled)
+
+
+class TestDeprecatedListeningAddressKwarg(unittest.TestCase):
+    """The pre-3.0 'listening_address' kwarg must keep working (with a
+    DeprecationWarning) so existing integrations don't break on upgrade."""
+
+    def test_old_kwarg_works_with_warning(self):
+        with self.assertWarns(DeprecationWarning):
+            controller = GoveeController(loop=Mock(), listening_address="192.168.1.50")
+        self.assertEqual(controller.listening_addresses, ["192.168.1.50"])
+
+    def test_old_kwarg_accepts_list_and_masks(self):
+        with self.assertWarns(DeprecationWarning):
+            controller = GoveeController(
+                loop=Mock(), listening_address=["192.168.1.50/24"]
+            )
+        self.assertEqual(controller.listening_addresses, ["192.168.1.50"])
+        self.assertIsNotNone(controller.networks[0])
+
+    def test_both_kwargs_rejected(self):
+        with self.assertWarns(DeprecationWarning):
+            with self.assertRaises(ValueError):
+                GoveeController(
+                    loop=Mock(),
+                    listening_address="192.168.1.50",
+                    listening_addresses="10.0.0.1",
+                )
+
+    def test_default_is_wildcard_without_either_kwarg(self):
+        controller = GoveeController(loop=Mock())
+        self.assertEqual(controller.listening_addresses, ["0.0.0.0"])
+
+
+class TestShutdownDropsLateDatagrams(unittest.TestCase):
+    """A datagram task created just before cleanup() can run after the
+    registry was cleared; it must not repopulate the registry or fire the
+    discovered callback mid-shutdown."""
+
+    def test_late_scan_response_ignored_after_cleanup(self):
+        controller = _make_controller(["192.168.1.100/24"])
+        discovered = Mock(return_value=True)
+        controller.set_device_discovered_callback(discovered)
+        controller.cleanup()
+
+        payload = json.dumps(
+            {
+                "msg": {
+                    "cmd": "scan",
+                    "data": {
+                        "device": "fp-late",
+                        "sku": "H6008",
+                        "ip": "192.168.1.42",
+                    },
+                }
+            }
+        ).encode()
+        protocol = Mock()
+        protocol.transport = Mock()
+        asyncio.run(
+            controller._handle_datagram_received(
+                payload, ("192.168.1.42", 4002), protocol
+            )
+        )
+
+        discovered.assert_not_called()
+        self.assertEqual(controller.devices, [])
+
+
+class TestStartPartialFailure(unittest.TestCase):
+    """If binding a later address fails, start() must close the endpoints it
+    already created — otherwise every HA setup retry leaks a bound socket."""
+
+    def _controller_with_failing_bind(self, fail_at_socket):
+        from unittest.mock import AsyncMock
+
+        controller = _make_controller(["192.168.1.100/24", "10.0.0.100/8"])
+        t1 = Mock(name="transport1")
+        t1.is_closing = Mock(return_value=False)
+        p1 = Mock(name="protocol1")
+        sock1, sock2 = Mock(name="sock1"), Mock(name="sock2")
+        if fail_at_socket:
+            controller._create_listening_socket = Mock(
+                side_effect=[sock1, OSError("bind failed")]
+            )
+            controller._loop.create_datagram_endpoint = AsyncMock(return_value=(t1, p1))
+        else:
+            controller._create_listening_socket = Mock(side_effect=[sock1, sock2])
+            controller._loop.create_datagram_endpoint = AsyncMock(
+                side_effect=[(t1, p1), OSError("endpoint failed")]
+            )
+        return controller, t1, sock2
+
+    def test_failed_endpoint_closes_earlier_transports(self):
+        controller, t1, sock2 = self._controller_with_failing_bind(fail_at_socket=False)
+
+        with self.assertRaises(OSError):
+            asyncio.run(controller.start())
+
+        t1.close.assert_called_once()
+        sock2.close.assert_called_once()
+        self.assertEqual(controller._transports, [])
+        self.assertEqual(controller._protocols, [])
+
+    def test_failed_bind_closes_earlier_transports(self):
+        controller, t1, _sock2 = self._controller_with_failing_bind(fail_at_socket=True)
+
+        with self.assertRaises(OSError):
+            asyncio.run(controller.start())
+
+        t1.close.assert_called_once()
+        self.assertEqual(controller._transports, [])
+        self.assertEqual(controller._protocols, [])
+
+
+class TestUnexpectedConnectionLost(unittest.TestCase):
+    """A connection_lost outside cleanup() means an internal transport
+    failure. It must drop that endpoint and log an error — never signal
+    cleanup completion (the old behavior made the controller look cleanly
+    shut down when nobody asked for a shutdown)."""
+
+    def test_unexpected_loss_drops_endpoint_and_keeps_alignment(self):
+        controller = _make_controller(["192.168.1.100/24", "10.0.0.100/8"])
+        logger = Mock()
+        controller._logger = logger
+        t1, t2 = _attach_transports(controller, 2)
+        p1, p2 = controller._protocols
+        t1.is_closing = Mock(return_value=True)
+
+        controller._protocol_disconnected(p1)
+
+        self.assertEqual(controller._transports, [t2])
+        self.assertEqual(controller._protocols, [p2])
+        self.assertEqual(controller.listening_addresses, ["10.0.0.100"])
+        self.assertEqual(len(controller.networks), 1)
+        self.assertFalse(controller._cleanup_done.is_set())
+        logger.error.assert_called_once()
+
+    def test_unexpected_loss_of_last_transport_does_not_fake_cleanup(self):
+        controller = _make_controller(["192.168.1.100/24"])
+        logger = Mock()
+        controller._logger = logger
+        (t1,) = _attach_transports(controller, 1)
+        (p1,) = controller._protocols
+        t1.is_closing = Mock(return_value=True)
+
+        controller._protocol_disconnected(p1)
+
+        self.assertEqual(controller._transports, [])
+        self.assertFalse(controller._cleanup_done.is_set())
+        # The "controller is inoperative" error names the lost address.
+        logger.error.assert_called_once()
+        self.assertIn("192.168.1.100", logger.error.call_args[0][1:])
+
+    def test_unknown_or_none_protocol_is_noop(self):
+        controller = _make_controller(["192.168.1.100/24"])
+        _attach_transports(controller, 1)
+
+        controller._protocol_disconnected(None)
+        controller._protocol_disconnected(Mock(name="stranger"))
+
+        self.assertEqual(len(controller._transports), 1)
+        self.assertFalse(controller._cleanup_done.is_set())
+
+    def test_start_rebinds_full_config_after_unexpected_drop(self):
+        from unittest.mock import AsyncMock
+
+        controller = _make_controller(["192.168.1.100/24", "10.0.0.100/8"])
+        t1, t2 = _attach_transports(controller, 2)
+        p1, _p2 = controller._protocols
+        for t in (t1, t2):
+            t.is_closing = Mock(return_value=True)
+
+        # Lose one endpoint unexpectedly, then shut down.
+        controller._protocol_disconnected(p1)
+        controller.cleanup()
+        controller._transports.clear()
+        controller._protocols.clear()
+
+        controller._create_listening_socket = Mock(return_value=Mock())
+        controller._loop.create_datagram_endpoint = AsyncMock(
+            side_effect=lambda *a, **k: (Mock(), Mock())
+        )
+        asyncio.run(controller.start())
+
+        # Both configured addresses are bound again, lists aligned.
+        self.assertEqual(
+            controller.listening_addresses, ["192.168.1.100", "10.0.0.100"]
+        )
+        self.assertEqual(len(controller._transports), 2)
+        self.assertEqual(len(controller.networks), 2)
 
 
 if __name__ == "__main__":

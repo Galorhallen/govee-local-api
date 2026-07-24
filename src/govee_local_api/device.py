@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Callable
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from .light_capabilities import GoveeLightCapabilities, ON_OFF_CAPABILITIES
@@ -34,7 +34,7 @@ class GoveeDevice:
         self._fingerprint = fingerprint
         self._sku = sku
         self._ip = ip
-        self._lastseen: datetime = datetime.now()
+        self._lastseen: datetime = datetime.now(timezone.utc)
         self._capabilities: GoveeLightCapabilities = capabilities
 
         self._is_on: bool = False
@@ -98,8 +98,11 @@ class GoveeDevice:
 
     @property
     def is_connected(self) -> bool:
-        """Return True if the device has been seen in the last 30 seconds."""
-        return (datetime.now() - self._lastseen).total_seconds() < 30
+        """Return True if the device has been seen within the controller's
+        evict interval, so "connected" and "evicted" can't contradict each
+        other when a custom interval is configured."""
+        threshold = getattr(self._controller, "evict_interval", 30)
+        return (datetime.now(timezone.utc) - self._lastseen).total_seconds() < threshold
 
     def set_update_callback(
         self, callback: Callable[[GoveeDevice], None] | None
@@ -154,7 +157,7 @@ class GoveeDevice:
             self._update_callback(self)
 
     def update_lastseen(self) -> None:
-        self._lastseen = datetime.now()
+        self._lastseen = datetime.now(timezone.utc)
 
     def update_ip(self, ip: str) -> None:
         self._ip = ip

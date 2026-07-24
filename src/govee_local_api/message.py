@@ -18,7 +18,7 @@ class GoveeMessage:
     def as_json(self) -> str:
         return json.dumps(self.as_dict(), separators=(",", ":"))
 
-    def __bytes__(self) -> bytearray | bytes:
+    def __bytes__(self) -> bytes:
         return self.as_json().encode("utf-8")
 
     def __str__(self) -> str:
@@ -230,9 +230,7 @@ class MessageResponseFactory:
         except (json.JSONDecodeError, KeyError, TypeError):
             return None
 
-        message_cls = next(
-            (m for m in self._messages if m.command == cmd), None
-        )
+        message_cls = next((m for m in self._messages if m.command == cmd), None)
         if message_cls is None:
             return None
         return message_cls(message_data)

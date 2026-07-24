@@ -17,6 +17,8 @@ repos:
       - id: codespell
         args:
           - --quiet-level=2
+          # assertIn is the unittest method, not a typo of "assertion"
+          - --ignore-words-list=assertIn
         exclude_types: [csv, json]
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0

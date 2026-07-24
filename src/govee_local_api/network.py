@@ -23,6 +23,9 @@ def _parse_address_and_mask(
 
     Returns:
         Tuple of (ip_address, network_or_none).
+
+    Raises:
+        ValueError: If a mask is present but cannot be parsed.
     """
     if "/" not in address_str:
         return (address_str, None)
@@ -34,11 +37,17 @@ def _parse_address_and_mask(
 
     try:
         network = ipaddress.ip_network(f"{ip_part}/{mask_part}", strict=False)
-        if isinstance(network, ipaddress.IPv4Network):
-            return (ip_part, network)
-        return (ip_part, None)
-    except (ValueError, ipaddress.AddressValueError):
-        return (ip_part, None)
+    except (ipaddress.AddressValueError, ValueError) as exc:
+        # A mask was explicitly given; silently dropping it would degrade
+        # transport selection to heuristics without a trace, defeating the
+        # feature the caller asked for. Fail loudly, matching how invalid
+        # IPs are rejected in the controller constructor.
+        raise ValueError(
+            f"Invalid network mask in listening address {address_str!r}"
+        ) from exc
+    if isinstance(network, ipaddress.IPv4Network):
+        return (ip_part, network)
+    return (ip_part, None)
 
 
 def _parse_listening_addresses(

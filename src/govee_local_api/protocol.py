@@ -61,7 +61,7 @@ class GoveeControllerProtocol(asyncio.DatagramProtocol):
 
     def connection_lost(self, *args, **kwargs):
         self.controller._logger.debug("Disconnected from %s", self.listening_address)
-        self.controller._protocol_disconnected()
+        self.controller._protocol_disconnected(self)
 
     def datagram_received(self, data: bytes, addr: tuple):
         if data:

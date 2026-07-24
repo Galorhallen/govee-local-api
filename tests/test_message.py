@@ -138,10 +138,7 @@ def test_factory_returns_none_for_missing_cmd_field() -> None:
 def test_factory_returns_none_for_unknown_command() -> None:
     """Previously this raised StopIteration."""
     factory = MessageResponseFactory()
-    assert (
-        factory.create_message(b'{"msg": {"cmd": "future-cmd", "data": {}}}')
-        is None
-    )
+    assert factory.create_message(b'{"msg": {"cmd": "future-cmd", "data": {}}}') is None
 
 
 def test_factory_returns_scan_response_for_valid_scan() -> None:
@@ -198,9 +195,7 @@ def test_dev_status_response_handles_missing_onoff() -> None:
 
 
 def test_dev_status_response_handles_missing_color() -> None:
-    msg = DevStatusResponse(
-        {"onOff": 1, "brightness": 50, "colorTemInKelvin": 4000}
-    )
+    msg = DevStatusResponse({"onOff": 1, "brightness": 50, "colorTemInKelvin": 4000})
     assert msg.is_on is True
     assert msg.color == (0, 0, 0)
     assert msg.color_temperature == 4000

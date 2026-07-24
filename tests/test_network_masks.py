@@ -184,6 +184,20 @@ class TestNetworkMaskFunctionality(unittest.TestCase):
             selected = controller._get_best_transport_for_ip(ip)
             self.assertEqual(selected, transport1)
 
+    def test_invalid_cidr_prefix_rejected(self):
+        """A mask that can't be parsed must fail loudly, not silently
+        degrade to heuristic matching."""
+        with self.assertRaises(ValueError):
+            GoveeController(listening_addresses="192.168.1.100/33")
+
+    def test_garbage_mask_rejected(self):
+        with self.assertRaises(ValueError):
+            GoveeController(listening_addresses="192.168.1.100/banana")
+
+    def test_non_contiguous_netmask_rejected(self):
+        with self.assertRaises(ValueError):
+            GoveeController(listening_addresses="192.168.1.100/255.255.0.255")
+
     def test_ipv6_handling(self):
         """Test that IPv6 addresses are handled gracefully."""
         controller = GoveeController(listening_addresses=["192.168.1.100/24"])

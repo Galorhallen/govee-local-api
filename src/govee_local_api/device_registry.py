@@ -14,7 +14,7 @@ class DeviceRegistry:
     def add_discovered_device(self, device: GoveeDevice) -> GoveeDevice:
         if device.ip in self._custom_devices_queue:
             self._logger.debug(
-                f"Found manullay added device {device}. Removing from queue."
+                f"Found manually added device {device}. Removing from queue."
             )
             self._custom_devices_queue.remove(device.ip)
             device.is_manual = True
