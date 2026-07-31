@@ -40,6 +40,8 @@ The library is a pure asyncio UDP protocol implementation with no external runti
 
 To add a new Govee device model, add an entry to `GOVEE_LIGHT_CAPABILITIES` in `src/govee_local_api/light_capabilities.py`. Use `create_with_capabilities(rgb, temperature, brightness, segments, scenes)` or reference `BASIC_CAPABILITIES` for standard devices. The segments parameter is the number of individually controllable LED segments.
 
+`SUPPORTED_DEVICES.md` is auto-generated from the registry by the `generate-supported-devices` pre-commit hook (`scripts/generate_supported_devices.py`) — never edit it by hand.
+
 ## Key Conventions
 
 - Version is maintained in both `pyproject.toml` and `src/govee_local_api/__init__.py`
