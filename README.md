@@ -8,7 +8,7 @@ See [SUPPORTED_DEVICES.md](SUPPORTED_DEVICES.md) for the full list of known devi
 
 # Requirements
 
-- Python >= 3.9
+- Python >= 3.11
 - Govee Local API enabled. Refer to https://app-h5.govee.com/user-manual/wlan-guide
 
 # Installation
