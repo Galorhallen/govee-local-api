@@ -4,6 +4,8 @@
 
 Please note that scene and segment support is still **very** experimental.
 
+See [SUPPORTED_DEVICES.md](SUPPORTED_DEVICES.md) for the full list of known device models and their capabilities.
+
 # Requirements
 
 - Python >= 3.11
@@ -114,6 +116,7 @@ await controller.control_device("192.168.1.100", color_rgb=(0, 255, 0))
 
 ## Documentation
 
+- **[Supported Devices](SUPPORTED_DEVICES.md)** - Auto-generated list of known device models and their capabilities
 - **[Network Mask Configuration Guide](NETWORK_MASKS.md)** - Comprehensive guide for multi-network setups
 - **[API Reference](https://github.com/Galorhallen/govee-local-api)** - Full API documentation
 
