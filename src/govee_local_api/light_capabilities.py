@@ -22,14 +22,22 @@ class GoveeLightCapabilities:
     def __init__(
         self,
         features: GoveeLightFeatures,
-        segments: list[bytes] = [],
-        scenes: dict[str, bytes] = {},
+        segments: list[bytes] | None = None,
+        scenes: dict[str, bytes] | None = None,
     ) -> None:
         self.features = features
+        # Copy the inputs: they are module-level shared tables
+        # (SEGMENT_CODES / SCENE_CODES), and capability objects are shared
+        # across devices — a consumer mutating one instance must not
+        # corrupt every other device's capabilities.
         self.segments = (
-            segments if features & GoveeLightFeatures.SEGMENT_CONTROL else []
+            list(segments)
+            if segments and features & GoveeLightFeatures.SEGMENT_CONTROL
+            else []
         )
-        self.scenes = scenes if features & GoveeLightFeatures.SCENES else {}
+        self.scenes = (
+            dict(scenes) if scenes and features & GoveeLightFeatures.SCENES else {}
+        )
 
     @property
     def segments_count(self) -> int:
