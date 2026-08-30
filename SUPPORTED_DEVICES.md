@@ -19,7 +19,7 @@ Devices with scene support share the same scene set: sunrise, sunset, movie, dat
 | H14C1 | ✅ | ✅ | ✅ | - | ✅ |
 | H1630 | ✅ | ✅ | ✅ | - | ✅ |
 | H16B0 | ✅ | ✅ | ✅ | - | ✅ |
-| H16C0 | ✅ | ✅ | ✅ | - | ✅ |
+| H16C0 | ✅ | ✅ | ✅ | 7 | ✅ |
 | H1A43 | ✅ | ✅ | ✅ | - | ✅ |
 | H1A45 | ✅ | ✅ | ✅ | - | ✅ |
 | H2A40 | ✅ | ✅ | ✅ | - | ✅ |
