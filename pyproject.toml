@@ -32,7 +32,7 @@ python = "^3.11"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^9.1.1"
-prompt_toolkit = "^3.0.0"
+prompt_toolkit = "^3.0.53"
 pre-commit = "^4.3.0"
 
 
