@@ -57,6 +57,33 @@ controller = GoveeController(
 )
 ```
 
+### Tolerating a failed bind (`require_all=False`)
+
+By default `start()` requires every configured address to bind; a single failure
+(`EADDRNOTAVAIL` for a stale address, `EADDRINUSE`, an interface that went down)
+closes any endpoint already opened and re-raises, so the controller is left unbound.
+
+Since 3.1.0 you can opt in to keeping whatever binds successfully:
+
+```python
+controller = GoveeController(
+    listening_addresses=["192.168.1.100/24", "10.0.0.100/8", "172.16.1.100/16"]
+)
+await controller.start(require_all=False)
+
+for address, error in controller.bind_failures:
+    logging.warning("Not listening on %s: %s", address, error)
+print("Live on", controller.listening_addresses)
+```
+
+- `start()` raises only if **no** address binds. The raised exception is the original
+  `OSError` (errno preserved; an `EADDRINUSE` is preferred when several differ), never a
+  wrapper type, so `errno`-based handling keeps working.
+- `bind_failures` lists `(address, OSError)` pairs for the most recent `start()` only and is
+  reset on every call. Partial success is also logged at `warning` level.
+- The configured address set is never pruned: a later `start()` retries every address, so a
+  caller can recover an adapter that has come back by simply calling `start()` again.
+
 ## Network Mask Configuration
 
 For precise subnet-aware device routing (recommended for enterprise/VLAN environments), embed the network mask directly in the address using CIDR or netmask notation:
