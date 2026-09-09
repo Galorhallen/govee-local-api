@@ -81,8 +81,32 @@ print("Live on", controller.listening_addresses)
   wrapper type, so `errno`-based handling keeps working.
 - `bind_failures` lists `(address, OSError)` pairs for the most recent `start()` only and is
   reset on every call. Partial success is also logged at `warning` level.
-- The configured address set is never pruned: a later `start()` retries every address, so a
-  caller can recover an adapter that has come back by simply calling `start()` again.
+- The configured address set is never pruned: a later `start()` retries every address, and
+  `rebind_failed()` (below) retries only the missing ones without restarting.
+
+#### Recovering interfaces that come back (`rebind_failed()`)
+
+To pick up an adapter that was down at startup (or an endpoint that later closed unexpectedly)
+without tearing down the live endpoints or losing the discovered devices, call
+`rebind_failed()` — e.g. on a timer or a network-change event:
+
+```python
+recovered = await controller.rebind_failed()
+if recovered:
+    print("Back on", recovered)
+for address, error in controller.bind_failures:
+    logging.warning("Still not listening on %s: %s", address, error)
+```
+
+- Only the configured addresses that are not currently live are retried; live endpoints are
+  untouched and a recovered address returns to its configured position.
+- It never raises for a bind failure: addresses that still fail stay in `bind_failures` with
+  the fresh error, and the addresses that came back are removed from it. It returns the list
+  of addresses bound by that call.
+- A successful rebind sends a discovery burst right away (when discovery is enabled) so
+  devices on the recovered interface show up without waiting for the next tick.
+- It requires a running controller (`start()` succeeded and `cleanup()` was not called);
+  otherwise it raises `RuntimeError` — use `start()` in that case.
 
 ## Network Mask Configuration
 
