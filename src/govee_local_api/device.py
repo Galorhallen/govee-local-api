@@ -136,6 +136,7 @@ class GoveeDevice:
         rgb = (red, green, blue)
         await self._controller.set_color(self, rgb=rgb, temperature=None)
         self._rgb_color = rgb
+        self._temperature_color = 0
 
     async def set_temperature(self, temperature: int) -> None:
         await self._controller.set_color(self, temperature=temperature, rgb=None)

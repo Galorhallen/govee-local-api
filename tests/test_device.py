@@ -1,6 +1,6 @@
 import asyncio
 import unittest
-from unittest.mock import Mock
+from unittest.mock import AsyncMock, Mock
 from govee_local_api.device import GoveeDevice
 from govee_local_api.controller import GoveeController
 from govee_local_api.protocol import GoveeControllerProtocol
@@ -43,6 +43,32 @@ class TestGoveeDevice(unittest.TestCase):
     def test_is_connected_fresh_device(self):
         self._mock_controller.evict_interval = 30
         assert self.device.is_connected
+
+    def test_set_rgb_color_clears_temperature_color(self):
+        self._mock_controller.set_color = AsyncMock()
+
+        asyncio.run(self.device.set_temperature(4000))
+        assert self.device.temperature_color == 4000
+
+        asyncio.run(self.device.set_rgb_color(255, 0, 0))
+
+        assert self.device.temperature_color == 0
+        assert self.device.rgb_color == (255, 0, 0)
+
+        self._mock_controller.set_color.assert_called_with(
+            self.device, rgb=(255, 0, 0), temperature=None
+        )
+
+    def test_set_temperature_does_not_clear_rgb_color(self):
+        self._mock_controller.set_color = AsyncMock()
+
+        asyncio.run(self.device.set_rgb_color(0, 255, 0))
+        assert self.device.rgb_color == (0, 255, 0)
+
+        asyncio.run(self.device.set_temperature(3000))
+
+        assert self.device.temperature_color == 3000
+        assert self.device.rgb_color == (0, 255, 0)
 
 
 class TestControllerIpUpdate(unittest.TestCase):
