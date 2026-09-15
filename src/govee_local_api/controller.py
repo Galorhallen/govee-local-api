@@ -761,7 +761,14 @@ class GoveeController:
         if rgb:
             self._send_message(ColorMessage(rgb=rgb, temperature=None), device)
         else:
-            self._send_message(ColorMessage(rgb=None, temperature=temperature), device)
+            self._send_message(
+                ColorMessage(
+                    rgb=None,
+                    temperature=temperature,
+                    temperature_range=device.temperature_range,
+                ),
+                device,
+            )
 
     async def send_raw_command(self, device: GoveeDevice, command: str) -> None:
         self._send_message(HexMessage([command]), device)

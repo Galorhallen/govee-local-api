@@ -1,4 +1,16 @@
 from enum import IntFlag
+from typing import NamedTuple
+
+
+class GoveeTemperatureRange(NamedTuple):
+    """Kelvin range supported by a device's white/color-temperature mode."""
+
+    min_kelvin: int
+    max_kelvin: int
+
+
+DEFAULT_TEMPERATURE_RANGE = GoveeTemperatureRange(min_kelvin=2000, max_kelvin=9000)
+"""Range assumed for every device that doesn't declare its own."""
 
 
 class GoveeLightFeatures(IntFlag):
@@ -18,14 +30,36 @@ COMMON_FEATURES: GoveeLightFeatures = (
 )
 
 
+def _normalize_temperature_range(
+    temperature_range: tuple[int, int] | None,
+) -> GoveeTemperatureRange:
+    """Validate a (min, max) Kelvin pair, falling back to the default range."""
+    if temperature_range is None:
+        return DEFAULT_TEMPERATURE_RANGE
+
+    min_kelvin, max_kelvin = temperature_range
+    if min_kelvin <= 0 or max_kelvin <= 0:
+        raise ValueError(
+            f"Temperature range must be positive, got {temperature_range!r}"
+        )
+    if min_kelvin >= max_kelvin:
+        raise ValueError(
+            f"Temperature range minimum must be below its maximum, got "
+            f"{temperature_range!r}"
+        )
+    return GoveeTemperatureRange(min_kelvin=min_kelvin, max_kelvin=max_kelvin)
+
+
 class GoveeLightCapabilities:
     def __init__(
         self,
         features: GoveeLightFeatures,
         segments: list[bytes] | None = None,
         scenes: dict[str, bytes] | None = None,
+        temperature_range: tuple[int, int] | None = None,
     ) -> None:
         self.features = features
+        self.temperature_range = _normalize_temperature_range(temperature_range)
         # Copy the inputs: they are module-level shared tables
         # (SEGMENT_CODES / SCENE_CODES), and capability objects are shared
         # across devices — a consumer mutating one instance must not
@@ -48,10 +82,18 @@ class GoveeLightCapabilities:
         return list(self.scenes.keys())
 
     def __repr__(self) -> str:
-        return f"GoveeLightCapabilities(features={self.features!r}, segments={self.segments!r}, scenes={self.scenes!r})"
+        return (
+            f"GoveeLightCapabilities(features={self.features!r}, "
+            f"segments={self.segments!r}, scenes={self.scenes!r}, "
+            f"temperature_range={self.temperature_range!r})"
+        )
 
     def __str__(self) -> str:
-        return f"GoveeLightCapabilities(features={self.features!r}, segments={len(self.segments)}, scenes={len(self.scenes)})"
+        return (
+            f"GoveeLightCapabilities(features={self.features!r}, "
+            f"segments={len(self.segments)}, scenes={len(self.scenes)}, "
+            f"temperature_range={tuple(self.temperature_range)})"
+        )
 
 
 SEGMENT_CODES: list[bytes] = [
@@ -88,7 +130,12 @@ SCENE_CODES: dict[str, bytes] = {
 
 
 def create_with_capabilities(
-    rgb: bool, temperature: bool, brightness: bool, segments: int, scenes: bool
+    rgb: bool,
+    temperature: bool,
+    brightness: bool,
+    segments: int,
+    scenes: bool,
+    temperature_range: tuple[int, int] | None = None,
 ) -> GoveeLightCapabilities:
     features: GoveeLightFeatures = GoveeLightFeatures(0)
     segments_codes = []
@@ -107,7 +154,10 @@ def create_with_capabilities(
         features = features | GoveeLightFeatures.SCENES
 
     return GoveeLightCapabilities(
-        features, segments_codes, SCENE_CODES if scenes else {}
+        features,
+        segments_codes,
+        SCENE_CODES if scenes else {},
+        temperature_range,
     )
 
 
@@ -175,7 +225,9 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     "H606A": BASIC_CAPABILITIES,
     "H6072": create_with_capabilities(True, True, True, 8, True),
     "H6073": BASIC_CAPABILITIES,
-    "H6076": create_with_capabilities(True, True, True, 7, True),
+    "H6076": create_with_capabilities(
+        True, True, True, 7, True, temperature_range=(2700, 6500)
+    ),  # Issue #271 - range confirmed in the Govee app
     "H6076A": BASIC_CAPABILITIES,
     "H6078": BASIC_CAPABILITIES,
     "H6079": BASIC_CAPABILITIES,
@@ -191,7 +243,9 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     "H6095": create_with_capabilities(True, True, True, 0, True),
     "H609D": BASIC_CAPABILITIES,
     "H60A0": BASIC_CAPABILITIES,
-    "H60A1": create_with_capabilities(True, True, True, 13, True),
+    "H60A1": create_with_capabilities(
+        True, True, True, 13, True, temperature_range=(2200, 6500)
+    ),  # Issue #39 - range from the Govee Cloud API
     "H60A4": create_with_capabilities(True, True, True, 11, False),
     "H60A6": create_with_capabilities(True, True, True, 0, False),
     "H60B0": BASIC_CAPABILITIES,  # Issue #252 - segments TBD
@@ -208,7 +262,9 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     "H612B": BASIC_CAPABILITIES,
     "H612C": create_with_capabilities(True, True, True, 10, True),
     "H612D": create_with_capabilities(True, True, True, 20, True),
-    "H612F": create_with_capabilities(True, True, True, 5, True),
+    "H612F": create_with_capabilities(
+        True, True, True, 5, True, temperature_range=(2800, 9000)
+    ),  # HA core #182244 - values below 2800K are ignored by the device
     "H6141": BASIC_CAPABILITIES,
     "H6143": BASIC_CAPABILITIES,
     "H6144": BASIC_CAPABILITIES,
@@ -251,7 +307,9 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     "H61A9": BASIC_CAPABILITIES,
     "H61B1": BASIC_CAPABILITIES,
     "H61B2": BASIC_CAPABILITIES,
-    "H61B3": create_with_capabilities(True, True, True, 15, True),
+    "H61B3": create_with_capabilities(
+        True, True, True, 15, True, temperature_range=(2000, 7200)
+    ),  # Issue #107 - range found by UDP testing
     "H61B5": BASIC_CAPABILITIES,
     "H61B6": create_with_capabilities(True, True, True, 0, True),
     "H61B8": create_with_capabilities(True, True, True, 40, True),
