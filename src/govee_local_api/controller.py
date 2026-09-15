@@ -8,8 +8,9 @@ import logging
 import socket
 import warnings
 from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, NamedTuple
 
 from .device import GoveeDevice
 from .device_registry import DeviceRegistry
@@ -46,6 +47,23 @@ COMMAND_PORT = 4003
 DISCOVERY_INTERVAL = 10
 EVICT_INTERVAL = DISCOVERY_INTERVAL * 3
 UPDATE_INTERVAL = 5
+
+
+class _Listener(NamedTuple):
+    """One configured listening address (after dedup and wildcard filtering)."""
+
+    address: str
+    network: ipaddress.IPv4Network | None
+
+
+@dataclass(slots=True)
+class _Endpoint:
+    """One live UDP endpoint: the address it is bound to and its asyncio pair."""
+
+    address: str
+    network: ipaddress.IPv4Network | None
+    transport: Any
+    protocol: GoveeControllerProtocol
 
 
 class GoveeController:
@@ -110,73 +128,63 @@ class GoveeController:
 
         self._logger = logger or logging.getLogger(__name__)
 
-        self._transports: list[Any] = []
-        self._protocols: list[Any] = []
+        # Live endpoints, one record per bound address. Empty until start().
+        self._endpoints: list[_Endpoint] = []
         self._bind_failures: list[tuple[str, OSError]] = []
         self._broadcast_address = broadcast_address
         self._broadcast_port = broadcast_port
         self._listening_port = listening_port
         self._device_command_port = device_command_port
-        self._listening_addresses, self._networks = _parse_listening_addresses(
-            listening_addresses
-        )
+        addresses, networks = _parse_listening_addresses(listening_addresses)
+        self._configured: list[_Listener] = [
+            _Listener(address, network) for address, network in zip(addresses, networks)
+        ]
 
         # Reject obviously bad input up front so it doesn't surface as a
         # cryptic OSError from socket.bind() later.
-        for addr in self._listening_addresses:
+        for listener in self._configured:
             try:
-                ipaddress.IPv4Address(addr)
+                ipaddress.IPv4Address(listener.address)
             except (ipaddress.AddressValueError, ValueError) as exc:
-                raise ValueError(f"Invalid IPv4 listening address: {addr!r}") from exc
+                raise ValueError(
+                    f"Invalid IPv4 listening address: {listener.address!r}"
+                ) from exc
 
         # Drop duplicate entries while preserving order; two sockets bound to
         # the same (ip, port) get load-balanced by SO_REUSEPORT and flip the
         # device's preferred transport on every status frame.
         seen: set[str] = set()
-        deduped: list[tuple[str, ipaddress.IPv4Network | None]] = []
-        for addr, net in zip(self._listening_addresses, self._networks):
-            if addr in seen:
+        deduped: list[_Listener] = []
+        for listener in self._configured:
+            if listener.address in seen:
                 self._logger.warning(
                     "Duplicate listening address %s; ignoring extra entry",
-                    addr,
+                    listener.address,
                 )
                 continue
-            seen.add(addr)
-            deduped.append((addr, net))
-        self._listening_addresses = [a for a, _ in deduped]
-        self._networks = [n for _, n in deduped]
+            seen.add(listener.address)
+            deduped.append(listener)
+        self._configured = deduped
 
         # If specific addresses are provided alongside 0.0.0.0, drop the wildcard
         # to avoid duplicate packet processing (0.0.0.0 receives on all interfaces)
-        if (
-            len(self._listening_addresses) > 1
-            and "0.0.0.0" in self._listening_addresses
-        ):
+        configured_addresses = [listener.address for listener in self._configured]
+        if len(configured_addresses) > 1 and "0.0.0.0" in configured_addresses:
             self._logger.warning(
                 "Wildcard address 0.0.0.0 mixed with specific addresses %s; "
                 "dropping 0.0.0.0 to avoid duplicate packet processing",
-                [a for a in self._listening_addresses if a != "0.0.0.0"],
+                [a for a in configured_addresses if a != "0.0.0.0"],
             )
-            filtered = [
-                (addr, net)
-                for addr, net in zip(self._listening_addresses, self._networks)
-                if addr != "0.0.0.0"
+            self._configured = [
+                listener
+                for listener in self._configured
+                if listener.address != "0.0.0.0"
             ]
-            self._listening_addresses = [a for a, _ in filtered]
-            self._networks = [n for _, n in filtered]
 
         # Empty configuration (e.g. user passed []) would silently produce a
         # working-looking controller that never binds anything. Fail loudly.
-        if not self._listening_addresses:
+        if not self._configured:
             raise ValueError("listening_addresses resulted in an empty configuration")
-
-        # Snapshot the effective configuration so start() can always bind the
-        # full set, even after an unexpected connection_lost dropped an
-        # endpoint from the working lists.
-        self._configured_addresses: list[str] = list(self._listening_addresses)
-        self._configured_networks: list[ipaddress.IPv4Network | None] = list(
-            self._networks
-        )
 
         # Initialize loop, handling case when no loop is running (for testing)
         try:
@@ -237,58 +245,37 @@ class GoveeController:
         """
         self._closing = False
         self._bind_failures = []
-        # Rebind the full configuration: an unexpected connection_lost (or a
-        # previous partial start) may have dropped an endpoint from the
-        # working lists.
-        self._listening_addresses = list(self._configured_addresses)
-        self._networks = list(self._configured_networks)
 
-        # Create datagram endpoints for each listening address. We build the
-        # socket by hand so SO_REUSEADDR / SO_REUSEPORT / SO_BROADCAST are set
-        # before bind() — the kernel only honors them at bind time.
+        # Create datagram endpoints for the full configuration (an unexpected
+        # connection_lost or a previous partial start may have dropped some).
+        # We build the socket by hand so SO_REUSEADDR / SO_REUSEPORT /
+        # SO_BROADCAST are set before bind() — the kernel only honors them at
+        # bind time.
         #
-        # Successful endpoints are accumulated locally and assigned to the
-        # four parallel instance lists in one go after the loop, so they can
-        # never be observed misaligned (transport selection in
-        # _get_best_transport_for_ip relies on index alignment).
-        bound: list[tuple[str, ipaddress.IPv4Network | None, Any, Any]] = []
+        # Successful endpoints are accumulated locally and committed in one
+        # go after the loop, so a failing start() never leaves half a set
+        # behind.
+        bound: list[_Endpoint] = []
         try:
-            for listening_address, network in zip(
-                self._listening_addresses, self._networks
-            ):
+            for listener in self._configured:
                 try:
-                    sock = self._create_listening_socket(listening_address)
-                    try:
-                        transport, protocol = await self._loop.create_datagram_endpoint(
-                            functools.partial(
-                                GoveeControllerProtocol, self, listening_address
-                            ),
-                            sock=sock,
-                        )
-                    except Exception:
-                        sock.close()
-                        raise
+                    transport, protocol = await self._open_endpoint(listener.address)
                 except OSError as ex:
                     if require_all:
                         raise
-                    self._bind_failures.append((listening_address, ex))
-                    self._logger.warning(
-                        "Failed to bind UDP endpoint on %s:%d (errno %s: %s); "
-                        "continuing with the remaining addresses",
-                        listening_address,
-                        self._listening_port,
-                        ex.errno,
-                        ex.strerror or ex,
-                    )
+                    self._bind_failures.append((listener.address, ex))
+                    self._log_bind_failure(listener.address, ex)
                     continue
-                bound.append((listening_address, network, transport, protocol))
+                bound.append(
+                    _Endpoint(listener.address, listener.network, transport, protocol)
+                )
         except Exception:
             # Don't leave earlier endpoints bound: a partially started
             # controller would leak a socket on every setup retry. Clearing
             # the instance lists before closing keeps the ensuing
             # connection_lost callbacks from taking the "unexpected loss"
             # path; the endpoints opened by this call were never in them.
-            self._close_all_transports([transport for _, _, transport, _ in bound])
+            self._close_all_transports([endpoint.transport for endpoint in bound])
             raise
 
         if not bound:
@@ -301,17 +288,14 @@ class GoveeController:
             errors = [ex for _, ex in self._bind_failures]
             raise next((ex for ex in errors if ex.errno == errno.EADDRINUSE), errors[0])
 
-        self._listening_addresses = [addr for addr, _, _, _ in bound]
-        self._networks = [net for _, net, _, _ in bound]
-        self._transports = [transport for _, _, transport, _ in bound]
-        self._protocols = [protocol for _, _, _, protocol in bound]
+        self._endpoints = bound
 
         if self._bind_failures:
             self._logger.warning(
                 "Started with %d of %d listening addresses; live on %s, failed on %s",
                 len(bound),
-                len(self._configured_addresses),
-                self._listening_addresses,
+                len(self._configured),
+                self.listening_addresses,
                 [addr for addr, _ in self._bind_failures],
             )
 
@@ -322,14 +306,117 @@ class GoveeController:
         if self._evict_enabled:
             self._schedule_evict()
 
+    async def rebind_failed(self) -> list[str]:
+        """Retry the configured addresses that are not currently bound.
+
+        Covers both the addresses that ``start(require_all=False)`` failed to
+        bind and endpoints later dropped by an unexpected ``connection_lost``.
+        Each address is tried independently: a bind failure is logged, kept
+        in :attr:`bind_failures` (with the fresh error) and never raised, so
+        this is safe to call periodically (e.g. on a timer or a network-change
+        event) without disturbing the live endpoints or the discovered
+        devices. A recovered address is put back at its configured position
+        so transport selection order is unchanged.
+
+        Returns:
+            The addresses that were bound by this call (empty when nothing
+            was missing or nothing came back).
+
+        Raises:
+            RuntimeError: The controller is shut(ting) down or has no live
+                endpoint. Use :meth:`start` in that case — only ``start()``
+                arms the discovery/update/evict timers.
+        """
+        if self._closing or not self._endpoints:
+            raise RuntimeError(
+                "rebind_failed() requires a running controller; call start() instead"
+            )
+
+        live = {endpoint.address for endpoint in self._endpoints}
+        missing = [
+            listener for listener in self._configured if listener.address not in live
+        ]
+        if not missing:
+            return []
+
+        rebound: list[str] = []
+        for address, network in missing:
+            try:
+                transport, protocol = await self._open_endpoint(address)
+            except OSError as ex:
+                self._bind_failures = [
+                    (a, e) for a, e in self._bind_failures if a != address
+                ]
+                self._bind_failures.append((address, ex))
+                self._log_bind_failure(address, ex)
+                continue
+
+            if self._closing:
+                # cleanup() ran while we were awaiting the endpoint. The new
+                # transport was never added to the instance lists, so its
+                # connection_lost is ignored by _protocol_disconnected.
+                transport.close()
+                break
+
+            self._bind_failures = [
+                (a, e) for a, e in self._bind_failures if a != address
+            ]
+            self._endpoints.append(_Endpoint(address, network, transport, protocol))
+            rebound.append(address)
+
+        if rebound:
+            # Put recovered endpoints back at their configured position:
+            # _get_best_transport_for_ip returns the first match, so order
+            # is behavior.
+            order = {listener.address: i for i, listener in enumerate(self._configured)}
+            self._endpoints.sort(key=lambda endpoint: order[endpoint.address])
+            self._bind_failures.sort(key=lambda failure: order[failure[0]])
+            self._logger.info(
+                "Rebound UDP endpoint on %s:%d; live on %s",
+                rebound,
+                self._listening_port,
+                self.listening_addresses,
+            )
+            if self._discovery_enabled or self._registry.has_queued_devices:
+                self.send_discovery_message()
+
+        if self._bind_failures:
+            self._logger.warning(
+                "Still unable to bind %s", [addr for addr, _ in self._bind_failures]
+            )
+
+        return rebound
+
+    async def _open_endpoint(self, listening_address: str) -> tuple[Any, Any]:
+        """Bind a listening socket on ``listening_address`` and wrap it in a
+        datagram endpoint. The socket is closed if the endpoint fails."""
+        sock = self._create_listening_socket(listening_address)
+        try:
+            return await self._loop.create_datagram_endpoint(
+                functools.partial(GoveeControllerProtocol, self, listening_address),
+                sock=sock,
+            )
+        except Exception:
+            sock.close()
+            raise
+
+    def _log_bind_failure(self, listening_address: str, ex: OSError) -> None:
+        self._logger.warning(
+            "Failed to bind UDP endpoint on %s:%d (errno %s: %s); "
+            "continuing with the remaining addresses",
+            listening_address,
+            self._listening_port,
+            ex.errno,
+            ex.strerror or ex,
+        )
+
     def _close_all_transports(self, extra: list[Any]) -> None:
-        """Close ``extra`` plus every transport currently held, and clear the
-        transport/protocol lists first so connection_lost sees a shutdown."""
-        transports = self._transports[:] + extra
-        self._transports.clear()
-        self._protocols.clear()
+        """Close ``extra`` plus every live transport, clearing the endpoint
+        list first so connection_lost sees a shutdown."""
+        transports = [endpoint.transport for endpoint in self._endpoints] + extra
+        self._endpoints.clear()
         for transport in transports:
-            if transport is not None and not transport.is_closing():
+            if not transport.is_closing():
                 transport.close()
 
     def _create_listening_socket(self, listening_address: str) -> socket.socket:
@@ -357,7 +444,7 @@ class GoveeController:
         # already-set event back without clearing it. Second callers
         # would otherwise wait forever because the transports are gone
         # and nothing will fire connection_lost again.
-        if not self._transports and self._cleanup_done.is_set():
+        if not self._endpoints and self._cleanup_done.is_set():
             return self._cleanup_done
 
         self._cleanup_done.clear()
@@ -376,7 +463,7 @@ class GoveeController:
         # evicted_callback mid-shutdown.
         self.set_evict_enabled(False)
 
-        if not self._transports:
+        if not self._endpoints:
             self._cleanup_done.set()
             self._registry.cleanup()
             return self._cleanup_done
@@ -385,10 +472,10 @@ class GoveeController:
         # A second cleanup() while the first drain is in flight must NOT
         # reset the countdown — some callbacks have already been counted.
         if not already_closing:
-            self._pending_close = len(self._transports)
-        for transport in self._transports:
-            if transport is not None and not transport.is_closing():
-                transport.close()
+            self._pending_close = len(self._endpoints)
+        for endpoint in self._endpoints:
+            if not endpoint.transport.is_closing():
+                endpoint.transport.close()
 
         # Safety net: a transport whose fd was revoked (NIC unplugged,
         # container network teardown) may never deliver connection_lost.
@@ -407,11 +494,9 @@ class GoveeController:
         if self._cleanup_done.is_set():
             return
         stragglers = [
-            self._listening_addresses[i]
-            for i, t in enumerate(self._transports)
-            if t is not None
-            and not t.is_closing()
-            and i < len(self._listening_addresses)
+            endpoint.address
+            for endpoint in self._endpoints
+            if not endpoint.transport.is_closing()
         ]
         if stragglers:
             self._logger.warning(
@@ -419,14 +504,16 @@ class GoveeController:
                 "forcing completion. Stragglers: %s",
                 stragglers,
             )
-        self._transports.clear()
-        self._protocols.clear()
+        self._endpoints.clear()
         self._cleanup_done.set()
 
     @property
-    def protocols(self) -> list:
-        """Return the list of active protocols."""
-        return self._protocols
+    def protocols(self) -> list[GoveeControllerProtocol]:
+        """Protocols of the live endpoints, aligned with :attr:`listening_addresses`.
+
+        Returns a copy.
+        """
+        return [endpoint.protocol for endpoint in self._endpoints]
 
     def add_device_to_discovery_queue(self, ip: str) -> bool:
         ip_added: bool = self._registry.add_device_to_queue(ip)
@@ -501,20 +588,31 @@ class GoveeController:
 
     @property
     def listening_addresses(self) -> list[str]:
-        """Get the list of listening addresses."""
-        return self._listening_addresses.copy()
+        """The addresses currently bound, or the effective configuration when
+        no endpoint is live (before ``start()``, after a failed one, or after
+        ``cleanup()``). Index-aligned with :attr:`networks`. Returns a copy.
+        """
+        if self._endpoints:
+            return [endpoint.address for endpoint in self._endpoints]
+        return [listener.address for listener in self._configured]
 
     @property
     def networks(self) -> list[ipaddress.IPv4Network | None]:
-        """Get the list of parsed networks for each listening address."""
-        return self._networks.copy()
+        """The parsed network of each entry in :attr:`listening_addresses`
+        (``None`` when supplied without a mask). Returns a copy.
+        """
+        if self._endpoints:
+            return [endpoint.network for endpoint in self._endpoints]
+        return [listener.network for listener in self._configured]
 
     @property
     def bind_failures(self) -> list[tuple[str, OSError]]:
         """Addresses that failed to bind during the last start(), with the error.
 
         Only populated when ``start(require_all=False)`` tolerated failures;
-        reset on every ``start()`` call. Returns a copy.
+        reset on every ``start()`` call. :meth:`rebind_failed` removes the
+        addresses that come back and refreshes the error of those that still
+        fail. Returns a copy.
         """
         return self._bind_failures.copy()
 
@@ -542,21 +640,21 @@ class GoveeController:
     def send_discovery_message(self) -> None:
         message: bytes = bytes(ScanMessage())
         call_later: bool = False
-        if not self._transports:
+        if not self._endpoints:
             return
 
         if self._discovery_enabled:
             call_later = True
             # Send broadcast messages from each listening address/transport
-            for i, transport in enumerate(self._transports):
+            for i, endpoint in enumerate(self._endpoints):
                 self._logger.debug(
                     "Sending discovery broadcast from interface %s (%s) to %s:%s",
                     i,
-                    self._listening_addresses[i],
+                    endpoint.address,
                     self._broadcast_address,
                     self._broadcast_port,
                 )
-                transport.sendto(
+                endpoint.transport.sendto(
                     message, (self._broadcast_address, self._broadcast_port)
                 )
 
@@ -591,7 +689,7 @@ class GoveeController:
             )
 
     def send_update_message(self) -> None:
-        if self._transports:
+        if self._endpoints:
             for d in self._registry.discovered_devices.values():
                 self._send_update_message(device=d)
 
@@ -700,37 +798,31 @@ class GoveeController:
         if self._closing:
             self._pending_close = max(0, self._pending_close - 1)
             if self._pending_close == 0:
-                self._transports.clear()
-                self._protocols.clear()
+                self._endpoints.clear()
                 if self._cleanup_timeout_handle is not None:
                     self._cleanup_timeout_handle.cancel()
                     self._cleanup_timeout_handle = None
                 self._cleanup_done.set()
             return
 
-        if protocol is None or protocol not in self._protocols:
+        endpoint = next((e for e in self._endpoints if e.protocol is protocol), None)
+        if endpoint is None:
             return
 
-        # Pop the dead endpoint from all four parallel lists so transport
-        # selection stays index-aligned.
-        index = self._protocols.index(protocol)
-        self._protocols.pop(index)
-        transport = self._transports.pop(index)
-        if transport is not None and not transport.is_closing():
-            transport.close()
-        address = self._listening_addresses.pop(index)
-        self._networks.pop(index)
-        if self._transports:
+        self._endpoints.remove(endpoint)
+        if not endpoint.transport.is_closing():
+            endpoint.transport.close()
+        if self._endpoints:
             self._logger.error(
                 "UDP endpoint on %s closed unexpectedly; continuing on %s",
-                address,
-                self._listening_addresses,
+                endpoint.address,
+                self.listening_addresses,
             )
         else:
             self._logger.error(
                 "UDP endpoint on %s closed unexpectedly and no endpoints "
                 "remain; the controller is inoperative until restarted",
-                address,
+                endpoint.address,
             )
 
     async def _handle_datagram_received(
@@ -864,7 +956,7 @@ class GoveeController:
         return self._device_discovered_callback(device, is_new)
 
     def _send_message(self, message: GoveeMessage, device: GoveeDevice) -> None:
-        if self._transports:
+        if self._endpoints:
             # Prefer the transport the device was discovered on
             transport = device.transport
             if transport is None or transport.is_closing():
@@ -878,18 +970,17 @@ class GoveeController:
         Uses parsed network information for accurate subnet matching when available,
         falling back to heuristic matching for addresses without a mask.
         """
-        if not self._transports:
+        if not self._endpoints:
             raise RuntimeError("No transports available")
 
-        if len(self._transports) == 1:
-            return self._transports[0]
+        if len(self._endpoints) == 1:
+            return self._endpoints[0].transport
 
         try:
             target_addr = ipaddress.ip_address(target_ip)
 
-            for i, (listening_addr, network) in enumerate(
-                zip(self._listening_addresses, self._networks)
-            ):
+            for i, endpoint in enumerate(self._endpoints):
+                listening_addr, network = endpoint.address, endpoint.network
                 if listening_addr == "0.0.0.0":
                     continue
 
@@ -903,7 +994,7 @@ class GoveeController:
                             network.prefixlen,
                             target_ip,
                         )
-                        return self._transports[i]
+                        return self._endpoints[i].transport
                 else:
                     # Fallback to heuristic matching for addresses without a mask
                     try:
@@ -922,7 +1013,7 @@ class GoveeController:
                                 listening_addr,
                                 target_ip,
                             )
-                            return self._transports[i]
+                            return self._endpoints[i].transport
                     except ValueError:
                         continue
 
@@ -930,7 +1021,8 @@ class GoveeController:
             # is a best-effort fallback: the packet leaves with a source IP
             # that may not belong to the target's subnet, so the device's
             # reply may never come back. Warn so this is diagnosable.
-            for i, listening_addr in enumerate(self._listening_addresses):
+            for i, endpoint in enumerate(self._endpoints):
+                listening_addr = endpoint.address
                 if listening_addr != "0.0.0.0":
                     self._logger.warning(
                         "No interface matches target %s; falling back to "
@@ -946,7 +1038,7 @@ class GoveeController:
                         listening_addr,
                         target_ip,
                     )
-                    return self._transports[i]
+                    return self._endpoints[i].transport
 
         except ValueError:
             # Invalid IP address, fall back to first transport
@@ -955,10 +1047,10 @@ class GoveeController:
         # Fallback to first transport
         self._logger.debug(
             "Selected transport 0 (%s) for target %s (fallback)",
-            self._listening_addresses[0],
+            self._endpoints[0].address,
             target_ip,
         )
-        return self._transports[0]
+        return self._endpoints[0].transport
 
     def _send_update_message(self, device: GoveeDevice):
         self._send_message(DevStatusMessage(), device)
