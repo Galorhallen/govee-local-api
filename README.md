@@ -165,6 +165,26 @@ await controller.control_device("192.168.1.100", brightness=75)
 await controller.control_device("192.168.1.100", color_rgb=(0, 255, 0))
 ```
 
+### Color Temperature Range
+
+Most models accept white light between 2000 K and 9000 K. Models with a different
+range declare their own, and commands are clamped to it:
+
+```python
+device.temperature_range          # GoveeTemperatureRange(min_kelvin=2000, max_kelvin=9000)
+min_kelvin, max_kelvin = device.temperature_range
+
+await device.set_temperature(9000)   # clamped to the model's maximum
+```
+
+Register a model with a custom range in `GOVEE_LIGHT_CAPABILITIES`:
+
+```python
+"H0000": create_with_capabilities(
+    True, True, True, 0, True, temperature_range=(2700, 6500)
+),
+```
+
 ## Documentation
 
 - **[Supported Devices](SUPPORTED_DEVICES.md)** - Auto-generated list of known device models and their capabilities
