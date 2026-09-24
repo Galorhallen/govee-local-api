@@ -1,7 +1,15 @@
 import ipaddress
 import unittest
 from unittest.mock import Mock
-from govee_local_api.controller import GoveeController
+from govee_local_api.controller import GoveeController, _Endpoint
+
+
+def _attach(controller, transports):
+    """Attach mock endpoints for the first ``len(transports)`` configured addresses."""
+    controller._endpoints = [
+        _Endpoint(listener.address, listener.network, transport, Mock())
+        for listener, transport in zip(controller._configured, transports, strict=True)
+    ]
 
 
 class TestNetworkMaskFunctionality(unittest.TestCase):
@@ -62,7 +70,7 @@ class TestNetworkMaskFunctionality(unittest.TestCase):
 
         transport1 = Mock()
         transport2 = Mock()
-        controller._transports = [transport1, transport2]
+        _attach(controller, [transport1, transport2])
 
         selected = controller._get_best_transport_for_ip("192.168.1.200")
         self.assertEqual(selected, transport1)
@@ -85,7 +93,7 @@ class TestNetworkMaskFunctionality(unittest.TestCase):
 
         transport1 = Mock()
         transport2 = Mock()
-        controller._transports = [transport1, transport2]
+        _attach(controller, [transport1, transport2])
 
         selected = controller._get_best_transport_for_ip("192.168.1.200")
         self.assertEqual(selected, transport1)
@@ -108,7 +116,7 @@ class TestNetworkMaskFunctionality(unittest.TestCase):
         )
 
         t1, t2, t3 = Mock(), Mock(), Mock()
-        controller._transports = [t1, t2, t3]
+        _attach(controller, [t1, t2, t3])
 
         selected = controller._get_best_transport_for_ip("192.168.1.200")
         self.assertEqual(selected, t1)
@@ -129,7 +137,7 @@ class TestNetworkMaskFunctionality(unittest.TestCase):
         self.assertEqual(controller.listening_addresses, ["192.168.1.100"])
 
         transport1 = Mock()
-        controller._transports = [transport1]
+        _attach(controller, [transport1])
 
         # Single transport is always returned
         selected = controller._get_best_transport_for_ip("192.168.1.200")
@@ -146,7 +154,7 @@ class TestNetworkMaskFunctionality(unittest.TestCase):
 
         transport1 = Mock()
         transport2 = Mock()
-        controller._transports = [transport1, transport2]
+        _attach(controller, [transport1, transport2])
 
         selected = controller._get_best_transport_for_ip("192.168.1.200")
         self.assertEqual(selected, transport1)
@@ -161,7 +169,7 @@ class TestNetworkMaskFunctionality(unittest.TestCase):
         )
 
         transport1 = Mock()
-        controller._transports = [transport1]
+        _attach(controller, [transport1])
 
         # /30 network includes .100, .101, .102, .103
         selected = controller._get_best_transport_for_ip("192.168.1.101")
@@ -177,7 +185,7 @@ class TestNetworkMaskFunctionality(unittest.TestCase):
         )
 
         transport1 = Mock()
-        controller._transports = [transport1]
+        _attach(controller, [transport1])
 
         test_ips = ["10.0.0.1", "10.255.255.255", "10.123.45.67"]
         for ip in test_ips:
@@ -203,7 +211,7 @@ class TestNetworkMaskFunctionality(unittest.TestCase):
         controller = GoveeController(listening_addresses=["192.168.1.100/24"])
 
         transport1 = Mock()
-        controller._transports = [transport1]
+        _attach(controller, [transport1])
 
         selected = controller._get_best_transport_for_ip("2001:db8::1")
         self.assertEqual(selected, transport1)

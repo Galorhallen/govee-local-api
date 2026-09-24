@@ -15,7 +15,7 @@ import socket
 import unittest
 from unittest.mock import Mock
 
-from govee_local_api.controller import GoveeController
+from govee_local_api.controller import GoveeController, _Endpoint
 from govee_local_api.device import GoveeDevice
 from govee_local_api.light_capabilities import ON_OFF_CAPABILITIES
 
@@ -30,10 +30,17 @@ def _make_controller(addresses):
 
 
 def _attach_transports(controller, count):
-    """Attach ``count`` mock transports and return them."""
+    """Attach ``count`` mock endpoints (paired with the first ``count``
+    configured addresses) and return their transports."""
     transports = [Mock(name=f"transport{i}") for i in range(count)]
-    controller._transports = transports
-    controller._protocols = [Mock(name=f"protocol{i}") for i in range(count)]
+    controller._endpoints = [
+        _Endpoint(
+            listener.address, listener.network, transport, Mock(name=f"protocol{i}")
+        )
+        for i, (listener, transport) in enumerate(
+            zip(controller._configured, transports, strict=True)
+        )
+    ]
     return transports
 
 
@@ -104,7 +111,7 @@ class TestDiscoveryFanout(unittest.TestCase):
         controller = _make_controller(["192.168.1.100/24"])
         controller._discovery_enabled = True
         controller._loop = Mock()
-        # _transports left empty on purpose.
+        # _endpoints left empty on purpose.
         controller.send_discovery_message()
         controller._loop.call_later.assert_not_called()
 
@@ -282,7 +289,7 @@ class TestCleanupMultipleTransports(unittest.TestCase):
     def test_cleanup_done_waits_for_all_protocols(self):
         controller = _make_controller(["192.168.1.100/24", "10.0.0.100/8"])
         t1, t2 = _attach_transports(controller, 2)
-        p1, p2 = controller._protocols
+        p1, p2 = controller.protocols
         for t in (t1, t2):
             t.is_closing = Mock(return_value=False)
 
@@ -296,13 +303,12 @@ class TestCleanupMultipleTransports(unittest.TestCase):
 
         controller._protocol_disconnected(p2)
         self.assertTrue(controller._cleanup_done.is_set())
-        self.assertEqual(controller._transports, [])
-        self.assertEqual(controller._protocols, [])
+        self.assertEqual(controller._endpoints, [])
 
     def test_double_cleanup_while_draining_does_not_reset_countdown(self):
         controller = _make_controller(["192.168.1.100/24", "10.0.0.100/8"])
         t1, t2 = _attach_transports(controller, 2)
-        p1, p2 = controller._protocols
+        p1, p2 = controller.protocols
         for t in (t1, t2):
             t.is_closing = Mock(return_value=False)
 
@@ -334,7 +340,7 @@ class TestCleanupMultipleTransports(unittest.TestCase):
     def test_cleanup_disables_eviction_before_close(self):
         """Eviction must be turned off so a late scan-response task can't
         invoke evicted_callback mid-shutdown."""
-        controller = _make_controller(["192.168.1.100/24"])
+        controller = _make_controller(["192.168.1.100/24", "10.0.0.100/8"])
         controller.set_evict_enabled(True)
         t1, t2 = _attach_transports(controller, 2)
         for t in (t1, t2):
@@ -386,8 +392,7 @@ class TestCleanupMultipleTransports(unittest.TestCase):
         controller._force_cleanup_done()
 
         self.assertTrue(controller._cleanup_done.is_set())
-        self.assertEqual(controller._transports, [])
-        self.assertEqual(controller._protocols, [])
+        self.assertEqual(controller._endpoints, [])
         logger.warning.assert_called_once()
         args = logger.warning.call_args[0]
         # The stuck interface address should appear in the format args.
@@ -421,7 +426,7 @@ class TestCleanupMultipleTransports(unittest.TestCase):
         self.assertIs(controller._cleanup_timeout_handle, handle)
 
         # All transports drain naturally → the safety timer must be cancelled.
-        p1, p2 = controller._protocols
+        p1, p2 = controller.protocols
         controller._protocol_disconnected(p1)
         controller._protocol_disconnected(p2)
 
@@ -1100,8 +1105,7 @@ class TestStartPartialFailure(unittest.TestCase):
 
         t1.close.assert_called_once()
         sock2.close.assert_called_once()
-        self.assertEqual(controller._transports, [])
-        self.assertEqual(controller._protocols, [])
+        self.assertEqual(controller._endpoints, [])
 
     def test_failed_bind_closes_earlier_transports(self):
         controller, t1, _sock2 = self._controller_with_failing_bind(fail_at_socket=True)
@@ -1110,8 +1114,7 @@ class TestStartPartialFailure(unittest.TestCase):
             asyncio.run(controller.start())
 
         t1.close.assert_called_once()
-        self.assertEqual(controller._transports, [])
-        self.assertEqual(controller._protocols, [])
+        self.assertEqual(controller._endpoints, [])
 
 
 class TestUnexpectedConnectionLost(unittest.TestCase):
@@ -1125,13 +1128,13 @@ class TestUnexpectedConnectionLost(unittest.TestCase):
         logger = Mock()
         controller._logger = logger
         t1, t2 = _attach_transports(controller, 2)
-        p1, p2 = controller._protocols
+        p1, p2 = controller.protocols
         t1.is_closing = Mock(return_value=True)
 
         controller._protocol_disconnected(p1)
 
-        self.assertEqual(controller._transports, [t2])
-        self.assertEqual(controller._protocols, [p2])
+        self.assertEqual([e.transport for e in controller._endpoints], [t2])
+        self.assertEqual(controller.protocols, [p2])
         self.assertEqual(controller.listening_addresses, ["10.0.0.100"])
         self.assertEqual(len(controller.networks), 1)
         self.assertFalse(controller._cleanup_done.is_set())
@@ -1142,12 +1145,12 @@ class TestUnexpectedConnectionLost(unittest.TestCase):
         logger = Mock()
         controller._logger = logger
         (t1,) = _attach_transports(controller, 1)
-        (p1,) = controller._protocols
+        (p1,) = controller.protocols
         t1.is_closing = Mock(return_value=True)
 
         controller._protocol_disconnected(p1)
 
-        self.assertEqual(controller._transports, [])
+        self.assertEqual(controller._endpoints, [])
         self.assertFalse(controller._cleanup_done.is_set())
         # The "controller is inoperative" error names the lost address.
         logger.error.assert_called_once()
@@ -1160,7 +1163,7 @@ class TestUnexpectedConnectionLost(unittest.TestCase):
         controller._protocol_disconnected(None)
         controller._protocol_disconnected(Mock(name="stranger"))
 
-        self.assertEqual(len(controller._transports), 1)
+        self.assertEqual(len(controller._endpoints), 1)
         self.assertFalse(controller._cleanup_done.is_set())
 
     def test_start_rebinds_full_config_after_unexpected_drop(self):
@@ -1168,15 +1171,14 @@ class TestUnexpectedConnectionLost(unittest.TestCase):
 
         controller = _make_controller(["192.168.1.100/24", "10.0.0.100/8"])
         t1, t2 = _attach_transports(controller, 2)
-        p1, _p2 = controller._protocols
+        p1, _p2 = controller.protocols
         for t in (t1, t2):
             t.is_closing = Mock(return_value=True)
 
         # Lose one endpoint unexpectedly, then shut down.
         controller._protocol_disconnected(p1)
         controller.cleanup()
-        controller._transports.clear()
-        controller._protocols.clear()
+        controller._endpoints.clear()
 
         controller._create_listening_socket = Mock(return_value=Mock())
         controller._loop.create_datagram_endpoint = AsyncMock(
@@ -1188,8 +1190,73 @@ class TestUnexpectedConnectionLost(unittest.TestCase):
         self.assertEqual(
             controller.listening_addresses, ["192.168.1.100", "10.0.0.100"]
         )
-        self.assertEqual(len(controller._transports), 2)
+        self.assertEqual(len(controller._endpoints), 2)
         self.assertEqual(len(controller.networks), 2)
+
+
+ACCESSOR_ADDRESSES = ["192.168.1.100/24", "10.0.0.100/8"]
+
+
+class TestAccessorSemantics(unittest.TestCase):
+    """``listening_addresses`` / ``networks`` describe the live endpoints when
+    there are any and fall back to the effective configuration otherwise."""
+
+    def _stub_binding(self, controller, failing=()):
+        from unittest.mock import AsyncMock
+
+        def create_socket(address):
+            if address in failing:
+                raise OSError(99, "stale")
+            return Mock(name=f"sock-{address}")
+
+        controller._create_listening_socket = create_socket
+        controller._loop.create_datagram_endpoint = AsyncMock(
+            side_effect=lambda *a, **k: (
+                Mock(is_closing=Mock(return_value=False)),
+                Mock(),
+            )
+        )
+
+    def test_configured_before_start(self):
+        controller = _make_controller(ACCESSOR_ADDRESSES)
+        self.assertEqual(
+            controller.listening_addresses, ["192.168.1.100", "10.0.0.100"]
+        )
+        self.assertEqual(len(controller.networks), 2)
+        self.assertEqual(controller.protocols, [])
+
+    def test_live_after_partial_start(self):
+        controller = _make_controller(ACCESSOR_ADDRESSES)
+        self._stub_binding(controller, failing={"192.168.1.100"})
+        asyncio.run(controller.start(require_all=False))
+
+        self.assertEqual(controller.listening_addresses, ["10.0.0.100"])
+        self.assertEqual(controller.networks, [controller._configured[1].network])
+        self.assertEqual(len(controller.protocols), 1)
+
+    def test_configured_again_after_cleanup(self):
+        controller = _make_controller(ACCESSOR_ADDRESSES)
+        self._stub_binding(controller)
+        asyncio.run(controller.start())
+        self.assertEqual(len(controller.protocols), 2)
+
+        controller.cleanup()
+        for protocol in controller.protocols:
+            controller._protocol_disconnected(protocol)
+
+        self.assertTrue(controller._cleanup_done.is_set())
+        self.assertEqual(controller.protocols, [])
+        self.assertEqual(
+            controller.listening_addresses, ["192.168.1.100", "10.0.0.100"]
+        )
+        self.assertEqual(len(controller.networks), 2)
+
+    def test_protocols_is_a_copy(self):
+        controller = _make_controller(ACCESSOR_ADDRESSES)
+        _attach_transports(controller, 2)
+        protocols = controller.protocols
+        protocols.clear()
+        self.assertEqual(len(controller.protocols), 2)
 
 
 if __name__ == "__main__":

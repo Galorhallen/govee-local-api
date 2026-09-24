@@ -5,7 +5,12 @@ from collections.abc import Callable
 from datetime import datetime, timezone
 from typing import Any
 
-from .light_capabilities import GoveeLightCapabilities, ON_OFF_CAPABILITIES
+from .light_capabilities import (
+    DEFAULT_TEMPERATURE_RANGE,
+    GoveeLightCapabilities,
+    GoveeTemperatureRange,
+    ON_OFF_CAPABILITIES,
+)
 from .message import DevStatusResponse
 
 
@@ -93,6 +98,13 @@ class GoveeDevice:
         return self._temperature_color
 
     @property
+    def temperature_range(self) -> GoveeTemperatureRange:
+        """Kelvin range this device model accepts for white light."""
+        if self._capabilities is None:
+            return DEFAULT_TEMPERATURE_RANGE
+        return self._capabilities.temperature_range
+
+    @property
     def update_callback(self) -> Callable[[GoveeDevice], None] | None:
         return self._update_callback
 
@@ -136,6 +148,7 @@ class GoveeDevice:
         rgb = (red, green, blue)
         await self._controller.set_color(self, rgb=rgb, temperature=None)
         self._rgb_color = rgb
+        self._temperature_color = 0
 
     async def set_temperature(self, temperature: int) -> None:
         await self._controller.set_color(self, temperature=temperature, rgb=None)
