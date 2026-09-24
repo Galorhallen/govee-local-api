@@ -1,9 +1,14 @@
 import asyncio
 import unittest
-from unittest.mock import Mock
+from unittest.mock import AsyncMock, Mock
 from govee_local_api.device import GoveeDevice
 from govee_local_api.controller import GoveeController
 from govee_local_api.protocol import GoveeControllerProtocol
+from govee_local_api.light_capabilities import (
+    BASIC_CAPABILITIES,
+    DEFAULT_TEMPERATURE_RANGE,
+    create_with_capabilities,
+)
 from govee_local_api.message import ScanResponse
 
 
@@ -43,6 +48,32 @@ class TestGoveeDevice(unittest.TestCase):
     def test_is_connected_fresh_device(self):
         self._mock_controller.evict_interval = 30
         assert self.device.is_connected
+
+    def test_set_rgb_color_clears_temperature_color(self):
+        self._mock_controller.set_color = AsyncMock()
+
+        asyncio.run(self.device.set_temperature(4000))
+        assert self.device.temperature_color == 4000
+
+        asyncio.run(self.device.set_rgb_color(255, 0, 0))
+
+        assert self.device.temperature_color == 0
+        assert self.device.rgb_color == (255, 0, 0)
+
+        self._mock_controller.set_color.assert_called_with(
+            self.device, rgb=(255, 0, 0), temperature=None
+        )
+
+    def test_set_temperature_does_not_clear_rgb_color(self):
+        self._mock_controller.set_color = AsyncMock()
+
+        asyncio.run(self.device.set_rgb_color(0, 255, 0))
+        assert self.device.rgb_color == (0, 255, 0)
+
+        asyncio.run(self.device.set_temperature(3000))
+
+        assert self.device.temperature_color == 3000
+        assert self.device.rgb_color == (0, 255, 0)
 
 
 class TestControllerIpUpdate(unittest.TestCase):
@@ -121,3 +152,70 @@ class TestControllerIpUpdate(unittest.TestCase):
 
         # IP should remain unchanged when message has no IP
         assert self.device.ip == original_ip
+
+
+class TestDeviceTemperatureRange(unittest.TestCase):
+    def _device(self, capabilities):
+        return GoveeDevice(
+            Mock(spec=GoveeController),
+            "192.168.1.100",
+            "AA:BB:CC:DD:EE:FF",
+            "H6001",
+            capabilities,
+        )
+
+    def test_custom_range_is_exposed_on_the_device(self):
+        device = self._device(
+            create_with_capabilities(
+                True, True, True, 0, False, temperature_range=(2700, 6500)
+            )
+        )
+
+        assert device.temperature_range == (2700, 6500)
+
+    def test_default_range_is_exposed_on_the_device(self):
+        device = self._device(BASIC_CAPABILITIES)
+
+        assert device.temperature_range == DEFAULT_TEMPERATURE_RANGE
+
+    def test_device_without_capabilities_falls_back_to_the_default_range(self):
+        device = self._device(None)
+
+        assert device.temperature_range == DEFAULT_TEMPERATURE_RANGE
+
+
+class TestControllerTemperatureRange(unittest.TestCase):
+    def setUp(self):
+        self.controller = GoveeController.__new__(GoveeController)
+        self.controller._send_message = Mock()
+
+    def _sent_temperature(self, device, temperature):
+        asyncio.run(
+            self.controller.set_color(device, rgb=None, temperature=temperature)
+        )
+        message = self.controller._send_message.call_args[0][0]
+        return message.as_dict()["msg"]["data"]["colorTemInKelvin"]
+
+    def test_set_color_clamps_to_the_device_temperature_range(self):
+        capabilities = create_with_capabilities(
+            True, True, True, 0, False, temperature_range=(2700, 6500)
+        )
+        device = GoveeDevice(
+            self.controller, "192.168.1.100", "AA:BB:CC:DD:EE:FF", "H6001", capabilities
+        )
+
+        assert self._sent_temperature(device, 9000) == 6500
+        assert self._sent_temperature(device, 2000) == 2700
+        assert self._sent_temperature(device, 4000) == 4000
+
+    def test_set_color_clamps_to_the_default_range(self):
+        device = GoveeDevice(
+            self.controller,
+            "192.168.1.100",
+            "AA:BB:CC:DD:EE:FF",
+            "H6001",
+            BASIC_CAPABILITIES,
+        )
+
+        assert self._sent_temperature(device, 99999) == 9000
+        assert self._sent_temperature(device, 1) == 2000

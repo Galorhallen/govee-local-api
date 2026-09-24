@@ -1,5 +1,6 @@
 import pytest
 
+from govee_local_api.light_capabilities import DEFAULT_TEMPERATURE_RANGE
 from govee_local_api.message import (
     ScanMessage,
     ColorMessage,
@@ -68,6 +69,29 @@ def test_color_clipping():
             "data": {"color": {"r": 0, "g": 0, "b": 0}, "colorTemInKelvin": 9000},
         }
     }
+
+
+def test_color_clipping_falls_back_to_the_default_range():
+    """The unclamped default comes from the capability registry, not a
+    constant duplicated in the message layer."""
+    min_kelvin, max_kelvin = DEFAULT_TEMPERATURE_RANGE
+
+    msg = ColorMessage(rgb=None, temperature=min_kelvin - 1)
+    assert msg.as_dict()["msg"]["data"]["colorTemInKelvin"] == min_kelvin
+
+    msg = ColorMessage(rgb=None, temperature=max_kelvin + 1)
+    assert msg.as_dict()["msg"]["data"]["colorTemInKelvin"] == max_kelvin
+
+
+def test_color_clipping_with_custom_temperature_range():
+    msg = ColorMessage(rgb=None, temperature=2000, temperature_range=(2700, 6500))
+    assert msg.as_dict()["msg"]["data"]["colorTemInKelvin"] == 2700
+
+    msg = ColorMessage(rgb=None, temperature=9000, temperature_range=(2700, 6500))
+    assert msg.as_dict()["msg"]["data"]["colorTemInKelvin"] == 6500
+
+    msg = ColorMessage(rgb=None, temperature=4000, temperature_range=(2700, 6500))
+    assert msg.as_dict()["msg"]["data"]["colorTemInKelvin"] == 4000
 
 
 def test_brightness():
