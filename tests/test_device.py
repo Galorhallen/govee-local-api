@@ -7,6 +7,7 @@ from govee_local_api.protocol import GoveeControllerProtocol
 from govee_local_api.light_capabilities import (
     BASIC_CAPABILITIES,
     DEFAULT_TEMPERATURE_RANGE,
+    GOVEE_LIGHT_CAPABILITIES,
     create_with_capabilities,
 )
 from govee_local_api.message import ScanResponse
@@ -206,6 +207,19 @@ class TestControllerTemperatureRange(unittest.TestCase):
 
         assert self._sent_temperature(device, 9000) == 6500
         assert self._sent_temperature(device, 2000) == 2700
+        assert self._sent_temperature(device, 4000) == 4000
+
+    def test_h60a6_temperature_commands_match_its_hardware_range(self):
+        device = GoveeDevice(
+            self.controller,
+            "192.168.1.100",
+            "AA:BB:CC:DD:EE:FF",
+            "H60A6",
+            GOVEE_LIGHT_CAPABILITIES["H60A6"],
+        )
+
+        assert self._sent_temperature(device, 2000) == 2700
+        assert self._sent_temperature(device, 9000) == 6500
         assert self._sent_temperature(device, 4000) == 4000
 
     def test_set_color_clamps_to_the_default_range(self):

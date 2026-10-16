@@ -28,6 +28,7 @@ def test_every_registered_model_has_a_range():
     [
         ("H6076", (2700, 6500)),
         ("H60A1", (2200, 6500)),
+        ("H60A6", (2700, 6500)),
         ("H612F", (2800, 9000)),
         ("H61B3", (2000, 7200)),
         ("H6006", DEFAULT_TEMPERATURE_RANGE),
