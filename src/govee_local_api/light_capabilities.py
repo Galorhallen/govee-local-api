@@ -247,7 +247,9 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
         True, True, True, 13, True, temperature_range=(2200, 6500)
     ),  # Issue #39 - range from the Govee Cloud API
     "H60A4": create_with_capabilities(True, True, True, 11, False),
-    "H60A6": create_with_capabilities(True, True, True, 0, False),
+    "H60A6": create_with_capabilities(
+        True, True, True, 0, False, temperature_range=(2700, 6500)
+    ),  # H60A6 firmware 1.00.41: LAN requests clamp to 2700-6500K
     "H60B0": BASIC_CAPABILITIES,  # Issue #252 - segments TBD
     "H60B1": create_with_capabilities(True, True, True, 3, True),
     "H60B2": create_with_capabilities(True, True, True, 3, True),

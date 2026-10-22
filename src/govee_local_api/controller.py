@@ -919,22 +919,25 @@ class GoveeController:
         if device := self.get_device_by_fingerprint(fingerprint):
             # The scan response itself is evidence the device is alive, so
             # refresh lastseen unconditionally — otherwise the eviction tick
-            # removes a device that just answered us. The callback's
-            # return value gates re-notification of the integration and
-            # the IP/transport updates that are tied to that, not the
-            # liveness bookkeeping.
+            # removes a device that just answered us.
             device.update_lastseen()
+            # DHCP reassignment must be tracked even when the integration
+            # suppresses re-notification (callback returns False); otherwise
+            # unicast commands keep hitting the stale IP and only appear to
+            # work (optimistic icon flip) while LEDs stay dark. Seen live
+            # with H6159 moving .58→.74: app (cloud) worked, HA didn't until
+            # entry reload.
+            if message.ip and message.ip != device.ip:
+                self._logger.debug(
+                    "Device %s IP changed from %s to %s",
+                    fingerprint,
+                    device.ip,
+                    message.ip,
+                )
+                device.update_ip(message.ip)
+            if protocol.transport:
+                device.update_transport(protocol.transport)
             if self._call_discovered_callback(device, False):
-                if message.ip and message.ip != device.ip:
-                    self._logger.debug(
-                        "Device %s IP changed from %s to %s",
-                        fingerprint,
-                        device.ip,
-                        message.ip,
-                    )
-                    device.update_ip(message.ip)
-                if protocol.transport:
-                    device.update_transport(protocol.transport)
                 self._logger.debug("Device updated: %s", device)
         else:
             sku = message.sku
