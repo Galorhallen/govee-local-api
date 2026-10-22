@@ -43,7 +43,10 @@ def generate() -> str:
         " is missing or its capabilities are wrong, please"
         " [open an issue](https://github.com/Galorhallen/govee-local-api/issues).",
         "",
-        f"Devices with scene support share the same scene set: {scene_names}.",
+        "Scene support refers to the library's built-in 1-byte scene codes"
+        f" ({scene_names}). Models marked {YES} honour all of them; models that"
+        " list scene names honour only those, per Govee's per-model scene"
+        f" library; models marked {NO} honour none.",
         "",
         "Color temperature defaults to"
         f" {DEFAULT_TEMPERATURE_RANGE.min_kelvin}-"
@@ -61,6 +64,12 @@ def generate() -> str:
         segments = (
             str(capabilities.segments_count) if capabilities.segments_count else "-"
         )
+        if not capabilities.scenes:
+            scenes = NO
+        elif set(capabilities.scenes) == set(SCENE_CODES):
+            scenes = YES
+        else:
+            scenes = ", ".join(capabilities.available_scenes)
         if features & GoveeLightFeatures.COLOR_KELVIN_TEMPERATURE:
             min_kelvin, max_kelvin = capabilities.temperature_range
             temperature_range = f"{min_kelvin}-{max_kelvin}"
@@ -73,7 +82,7 @@ def generate() -> str:
             f"| {temperature_range} "
             f"| {_mark(features, GoveeLightFeatures.BRIGHTNESS)} "
             f"| {segments} "
-            f"| {_mark(features, GoveeLightFeatures.SCENES)} |"
+            f"| {scenes} |"
         )
 
     return "\n".join(lines) + "\n"
