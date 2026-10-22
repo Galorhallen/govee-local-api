@@ -19,6 +19,7 @@ from govee_local_api.light_capabilities import (
 from govee_local_api.message import (
     BrightnessMessage,
     ColorMessage,
+    OnOffMessage,
     PtRealMessage,
     SegmentBrightnessMessage,
     SegmentColorMessages,
@@ -269,33 +270,53 @@ class TestPacing(unittest.TestCase):
         self.loop.run_next()
         assert self.sent() == [("ptReal", 1), ("ptReal", 1), ("ptReal", 14)]
 
-    def test_each_standard_message_delays_the_next_ptreal(self):
+    def times_sent(self):
+        """Run every timer, recording (time, cmd) for each packet sent."""
+        log = [(self.loop.now, cmd) for cmd, _ in self.sent()]
+        while self.loop.later:
+            before = len(self.sent())
+            self.loop.run_next()
+            log += [(self.loop.now, cmd) for cmd, _ in self.sent()[before:]]
+        return [(pytest.approx(t - 100.0), cmd) for t, cmd in log]
+
+    def test_every_message_waits_its_turn(self):
         device = self.device()
         self.controller._send_message(
             ColorMessage(rgb=(1, 2, 3), temperature=None), device
         )
         self.controller._send_message(BrightnessMessage(50), device)
         self.controller._send_message(self.ptreal(), device)
-        assert self.sent() == [("colorwc", 0), ("brightness", 0)]
-        self.loop.run_next()
-        assert self.loop.now == pytest.approx(100.0 + 2 * T)
-        assert self.sent()[-1] == ("ptReal", 1)
+        assert self.times_sent() == [
+            (0, "colorwc"),
+            (T, "brightness"),
+            (2 * T, "ptReal"),
+        ]
 
-    def test_standard_messages_are_never_held_by_each_other(self):
+    def test_standard_message_after_ptreal_waits(self):
         device = self.device()
-        for _ in range(3):
-            self.controller._send_message(BrightnessMessage(50), device)
-        assert self.sent() == [("brightness", 0)] * 3
-        assert self.loop.later == []
+        self.controller._send_message(self.ptreal(frames=2), device)
+        self.controller._send_message(BrightnessMessage(50), device)
+        self.controller._send_message(OnOffMessage(True), device)
+        assert self.times_sent() == [
+            (0, "ptReal"),
+            (T, "brightness"),
+            (2 * T, "turn"),
+        ]
 
-    def test_standard_message_waits_behind_a_waiting_ptreal(self):
+    def test_order_is_kept_and_only_neighbouring_ptreal_merge(self):
         device = self.device()
         self.controller._send_message(self.ptreal(), device)
         self.controller._send_message(self.ptreal(), device)
         self.controller._send_message(BrightnessMessage(50), device)
-        assert self.sent() == [("ptReal", 1)]
-        self.loop.run_next()
-        assert self.sent() == [("ptReal", 1), ("ptReal", 1), ("brightness", 0)]
+        self.controller._send_message(self.ptreal(), device)
+        self.controller._send_message(self.ptreal(), device)
+        assert self.times_sent() == [
+            (0, "ptReal"),
+            (T, "ptReal"),
+            (2 * T, "brightness"),
+            (3 * T, "ptReal"),
+        ]
+        assert [n for _, n in self.sent()] == [1, 1, 0, 2]
 
     def test_devices_are_paced_independently(self):
         self.controller._send_message(self.ptreal(), self.device("192.168.1.10"))

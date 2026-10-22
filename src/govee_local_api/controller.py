@@ -56,12 +56,13 @@ DISCOVERY_INTERVAL = 10
 EVICT_INTERVAL = DISCOVERY_INTERVAL * 3
 UPDATE_INTERVAL = 5
 
-# Each command keeps a device busy for about this long. A ptReal packet that
-# arrives while the device is busy is dropped (standard commands are not), so
-# ptReal packets wait until it is idle. Measured on an H61E0: a run of ptReal
-# packets 50 ms apart lost some, 75-100 ms apart lost none, and a ptReal packet
-# right after two standard commands needed ~200 ms. Several frames in one ptReal
-# packet are fine, but ~24 frames make the device drop the packet.
+# Each command keeps a device busy for about this long, and packets that arrive
+# while it is busy can be silently dropped, so commands to one device are sent
+# at least this far apart. Measured on an H61E0: a run of ptReal packets 50 ms
+# apart lost some and 75-100 ms apart lost none; a ptReal packet right after two
+# standard commands, or standard commands right after a ptReal packet, were lost
+# unless spaced ~100 ms apart. Several frames in one ptReal packet are fine, but
+# ~24 frames make the device drop the packet.
 COMMAND_BUSY_TIME = 0.1
 MAX_FRAMES_PER_PTREAL = 12
 
@@ -1082,11 +1083,9 @@ class GoveeController:
     def _send_message(self, message: GoveeMessage, device: GoveeDevice) -> None:
         """Queue a message for the device and send whatever can go out now.
 
-        Messages to one device leave in the order they were queued. A standard
-        message is sent as soon as nothing is waiting ahead of it. A ptReal
-        message waits until the device is no longer busy (``COMMAND_BUSY_TIME``
-        per command sent), and ptReal messages queued behind it go out in the
-        same packet, up to ``MAX_FRAMES_PER_PTREAL`` frames.
+        Messages to one device leave in the order they were queued, at least
+        ``COMMAND_BUSY_TIME`` apart. ptReal messages waiting next to each other
+        go out in one packet, up to ``MAX_FRAMES_PER_PTREAL`` frames.
         """
         if not self._endpoints:
             return
@@ -1100,14 +1099,13 @@ class GoveeController:
         while queue:
             now = self._loop.time()
             busy_until = self._busy_until.get(device.ip, 0.0)
-            message = queue[0]
+            if now < busy_until:
+                self._outbox_handles[device.ip] = self._loop.call_later(
+                    busy_until - now, self._flush_outbox, device
+                )
+                return
+            message = queue.popleft()
             if isinstance(message, PtRealMessage):
-                if now < busy_until:
-                    self._outbox_handles[device.ip] = self._loop.call_later(
-                        busy_until - now, self._flush_outbox, device
-                    )
-                    return
-                queue.popleft()
                 batch = [message]
                 frames = message.frame_count
                 while queue:
@@ -1122,10 +1120,8 @@ class GoveeController:
                     frames += waiting.frame_count
                 if len(batch) > 1:
                     message = PtRealMessage.combine(batch)
-            else:
-                queue.popleft()
             self._transmit(message, device)
-            self._busy_until[device.ip] = max(now, busy_until) + COMMAND_BUSY_TIME
+            self._busy_until[device.ip] = now + COMMAND_BUSY_TIME
 
     def _transmit(self, message: GoveeMessage, device: GoveeDevice) -> None:
         if not self._endpoints:
