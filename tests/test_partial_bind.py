@@ -67,6 +67,11 @@ def _run(coro):
     return asyncio.run(coro)
 
 
+def _transports(controller: GoveeController) -> list:
+    """Transports of the live endpoints, in controller order."""
+    return [endpoint.transport for endpoint in controller._endpoints]
+
+
 class TestAllBind(unittest.TestCase):
     def test_all_bind_reports_no_failures(self):
         controller, logger = _make_controller()
@@ -80,10 +85,10 @@ class TestAllBind(unittest.TestCase):
             ["192.168.1.100", "10.0.0.100", "172.16.1.100"],
         )
         self.assertEqual(len(controller.networks), 3)
-        self.assertEqual(len(controller._transports), 3)
-        self.assertEqual(len(controller._protocols), 3)
+        self.assertEqual(len(controller._endpoints), 3)
+        self.assertEqual(len(controller.protocols), 3)
         self.assertEqual(
-            controller._transports,
+            _transports(controller),
             [transports[a] for a in controller.listening_addresses],
         )
         logger.warning.assert_not_called()
@@ -92,7 +97,7 @@ class TestAllBind(unittest.TestCase):
         controller, _ = _make_controller()
         _install_endpoints(controller)
         _run(controller.start())
-        self.assertEqual(len(controller._transports), 3)
+        self.assertEqual(len(controller._endpoints), 3)
         self.assertEqual(controller.bind_failures, [])
 
 
@@ -114,8 +119,8 @@ class TestPartialBind(unittest.TestCase):
                 ipaddress.ip_network("172.16.0.0/16"),
             ],
         )
-        self.assertEqual(len(controller._transports), 2)
-        self.assertEqual(len(controller._protocols), 2)
+        self.assertEqual(len(controller._endpoints), 2)
+        self.assertEqual(len(controller.protocols), 2)
         self.assertEqual(controller.bind_failures, [("10.0.0.100", error)])
         self.assertIs(controller.bind_failures[0][1], error)
         # One warning per failed address plus one summary line.
@@ -123,8 +128,8 @@ class TestPartialBind(unittest.TestCase):
         logger.error.assert_not_called()
 
     def test_index_alignment_after_partial_bind(self):
-        """Dropping the failed address from only one of the parallel lists
-        would silently route commands out of the wrong interface."""
+        """Each surviving endpoint must keep its own address/network pairing,
+        or commands would silently leave through the wrong interface."""
         controller, _ = _make_controller()
         _install_endpoints(
             controller,
@@ -133,7 +138,7 @@ class TestPartialBind(unittest.TestCase):
 
         _run(controller.start(require_all=False))
 
-        transports = controller._transports
+        transports = _transports(controller)
         self.assertIs(
             controller._get_best_transport_for_ip("10.20.30.40"), transports[0]
         )
@@ -154,7 +159,7 @@ class TestPartialBind(unittest.TestCase):
         )
         _run(controller.start(require_all=False))
         for address, protocol in zip(
-            controller.listening_addresses, controller._protocols
+            controller.listening_addresses, controller.protocols
         ):
             self.assertEqual(protocol.listening_address, address)
 
@@ -181,8 +186,7 @@ class TestTotalFailure(unittest.TestCase):
 
         self.assertIs(type(cm.exception), OSError)
         self.assertEqual(cm.exception.errno, errno.EADDRNOTAVAIL)
-        self.assertEqual(controller._transports, [])
-        self.assertEqual(controller._protocols, [])
+        self.assertEqual(controller._endpoints, [])
         self.assertEqual(len(controller.bind_failures), 3)
 
     def test_mixed_errnos_prefer_eaddrinuse(self):
@@ -231,8 +235,7 @@ class TestRequireAll(unittest.TestCase):
             _run(controller.start())
 
         self.assertIs(cm.exception, error)
-        self.assertEqual(controller._transports, [])
-        self.assertEqual(controller._protocols, [])
+        self.assertEqual(controller._endpoints, [])
         # The endpoint bound before the failure was closed; the one after
         # the failure was never attempted.
         self.assertEqual(set(transports), {"192.168.1.100"})
@@ -289,7 +292,7 @@ class TestRestart(unittest.TestCase):
             ["192.168.1.100", "10.0.0.100", "172.16.1.100"],
         )
         self.assertEqual(len(controller.networks), 3)
-        self.assertEqual(len(controller._transports), 3)
+        self.assertEqual(len(controller._endpoints), 3)
         self.assertEqual(len(real_create), 3)
         # bind_failures reflects only the most recent start().
         self.assertEqual(controller.bind_failures, [])
@@ -307,7 +310,252 @@ class TestRestart(unittest.TestCase):
         _install_endpoints(controller)
         _run(controller.start(require_all=False))
         self.assertEqual(controller.bind_failures, [])
-        self.assertEqual(len(controller._transports), 3)
+        self.assertEqual(len(controller._endpoints), 3)
+
+
+def _record_attempts(controller: GoveeController) -> list[str]:
+    """Wrap ``_create_listening_socket`` to record the addresses tried."""
+    attempted: list[str] = []
+    original = controller._create_listening_socket
+
+    def recording(address):
+        attempted.append(address)
+        return original(address)
+
+    controller._create_listening_socket = recording  # type: ignore[method-assign]
+    return attempted
+
+
+class TestRebindFailed(unittest.TestCase):
+    def test_noop_when_nothing_failed(self):
+        controller, logger = _make_controller()
+        _install_endpoints(controller)
+        _run(controller.start(require_all=False))
+        attempted = _record_attempts(controller)
+
+        self.assertEqual(_run(controller.rebind_failed()), [])
+
+        self.assertEqual(attempted, [])
+        self.assertEqual(len(controller._endpoints), 3)
+        logger.warning.assert_not_called()
+        logger.info.assert_not_called()
+
+    def test_rebinds_only_failed_address(self):
+        controller, logger = _make_controller()
+        first = _install_endpoints(
+            controller, {"10.0.0.100": OSError(errno.EADDRNOTAVAIL, "stale")}
+        )
+        _run(controller.start(require_all=False))
+        logger.reset_mock()
+
+        # The adapter came back.
+        second = _install_endpoints(controller)
+        attempted = _record_attempts(controller)
+
+        self.assertEqual(_run(controller.rebind_failed()), ["10.0.0.100"])
+
+        self.assertEqual(attempted, ["10.0.0.100"])
+        self.assertEqual(controller.bind_failures, [])
+        self.assertEqual(
+            controller.listening_addresses,
+            ["192.168.1.100", "10.0.0.100", "172.16.1.100"],
+        )
+        self.assertEqual(
+            controller.networks,
+            [
+                ipaddress.ip_network("192.168.1.0/24"),
+                ipaddress.ip_network("10.0.0.0/8"),
+                ipaddress.ip_network("172.16.0.0/16"),
+            ],
+        )
+        # The live endpoints were left alone.
+        self.assertEqual(
+            _transports(controller),
+            [first["192.168.1.100"], second["10.0.0.100"], first["172.16.1.100"]],
+        )
+        first["192.168.1.100"].close.assert_not_called()
+        first["172.16.1.100"].close.assert_not_called()
+        logger.info.assert_called_once()
+        logger.warning.assert_not_called()
+
+    def test_restores_configured_order(self):
+        """A rebound address must reclaim its configured slot: transport
+        selection returns the first match, so ordering is behavior."""
+        controller, _ = _make_controller()
+        _install_endpoints(
+            controller, {"192.168.1.100": OSError(errno.EADDRNOTAVAIL, "stale")}
+        )
+        _run(controller.start(require_all=False))
+        self.assertEqual(controller.listening_addresses, ["10.0.0.100", "172.16.1.100"])
+
+        transports = _install_endpoints(controller)
+        self.assertEqual(_run(controller.rebind_failed()), ["192.168.1.100"])
+
+        self.assertEqual(
+            controller.listening_addresses,
+            ["192.168.1.100", "10.0.0.100", "172.16.1.100"],
+        )
+        self.assertEqual(len(controller._endpoints), 3)
+        self.assertEqual(len(controller.protocols), 3)
+        self.assertEqual(len(controller.networks), 3)
+        for address, protocol in zip(
+            controller.listening_addresses, controller.protocols
+        ):
+            self.assertEqual(protocol.listening_address, address)
+        self.assertIs(
+            controller._get_best_transport_for_ip("192.168.1.42"),
+            transports["192.168.1.100"],
+        )
+
+    def test_protocols_is_a_copy_aligned_with_addresses(self):
+        controller, _ = _make_controller()
+        _install_endpoints(
+            controller, {"10.0.0.100": OSError(errno.EADDRNOTAVAIL, "stale")}
+        )
+        _run(controller.start(require_all=False))
+        before = controller.protocols
+        before.clear()  # must not affect the controller
+        self.assertEqual(len(controller.protocols), 2)
+
+        _install_endpoints(controller)
+        _run(controller.rebind_failed())
+
+        protocols = controller.protocols
+        self.assertEqual(len(protocols), 3)
+        for address, protocol in zip(controller.listening_addresses, protocols):
+            self.assertEqual(protocol.listening_address, address)
+
+    def test_still_failing_updates_error(self):
+        controller, logger = _make_controller()
+        first_error = OSError(errno.EADDRNOTAVAIL, "stale")
+        _install_endpoints(controller, {"10.0.0.100": first_error})
+        _run(controller.start(require_all=False))
+        logger.reset_mock()
+
+        second_error = OSError(errno.EADDRINUSE, "busy")
+        _install_endpoints(controller, {"10.0.0.100": second_error})
+
+        self.assertEqual(_run(controller.rebind_failed()), [])
+
+        self.assertEqual(controller.bind_failures, [("10.0.0.100", second_error)])
+        self.assertIs(controller.bind_failures[0][1], second_error)
+        self.assertEqual(
+            controller.listening_addresses, ["192.168.1.100", "172.16.1.100"]
+        )
+        # One warning for the failed attempt plus the "still unable" summary.
+        self.assertEqual(logger.warning.call_count, 2)
+        logger.info.assert_not_called()
+
+    def test_partial_recovery(self):
+        controller, _ = _make_controller()
+        stale = OSError(errno.EADDRNOTAVAIL, "stale")
+        _install_endpoints(controller, {"10.0.0.100": stale, "172.16.1.100": stale})
+        _run(controller.start(require_all=False))
+
+        still_down = OSError(errno.EADDRNOTAVAIL, "still stale")
+        _install_endpoints(controller, {"172.16.1.100": still_down})
+
+        self.assertEqual(_run(controller.rebind_failed()), ["10.0.0.100"])
+        self.assertEqual(
+            controller.listening_addresses, ["192.168.1.100", "10.0.0.100"]
+        )
+        self.assertEqual(controller.bind_failures, [("172.16.1.100", still_down)])
+
+    def test_recovers_endpoint_dropped_by_connection_lost(self):
+        controller, _ = _make_controller()
+        _install_endpoints(controller)
+        _run(controller.start(require_all=False))
+
+        # Simulate an unexpected connection_lost on the middle endpoint.
+        controller._protocol_disconnected(controller.protocols[1])
+        self.assertEqual(
+            controller.listening_addresses, ["192.168.1.100", "172.16.1.100"]
+        )
+        self.assertEqual(controller.bind_failures, [])
+
+        transports = _install_endpoints(controller)
+        self.assertEqual(_run(controller.rebind_failed()), ["10.0.0.100"])
+
+        self.assertEqual(
+            controller.listening_addresses,
+            ["192.168.1.100", "10.0.0.100", "172.16.1.100"],
+        )
+        self.assertIs(_transports(controller)[1], transports["10.0.0.100"])
+
+    def test_triggers_discovery_when_enabled(self):
+        logger = Mock()
+        controller = GoveeController(
+            loop=Mock(),
+            listening_addresses=ADDRESSES,
+            discovery_enabled=True,
+            update_enabled=False,
+            evict_enabled=False,
+            logger=logger,
+        )
+        _install_endpoints(
+            controller, {"10.0.0.100": OSError(errno.EADDRNOTAVAIL, "stale")}
+        )
+        _run(controller.start(require_all=False))
+        controller.send_discovery_message = Mock()  # type: ignore[method-assign]
+
+        # Nothing rebound: no discovery burst.
+        _install_endpoints(
+            controller, {"10.0.0.100": OSError(errno.EADDRNOTAVAIL, "stale")}
+        )
+        _run(controller.rebind_failed())
+        controller.send_discovery_message.assert_not_called()
+
+        _install_endpoints(controller)
+        _run(controller.rebind_failed())
+        controller.send_discovery_message.assert_called_once()
+
+    def test_no_discovery_when_disabled(self):
+        controller, _ = _make_controller()
+        _install_endpoints(
+            controller, {"10.0.0.100": OSError(errno.EADDRNOTAVAIL, "stale")}
+        )
+        _run(controller.start(require_all=False))
+        controller.send_discovery_message = Mock()  # type: ignore[method-assign]
+
+        _install_endpoints(controller)
+        _run(controller.rebind_failed())
+        controller.send_discovery_message.assert_not_called()
+
+    def test_requires_running_controller(self):
+        controller, _ = _make_controller()
+        _install_endpoints(controller)
+        with self.assertRaises(RuntimeError):
+            _run(controller.rebind_failed())
+
+        _run(controller.start(require_all=False))
+        controller.cleanup()
+        with self.assertRaises(RuntimeError):
+            _run(controller.rebind_failed())
+
+    def test_aborts_if_cleanup_starts_mid_rebind(self):
+        controller, _ = _make_controller()
+        _install_endpoints(
+            controller, {"10.0.0.100": OSError(errno.EADDRNOTAVAIL, "stale")}
+        )
+        _run(controller.start(require_all=False))
+
+        _install_endpoints(controller)
+        new_transport = Mock(name="late-transport")
+        new_transport.is_closing.return_value = False
+
+        async def create_endpoint(protocol_factory, sock=None):
+            controller._closing = True  # cleanup() raced us
+            return new_transport, protocol_factory()
+
+        controller._loop.create_datagram_endpoint = create_endpoint  # type: ignore[method-assign]
+
+        self.assertEqual(_run(controller.rebind_failed()), [])
+
+        new_transport.close.assert_called_once()
+        self.assertNotIn(new_transport, _transports(controller))
+        self.assertEqual(
+            controller.listening_addresses, ["192.168.1.100", "172.16.1.100"]
+        )
 
 
 if __name__ == "__main__":
