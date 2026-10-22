@@ -1,11 +1,14 @@
 import asyncio
 import base64
+import json
 import unittest
 from unittest.mock import Mock
 
+import pytest
+
 from govee_local_api.controller import (
+    COMMAND_BUSY_TIME,
     MAX_FRAMES_PER_PTREAL,
-    PTREAL_MIN_INTERVAL,
     GoveeController,
 )
 from govee_local_api.device import GoveeDevice, SegmentUpdate
@@ -15,6 +18,7 @@ from govee_local_api.light_capabilities import (
 )
 from govee_local_api.message import (
     BrightnessMessage,
+    ColorMessage,
     PtRealMessage,
     SegmentBrightnessMessage,
     SegmentColorMessages,
@@ -185,58 +189,131 @@ class FakeLoop:
         return self.now
 
     def call_later(self, delay, fn, *args):
-        self.later.append((delay, fn, args))
+        self.later.append((self.now + delay, fn, args))
+        return Mock()
+
+    def run_next(self):
+        """Advance to the next timer and run it."""
+        self.later.sort(key=lambda t: t[0])
+        when, fn, args = self.later.pop(0)
+        self.now = when
+        fn(*args)
 
 
-class TestPtRealPacing(unittest.TestCase):
+T = COMMAND_BUSY_TIME
+
+
+class TestPacing(unittest.TestCase):
     def setUp(self):
         self.controller = GoveeController.__new__(GoveeController)
-        self.controller._loop = FakeLoop()
+        self.loop = self.controller._loop = FakeLoop()
         self.controller._endpoints = [Mock()]
         self.controller._device_command_port = 4003
+        self.controller._outbox = {}
+        self.controller._busy_until = {}
+        self.controller._outbox_handles = {}
         self.transport = Mock()
         self.transport.is_closing.return_value = False
 
-    def device(self, ip):
+    def device(self, ip="192.168.1.10"):
         device = GoveeDevice(self.controller, ip, ip, "H6088")
         device.update_transport(self.transport)
         return device
 
-    def test_back_to_back_ptreal_packets_are_spaced(self):
-        device = self.device("192.168.1.10")
-        for _ in range(3):
-            self.controller._send_message(
-                SegmentColorMessages(b"\x01\x00", (1, 2, 3)), device
-            )
-        assert self.transport.sendto.call_count == 1
-        delays = [round(d, 6) for d, _, _ in self.controller._loop.later]
-        assert delays == [PTREAL_MIN_INTERVAL, 2 * PTREAL_MIN_INTERVAL]
+    def ptreal(self, red=1, frames=1):
+        return PtRealMessage([bytes([0x33, 0x05, 0x15, 0x01, red] + [0] * 14)] * frames)
 
-    def test_standard_messages_are_never_delayed(self):
-        device = self.device("192.168.1.10")
+    def sent(self):
+        """(time, cmd, frame count) of every packet sent so far."""
+        out = []
+        for c in self.transport.sendto.call_args_list:
+            msg = json.loads(c[0][0])["msg"]
+            count = len(msg["data"]["command"]) if msg["cmd"] == "ptReal" else 0
+            out.append((msg["cmd"], count))
+        return out
+
+    def test_idle_device_gets_ptreal_immediately(self):
+        self.controller._send_message(self.ptreal(), self.device())
+        assert self.sent() == [("ptReal", 1)]
+        assert self.loop.later == []
+
+    def test_ptreal_waits_and_queued_ptreal_share_one_packet(self):
+        device = self.device()
+        for red in range(15):
+            self.controller._send_message(self.ptreal(red), device)
+        assert self.sent() == [("ptReal", 1)]
+        assert len(self.loop.later) == 1
+        self.loop.run_next()
+        assert self.loop.now == pytest.approx(100.0 + T)
+        assert self.sent() == [("ptReal", 1), ("ptReal", 12)]
+        self.loop.run_next()
+        assert self.loop.now == pytest.approx(100.0 + 2 * T)
+        assert self.sent() == [("ptReal", 1), ("ptReal", 12), ("ptReal", 2)]
+        assert self.loop.later == []
+
+    def test_merged_frames_keep_their_order(self):
+        device = self.device()
+        for red in range(4):
+            self.controller._send_message(self.ptreal(red), device)
+        self.loop.run_next()
+        packet = json.loads(self.transport.sendto.call_args[0][0])
+        reds = [base64.b64decode(f)[4] for f in packet["msg"]["data"]["command"]]
+        assert reds == [1, 2, 3]
+
+    def test_large_message_is_never_merged_or_split(self):
+        device = self.device()
+        self.controller._send_message(self.ptreal(), device)
+        self.controller._send_message(self.ptreal(frames=1), device)
+        self.controller._send_message(self.ptreal(frames=14), device)
+        self.loop.run_next()
+        self.loop.run_next()
+        assert self.sent() == [("ptReal", 1), ("ptReal", 1), ("ptReal", 14)]
+
+    def test_each_standard_message_delays_the_next_ptreal(self):
+        device = self.device()
         self.controller._send_message(
-            SegmentColorMessages(b"\x01\x00", (1, 2, 3)), device
+            ColorMessage(rgb=(1, 2, 3), temperature=None), device
         )
         self.controller._send_message(BrightnessMessage(50), device)
-        assert self.transport.sendto.call_count == 2
-        assert self.controller._loop.later == []
+        self.controller._send_message(self.ptreal(), device)
+        assert self.sent() == [("colorwc", 0), ("brightness", 0)]
+        self.loop.run_next()
+        assert self.loop.now == pytest.approx(100.0 + 2 * T)
+        assert self.sent()[-1] == ("ptReal", 1)
+
+    def test_standard_messages_are_never_held_by_each_other(self):
+        device = self.device()
+        for _ in range(3):
+            self.controller._send_message(BrightnessMessage(50), device)
+        assert self.sent() == [("brightness", 0)] * 3
+        assert self.loop.later == []
+
+    def test_standard_message_waits_behind_a_waiting_ptreal(self):
+        device = self.device()
+        self.controller._send_message(self.ptreal(), device)
+        self.controller._send_message(self.ptreal(), device)
+        self.controller._send_message(BrightnessMessage(50), device)
+        assert self.sent() == [("ptReal", 1)]
+        self.loop.run_next()
+        assert self.sent() == [("ptReal", 1), ("ptReal", 1), ("brightness", 0)]
 
     def test_devices_are_paced_independently(self):
-        a, b = self.device("192.168.1.10"), self.device("192.168.1.11")
-        self.controller._send_message(SegmentColorMessages(b"\x01\x00", (1, 2, 3)), a)
-        self.controller._send_message(SegmentColorMessages(b"\x01\x00", (1, 2, 3)), b)
-        assert self.transport.sendto.call_count == 2
+        self.controller._send_message(self.ptreal(), self.device("192.168.1.10"))
+        self.controller._send_message(self.ptreal(), self.device("192.168.1.11"))
+        assert self.sent() == [("ptReal", 1), ("ptReal", 1)]
 
-    def test_spacing_expires(self):
-        device = self.device("192.168.1.10")
-        self.controller._send_message(
-            SegmentColorMessages(b"\x01\x00", (1, 2, 3)), device
-        )
-        self.controller._loop.now += 1
-        self.controller._send_message(
-            SegmentColorMessages(b"\x01\x00", (1, 2, 3)), device
-        )
-        assert self.transport.sendto.call_count == 2
+    def test_busy_time_expires(self):
+        device = self.device()
+        self.controller._send_message(self.ptreal(), device)
+        self.loop.now += T
+        self.controller._send_message(self.ptreal(), device)
+        assert self.sent() == [("ptReal", 1), ("ptReal", 1)]
+        assert self.loop.later == []
+
+    def test_nothing_is_queued_without_endpoints(self):
+        self.controller._endpoints = []
+        self.controller._send_message(self.ptreal(), self.device())
+        assert self.controller._outbox == {}
 
 
 def test_h61e0_has_15_segments():
