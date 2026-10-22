@@ -1,7 +1,7 @@
 from importlib.metadata import PackageNotFoundError, version
 
 from .controller import GoveeController
-from .device import GoveeDevice
+from .device import GoveeDevice, SegmentUpdate
 from .light_capabilities import (
     DEFAULT_TEMPERATURE_RANGE,
     GoveeLightFeatures,
@@ -12,6 +12,7 @@ from .light_capabilities import (
 __all__ = [
     "GoveeController",
     "GoveeDevice",
+    "SegmentUpdate",
     "GoveeLightFeatures",
     "GoveeLightCapabilities",
     "GoveeTemperatureRange",
