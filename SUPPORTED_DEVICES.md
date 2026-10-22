@@ -153,7 +153,7 @@ Color temperature defaults to 2000-9000 K; models with a narrower or wider range
 | H61D4 | ✅ | ✅ | 2000-9000 | ✅ | - | movie, romantic, snowflake, rainbow |
 | H61D5 | ✅ | ✅ | 2000-9000 | ✅ | - | movie, romantic, snowflake, rainbow |
 | H61D6 | ✅ | ✅ | 2000-9000 | ✅ | - | movie, romantic, snowflake, rainbow |
-| H61E0 | ✅ | ✅ | 2000-9000 | ✅ | - | ✅ |
+| H61E0 | ✅ | ✅ | 2000-9000 | ✅ | 15 | ✅ |
 | H61E1 | ✅ | ✅ | 2000-9000 | ✅ | - | ✅ |
 | H61E5 | ✅ | ✅ | 2000-9000 | ✅ | 12 | sunrise, sunset, movie, romantic, twinkle, candlelight, snowflake, energetic, breathe, crossing, rainbow |
 | H61E6 | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunrise, sunset, movie, romantic, twinkle, candlelight, snowflake, energetic, breathe, crossing, rainbow |

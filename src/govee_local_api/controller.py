@@ -7,12 +7,13 @@ import ipaddress
 import logging
 import socket
 import warnings
-from collections.abc import Callable
+from collections import deque
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any, NamedTuple
 
-from .device import GoveeDevice
+from .device import GoveeDevice, SegmentUpdate
 from .device_registry import DeviceRegistry
 from .light_capabilities import (
     GOVEE_LIGHT_CAPABILITIES,
@@ -30,9 +31,15 @@ from .message import (
     OnOffMessage,
     ScanMessage,
     ScanResponse,
+    PtRealMessage,
+    SegmentBrightnessMessage,
     SegmentColorMessages,
+    SegmentTemperatureMessage,
     DevStatusMessage,
     DevStatusResponse,
+    segment_brightness_frame,
+    segment_color_frame,
+    segment_temperature_frame,
 )
 from .network import (
     _parse_listening_addresses,
@@ -48,6 +55,17 @@ COMMAND_PORT = 4003
 DISCOVERY_INTERVAL = 10
 EVICT_INTERVAL = DISCOVERY_INTERVAL * 3
 UPDATE_INTERVAL = 5
+
+# Each command keeps a device busy for about this long, and packets that arrive
+# while it is busy can be silently dropped, so commands to one device are sent
+# at least this far apart. Measured on an H61E0: a run of ptReal packets 50 ms
+# apart lost some and 75-100 ms apart lost none; a ptReal packet right after two
+# standard commands, or standard commands right after a ptReal packet, were lost
+# unless spaced apart. With every command 100 ms apart a mixed sequence still lost
+# a command in about 1 of 9 runs; 150 ms lost none in 10. Several frames in one
+# ptReal packet are fine, but ~24 frames make the device drop the packet.
+COMMAND_BUSY_TIME = 0.15
+MAX_FRAMES_PER_PTREAL = 12
 
 
 class _Listener(NamedTuple):
@@ -132,6 +150,11 @@ class GoveeController:
         # Live endpoints, one record per bound address. Empty until start().
         self._endpoints: list[_Endpoint] = []
         self._bind_failures: list[tuple[str, OSError]] = []
+        # Per device IP: messages waiting to be sent, the loop time the device is
+        # busy until, and the timer that sends the next waiting message.
+        self._outbox: dict[str, deque[GoveeMessage]] = {}
+        self._busy_until: dict[str, float] = {}
+        self._outbox_handles: dict[str, asyncio.TimerHandle] = {}
         self._broadcast_address = broadcast_address
         self._broadcast_port = broadcast_port
         self._listening_port = listening_port
@@ -463,6 +486,10 @@ class GoveeController:
         # in-flight _handle_scan_response task can't invoke the user's
         # evicted_callback mid-shutdown.
         self.set_evict_enabled(False)
+        for handle in self._outbox_handles.values():
+            handle.cancel()
+        self._outbox_handles.clear()
+        self._outbox.clear()
 
         if not self._endpoints:
             self._cleanup_done.set()
@@ -704,34 +731,110 @@ class GoveeController:
     async def turn_on_off(self, device: GoveeDevice, status: bool) -> None:
         self._send_message(OnOffMessage(status), device)
 
-    async def set_segment_rgb_color(
-        self, device: GoveeDevice, segment: int, rgb: tuple[int, int, int]
-    ) -> None:
+    def _segment_code(self, device: GoveeDevice, segment: int) -> bytes | None:
+        """The segment's mask bytes, or None (with a warning) if it can't be addressed."""
         if not device.capabilities:
             self._logger.warning("Capabilities not available for device %s", device)
-            return
+            return None
 
         if device.capabilities.features & GoveeLightFeatures.SEGMENT_CONTROL == 0:
             self._logger.warning(
                 "Segment control is not supported by device %s", device
             )
-            return
+            return None
 
         if segment < 1 or segment > len(device.capabilities.segments):
             self._logger.warning(
                 "Segment index %s is not valid for device %s", segment, device
             )
-            return
+            return None
 
         segment_data: bytes = device.capabilities.segments[segment - 1]
         if not segment_data:
             self._logger.warning(
                 "Segment %s is not supported by device %s", segment, device
             )
+            return None
+        return segment_data
+
+    async def set_segment_rgb_color(
+        self, device: GoveeDevice, segment: int, rgb: tuple[int, int, int]
+    ) -> None:
+        segment_data = self._segment_code(device, segment)
+        if segment_data is None:
             return
         message = SegmentColorMessages(segment_data, rgb)
         self._logger.debug(f"Sending message {message} to device {device}")
         self._send_message(message, device)
+
+    async def set_segment_temperature(
+        self, device: GoveeDevice, segment: int, temperature: int
+    ) -> None:
+        segment_data = self._segment_code(device, segment)
+        if segment_data is None:
+            return
+        min_kelvin, max_kelvin = device.temperature_range
+        kelvin = max(min_kelvin, min(int(temperature), max_kelvin))
+        self._send_message(SegmentTemperatureMessage(segment_data, kelvin), device)
+
+    async def set_segment_brightness(
+        self, device: GoveeDevice, segment: int, brightness: int
+    ) -> None:
+        segment_data = self._segment_code(device, segment)
+        if segment_data is None:
+            return
+        self._send_message(SegmentBrightnessMessage(segment_data, brightness), device)
+
+    async def set_segments(
+        self, device: GoveeDevice, updates: Sequence[SegmentUpdate]
+    ) -> None:
+        """Send several segment changes in as few ptReal packets as possible.
+
+        Segments that share a setting are merged into one frame by OR-ing their
+        masks, and packets are capped at ``MAX_FRAMES_PER_PTREAL`` frames.
+        """
+        min_kelvin, max_kelvin = device.temperature_range
+        colors: dict[tuple, int] = {}
+        levels: dict[int, int] = {}
+        width = 0
+        for update in updates:
+            segment_data = self._segment_code(device, update.segment)
+            if segment_data is None:
+                continue
+            width = max(width, len(segment_data))
+            bit = int.from_bytes(segment_data, "little")
+            if update.temperature is not None:
+                kelvin = max(min_kelvin, min(int(update.temperature), max_kelvin))
+                key: tuple = ("temperature", kelvin)
+            elif update.rgb is not None:
+                key = ("rgb", *(max(0, min(c, 255)) for c in update.rgb))
+            else:
+                key = ()
+            if key:
+                colors[key] = colors.get(key, 0) | bit
+            if update.brightness is not None:
+                level = max(0, min(int(update.brightness), 100))
+                levels[level] = levels.get(level, 0) | bit
+
+        def mask(bits: int) -> bytes:
+            return bits.to_bytes(width, "little")
+
+        frames: list[bytes] = [
+            (
+                segment_temperature_frame(mask(bits), key[1])
+                if key[0] == "temperature"
+                else segment_color_frame(mask(bits), key[1:])
+            )
+            for key, bits in colors.items()
+        ]
+        frames += [
+            segment_brightness_frame(mask(bits), level)
+            for level, bits in levels.items()
+        ]
+        for i in range(0, len(frames), MAX_FRAMES_PER_PTREAL):
+            self._send_message(
+                PtRealMessage(frames[i : i + MAX_FRAMES_PER_PTREAL]), device
+            )
 
     async def set_scene(self, device: GoveeDevice, scene: str) -> None:
         if (
@@ -979,13 +1082,57 @@ class GoveeController:
         return self._device_discovered_callback(device, is_new)
 
     def _send_message(self, message: GoveeMessage, device: GoveeDevice) -> None:
-        if self._endpoints:
-            # Prefer the transport the device was discovered on
-            transport = device.transport
-            if transport is None or transport.is_closing():
-                transport = self._get_best_transport_for_ip(device.ip)
-            if transport is not None:
-                transport.sendto(bytes(message), (device.ip, self._device_command_port))
+        """Queue a message for the device and send whatever can go out now.
+
+        Messages to one device leave in the order they were queued, at least
+        ``COMMAND_BUSY_TIME`` apart. ptReal messages waiting next to each other
+        go out in one packet, up to ``MAX_FRAMES_PER_PTREAL`` frames.
+        """
+        if not self._endpoints:
+            return
+        self._outbox.setdefault(device.ip, deque()).append(message)
+        if device.ip not in self._outbox_handles:
+            self._flush_outbox(device)
+
+    def _flush_outbox(self, device: GoveeDevice) -> None:
+        self._outbox_handles.pop(device.ip, None)
+        queue = self._outbox.get(device.ip)
+        while queue:
+            now = self._loop.time()
+            busy_until = self._busy_until.get(device.ip, 0.0)
+            if now < busy_until:
+                self._outbox_handles[device.ip] = self._loop.call_later(
+                    busy_until - now, self._flush_outbox, device
+                )
+                return
+            message = queue.popleft()
+            if isinstance(message, PtRealMessage):
+                batch = [message]
+                frames = message.frame_count
+                while queue:
+                    waiting = queue[0]
+                    if (
+                        not isinstance(waiting, PtRealMessage)
+                        or frames + waiting.frame_count > MAX_FRAMES_PER_PTREAL
+                    ):
+                        break
+                    queue.popleft()
+                    batch.append(waiting)
+                    frames += waiting.frame_count
+                if len(batch) > 1:
+                    message = PtRealMessage.combine(batch)
+            self._transmit(message, device)
+            self._busy_until[device.ip] = now + COMMAND_BUSY_TIME
+
+    def _transmit(self, message: GoveeMessage, device: GoveeDevice) -> None:
+        if not self._endpoints:
+            return
+        # Prefer the transport the device was discovered on
+        transport = device.transport
+        if transport is None or transport.is_closing():
+            transport = self._get_best_transport_for_ip(device.ip)
+        if transport is not None:
+            transport.sendto(bytes(message), (device.ip, self._device_command_port))
 
     def _get_best_transport_for_ip(self, target_ip: str) -> Any:
         """
