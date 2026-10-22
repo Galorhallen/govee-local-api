@@ -61,9 +61,10 @@ UPDATE_INTERVAL = 5
 # at least this far apart. Measured on an H61E0: a run of ptReal packets 50 ms
 # apart lost some and 75-100 ms apart lost none; a ptReal packet right after two
 # standard commands, or standard commands right after a ptReal packet, were lost
-# unless spaced ~100 ms apart. Several frames in one ptReal packet are fine, but
-# ~24 frames make the device drop the packet.
-COMMAND_BUSY_TIME = 0.1
+# unless spaced apart. With every command 100 ms apart a mixed sequence still lost
+# a command in about 1 of 9 runs; 150 ms lost none in 10. Several frames in one
+# ptReal packet are fine, but ~24 frames make the device drop the packet.
+COMMAND_BUSY_TIME = 0.15
 MAX_FRAMES_PER_PTREAL = 12
 
 
