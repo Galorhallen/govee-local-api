@@ -7,6 +7,7 @@ import ipaddress
 import logging
 import socket
 import warnings
+from collections import deque
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -55,10 +56,13 @@ DISCOVERY_INTERVAL = 10
 EVICT_INTERVAL = DISCOVERY_INTERVAL * 3
 UPDATE_INTERVAL = 5
 
-# Devices drop a ptReal packet that arrives right after another one (a 25 ms gap
-# was enough in testing); standard commands are not affected. Several frames in
-# one ptReal packet are fine, but ~24 frames make the device drop the packet.
-PTREAL_MIN_INTERVAL = 0.05
+# Each command keeps a device busy for about this long. A ptReal packet that
+# arrives while the device is busy is dropped (standard commands are not), so
+# ptReal packets wait until it is idle. Measured on an H61E0: a run of ptReal
+# packets 50 ms apart lost some, 75-100 ms apart lost none, and a ptReal packet
+# right after two standard commands needed ~200 ms. Several frames in one ptReal
+# packet are fine, but ~24 frames make the device drop the packet.
+COMMAND_BUSY_TIME = 0.1
 MAX_FRAMES_PER_PTREAL = 12
 
 
@@ -144,8 +148,11 @@ class GoveeController:
         # Live endpoints, one record per bound address. Empty until start().
         self._endpoints: list[_Endpoint] = []
         self._bind_failures: list[tuple[str, OSError]] = []
-        # Per device IP: earliest loop time the next ptReal packet may be sent.
-        self._ptreal_ready: dict[str, float] = {}
+        # Per device IP: messages waiting to be sent, the loop time the device is
+        # busy until, and the timer that sends the next waiting message.
+        self._outbox: dict[str, deque[GoveeMessage]] = {}
+        self._busy_until: dict[str, float] = {}
+        self._outbox_handles: dict[str, asyncio.TimerHandle] = {}
         self._broadcast_address = broadcast_address
         self._broadcast_port = broadcast_port
         self._listening_port = listening_port
@@ -477,6 +484,10 @@ class GoveeController:
         # in-flight _handle_scan_response task can't invoke the user's
         # evicted_callback mid-shutdown.
         self.set_evict_enabled(False)
+        for handle in self._outbox_handles.values():
+            handle.cancel()
+        self._outbox_handles.clear()
+        self._outbox.clear()
 
         if not self._endpoints:
             self._cleanup_done.set()
@@ -1069,40 +1080,62 @@ class GoveeController:
         return self._device_discovered_callback(device, is_new)
 
     def _send_message(self, message: GoveeMessage, device: GoveeDevice) -> None:
-        if self._endpoints:
-            # Prefer the transport the device was discovered on
-            transport = device.transport
-            if transport is None or transport.is_closing():
-                transport = self._get_best_transport_for_ip(device.ip)
-            if transport is not None:
-                data = bytes(message)
-                target = (device.ip, self._device_command_port)
-                delay = self._ptreal_delay(message, device)
-                if delay > 0:
-                    self._loop.call_later(delay, transport.sendto, data, target)
-                else:
-                    transport.sendto(data, target)
+        """Queue a message for the device and send whatever can go out now.
 
-    def _ptreal_delay(self, message: GoveeMessage, device: GoveeDevice) -> float:
-        """Seconds to hold a ptReal packet so it isn't dropped by the device.
-
-        Devices ignore a ptReal packet that arrives right after another one, so
-        consecutive ptReal sends to the same device are spaced by
-        ``PTREAL_MIN_INTERVAL``. Other messages are sent immediately.
+        Messages to one device leave in the order they were queued. A standard
+        message is sent as soon as nothing is waiting ahead of it. A ptReal
+        message waits until the device is no longer busy (``COMMAND_BUSY_TIME``
+        per command sent), and ptReal messages queued behind it go out in the
+        same packet, up to ``MAX_FRAMES_PER_PTREAL`` frames.
         """
-        if not isinstance(message, PtRealMessage):
-            return 0.0
-        loop = getattr(self, "_loop", None)
-        if loop is None:
-            return 0.0
-        ready: dict[str, float] | None = getattr(self, "_ptreal_ready", None)
-        if ready is None:  # controller built without __init__ (e.g. in tests)
-            ready = {}
-            self._ptreal_ready = ready
-        now = loop.time()
-        send_at = max(now, ready.get(device.ip, 0.0))
-        ready[device.ip] = send_at + PTREAL_MIN_INTERVAL
-        return send_at - now
+        if not self._endpoints:
+            return
+        self._outbox.setdefault(device.ip, deque()).append(message)
+        if device.ip not in self._outbox_handles:
+            self._flush_outbox(device)
+
+    def _flush_outbox(self, device: GoveeDevice) -> None:
+        self._outbox_handles.pop(device.ip, None)
+        queue = self._outbox.get(device.ip)
+        while queue:
+            now = self._loop.time()
+            busy_until = self._busy_until.get(device.ip, 0.0)
+            message = queue[0]
+            if isinstance(message, PtRealMessage):
+                if now < busy_until:
+                    self._outbox_handles[device.ip] = self._loop.call_later(
+                        busy_until - now, self._flush_outbox, device
+                    )
+                    return
+                queue.popleft()
+                batch = [message]
+                frames = message.frame_count
+                while queue:
+                    waiting = queue[0]
+                    if (
+                        not isinstance(waiting, PtRealMessage)
+                        or frames + waiting.frame_count > MAX_FRAMES_PER_PTREAL
+                    ):
+                        break
+                    queue.popleft()
+                    batch.append(waiting)
+                    frames += waiting.frame_count
+                if len(batch) > 1:
+                    message = PtRealMessage.combine(batch)
+            else:
+                queue.popleft()
+            self._transmit(message, device)
+            self._busy_until[device.ip] = max(now, busy_until) + COMMAND_BUSY_TIME
+
+    def _transmit(self, message: GoveeMessage, device: GoveeDevice) -> None:
+        if not self._endpoints:
+            return
+        # Prefer the transport the device was discovered on
+        transport = device.transport
+        if transport is None or transport.is_closing():
+            transport = self._get_best_transport_for_ip(device.ip)
+        if transport is not None:
+            transport.sendto(bytes(message), (device.ip, self._device_command_port))
 
     def _get_best_transport_for_ip(self, target_ip: str) -> Any:
         """

@@ -115,6 +115,17 @@ class PtRealMessage(GoveeMessage):
 
         super().__init__({"command": checksumed_data})
 
+    @property
+    def frame_count(self) -> int:
+        return len(self.data["command"])
+
+    @staticmethod
+    def combine(messages: list[PtRealMessage]) -> PtRealMessage:
+        """One packet carrying the frames of several messages, in order."""
+        combined = PtRealMessage([])
+        combined.data["command"] = [f for m in messages for f in m.data["command"]]
+        return combined
+
     @staticmethod
     def _with_checksum(data: bytes) -> bytes:
         xor_result: int = 0
