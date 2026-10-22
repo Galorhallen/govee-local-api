@@ -10,6 +10,7 @@ from .light_capabilities import (
     GoveeLightCapabilities,
     GoveeTemperatureRange,
     ON_OFF_CAPABILITIES,
+    _normalize_temperature_range,
 )
 from .message import DevStatusResponse
 
@@ -34,6 +35,7 @@ class GoveeDevice:
         fingerprint: str,
         sku: str,
         capabilities: GoveeLightCapabilities = ON_OFF_CAPABILITIES,
+        temperature_range: tuple[int, int] | None = None,
     ) -> None:
         self._controller = controller
         self._fingerprint = fingerprint
@@ -41,6 +43,10 @@ class GoveeDevice:
         self._ip = ip
         self._lastseen: datetime = datetime.now(timezone.utc)
         self._capabilities: GoveeLightCapabilities = capabilities
+        # Per-device override; kept off the capabilities object because
+        # capabilities are shared by every device of the same model.
+        self._temperature_range: GoveeTemperatureRange | None = None
+        self._set_temperature_range(temperature_range)
 
         self._is_on: bool = False
         self._rgb_color = (0, 0, 0)
@@ -99,10 +105,25 @@ class GoveeDevice:
 
     @property
     def temperature_range(self) -> GoveeTemperatureRange:
-        """Kelvin range this device model accepts for white light."""
+        """Kelvin range this device accepts for white light: the override if
+        one is set, otherwise the model's range."""
+        if self._temperature_range is not None:
+            return self._temperature_range
         if self._capabilities is None:
             return DEFAULT_TEMPERATURE_RANGE
         return self._capabilities.temperature_range
+
+    @temperature_range.setter
+    def temperature_range(self, temperature_range: tuple[int, int] | None) -> None:
+        """Override the model's Kelvin range; None restores it."""
+        self._set_temperature_range(temperature_range)
+
+    def _set_temperature_range(self, temperature_range: tuple[int, int] | None) -> None:
+        self._temperature_range = (
+            None
+            if temperature_range is None
+            else _normalize_temperature_range(temperature_range)
+        )
 
     @property
     def update_callback(self) -> Callable[[GoveeDevice], None] | None:

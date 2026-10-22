@@ -185,6 +185,16 @@ Register a model with a custom range in `GOVEE_LIGHT_CAPABILITIES`:
 ),
 ```
 
+Or override the range for a single device, e.g. from a user setting:
+
+```python
+device.temperature_range = (2700, 6500)   # validated; commands now clamp to it
+device.temperature_range = None           # back to the model's range
+```
+
+`GoveeDevice(..., temperature_range=(2700, 6500))` sets the same override at
+construction.
+
 ### Library Scenes
 
 `set_scene()` sends one of a small built-in list of scene codes, which only

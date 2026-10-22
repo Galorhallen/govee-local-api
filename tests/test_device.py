@@ -156,13 +156,14 @@ class TestControllerIpUpdate(unittest.TestCase):
 
 
 class TestDeviceTemperatureRange(unittest.TestCase):
-    def _device(self, capabilities):
+    def _device(self, capabilities, temperature_range=None):
         return GoveeDevice(
             Mock(spec=GoveeController),
             "192.168.1.100",
             "AA:BB:CC:DD:EE:FF",
             "H6001",
             capabilities,
+            temperature_range=temperature_range,
         )
 
     def test_custom_range_is_exposed_on_the_device(self):
@@ -181,6 +182,55 @@ class TestDeviceTemperatureRange(unittest.TestCase):
 
     def test_device_without_capabilities_falls_back_to_the_default_range(self):
         device = self._device(None)
+
+        assert device.temperature_range == DEFAULT_TEMPERATURE_RANGE
+
+    def test_constructor_override_wins_over_the_model_range(self):
+        device = self._device(BASIC_CAPABILITIES, temperature_range=(2700, 6500))
+
+        assert device.temperature_range == (2700, 6500)
+
+    def test_override_applies_to_a_device_without_capabilities(self):
+        device = self._device(None, temperature_range=(3000, 6000))
+
+        assert device.temperature_range == (3000, 6000)
+
+    def test_setting_the_range_overrides_the_model_range(self):
+        device = self._device(BASIC_CAPABILITIES)
+
+        device.temperature_range = (2200, 6500)
+
+        assert device.temperature_range == (2200, 6500)
+
+    def test_clearing_the_override_restores_the_model_range(self):
+        device = self._device(
+            create_with_capabilities(
+                True, True, True, 0, False, temperature_range=(2700, 6500)
+            ),
+            temperature_range=(3000, 6000),
+        )
+
+        device.temperature_range = None
+
+        assert device.temperature_range == (2700, 6500)
+
+    def test_override_does_not_leak_into_shared_capabilities(self):
+        device = self._device(BASIC_CAPABILITIES)
+        other = self._device(BASIC_CAPABILITIES)
+
+        device.temperature_range = (2700, 6500)
+
+        assert other.temperature_range == DEFAULT_TEMPERATURE_RANGE
+        assert BASIC_CAPABILITIES.temperature_range == DEFAULT_TEMPERATURE_RANGE
+
+    def test_invalid_override_is_rejected(self):
+        device = self._device(BASIC_CAPABILITIES)
+
+        for bad_range in [(6500, 2700), (0, 6500), (4000, 4000)]:
+            with self.assertRaises(ValueError):
+                device.temperature_range = bad_range
+        with self.assertRaises(ValueError):
+            self._device(BASIC_CAPABILITIES, temperature_range=(6500, 2700))
 
         assert device.temperature_range == DEFAULT_TEMPERATURE_RANGE
 
@@ -208,6 +258,19 @@ class TestControllerTemperatureRange(unittest.TestCase):
         assert self._sent_temperature(device, 9000) == 6500
         assert self._sent_temperature(device, 2000) == 2700
         assert self._sent_temperature(device, 4000) == 4000
+
+    def test_set_color_clamps_to_the_device_override(self):
+        device = GoveeDevice(
+            self.controller,
+            "192.168.1.100",
+            "AA:BB:CC:DD:EE:FF",
+            "H6001",
+            BASIC_CAPABILITIES,
+            temperature_range=(3000, 6000),
+        )
+
+        assert self._sent_temperature(device, 9000) == 6000
+        assert self._sent_temperature(device, 2000) == 3000
 
     def test_h60a6_temperature_commands_match_its_hardware_range(self):
         device = GoveeDevice(
