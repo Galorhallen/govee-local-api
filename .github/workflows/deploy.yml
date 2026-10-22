@@ -34,15 +34,13 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      # Building needs only uv (uv_build backend) — no dependency
+      # install, no git history.
+      - uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.13"
-      # Building needs only Poetry itself (poetry-core backend) — no
-      # dependency install, no git history.
-      - uses: snok/install-poetry@v1
       - name: Build package
-        run: poetry build
+        run: uv build
       - name: Publish package
         uses: pypa/gh-action-pypi-publish@v1.13.0
         with:
