@@ -1,3 +1,5 @@
+from importlib.metadata import PackageNotFoundError, version
+
 from .controller import GoveeController
 from .device import GoveeDevice
 from .light_capabilities import (
@@ -16,4 +18,7 @@ __all__ = [
     "DEFAULT_TEMPERATURE_RANGE",
 ]
 
-__version__ = "3.1.1"
+try:
+    __version__ = version("govee-local-api")
+except PackageNotFoundError:  # imported from a source tree without being installed
+    __version__ = "0.0.0"

@@ -43,17 +43,14 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      # Poetry must be on PATH before setup-python so its cache: poetry
-      # integration can resolve the environment from poetry.lock.
-      - uses: snok/install-poetry@v1
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+      - name: Set up uv and Python ${{ matrix.python-version }}
+        uses: astral-sh/setup-uv@v6
         with:
           python-version: ${{ matrix.python-version }}
-          cache: poetry
+          enable-cache: true
       - name: Install dependencies
         run: |
-          poetry install --no-interaction --no-root
+          uv sync --locked
       - name: Test with pytest
         run: |
-          poetry run pytest
+          uv run pytest
