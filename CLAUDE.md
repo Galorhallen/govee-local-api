@@ -8,14 +8,14 @@ Python library (`govee-local-api`) for communicating with Govee smart light devi
 
 ## Build & Development
 
-Uses **Poetry** for dependency management. Python >= 3.11.
+Uses **uv** for dependency management (`uv.lock`, `uv_build` backend). Python >= 3.11.
 
 ```bash
-poetry install --no-interaction --no-root   # Install dependencies
-poetry run pytest                            # Run all tests
-poetry run pytest tests/test_message.py      # Run a single test file
-poetry run pytest -k test_scan_message       # Run a single test
-poetry build                                 # Build package
+uv sync                                  # Install dependencies (incl. dev group)
+uv run pytest                            # Run all tests
+uv run pytest tests/test_message.py      # Run a single test file
+uv run pytest -k test_scan_message       # Run a single test
+uv build                                 # Build package
 ```
 
 ## Linting
@@ -44,7 +44,7 @@ To add a new Govee device model, add an entry to `GOVEE_LIGHT_CAPABILITIES` in `
 
 ## Key Conventions
 
-- Version is maintained in both `pyproject.toml` and `src/govee_local_api/__init__.py`
+- Version lives only in `pyproject.toml` (bump with `uv version --bump <part>`); `__version__` reads it from the installed package metadata
 - Tests are in `tests/` and use plain pytest (no fixtures framework)
 - `pythonpath = "src"` is configured in pytest settings — imports use `govee_local_api.*`
 - CI tests against Python 3.11, 3.12, and 3.13
