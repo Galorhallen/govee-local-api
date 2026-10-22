@@ -185,6 +185,23 @@ Register a model with a custom range in `GOVEE_LIGHT_CAPABILITIES`:
 ),
 ```
 
+### Library Scenes
+
+`set_scene()` sends one of a small built-in list of scene codes, which only
+matches some models. Scenes from Govee's per-model scene library (the ones the
+Govee app shows) can be sent with their library code and parameter blob:
+
+```python
+# "Halloween B" on an H706C: sceneCode and base64-decoded scenceParam
+# from the model's scene library entry
+await device.set_scene_code(11158, scene_param)
+
+await device.set_scene_code(8)   # a scene without parameters
+```
+
+Obtaining the library is outside the scope of this package. The encoding is the
+one used by [govee2mqtt](https://github.com/wez/govee2mqtt).
+
 ## Documentation
 
 - **[Supported Devices](SUPPORTED_DEVICES.md)** - Auto-generated list of known device models and their capabilities

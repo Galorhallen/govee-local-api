@@ -151,6 +151,53 @@ class SceneMessages(PtRealMessage):
         super().__init__([data])
 
 
+class SceneCodeMessage(PtRealMessage):
+    """Activate a scene from Govee's per-model scene library.
+
+    ``scene_code`` and ``scene_param`` are the library entry's ``sceneCode``
+    and its base64-decoded ``scenceParam``. A non-empty parameter blob is
+    sent first as a run of ``0xa3`` frames (the first one also carries the
+    frame count, the last one is indexed ``0xff``), then a
+    ``33 05 04 <code lo> <code hi>`` frame activates the scene. Scenes
+    without parameters are a single activation frame, identical to
+    ``SceneMessages``. Encoding follows wez/govee2mqtt (``src/ble.rs``,
+    ``SetSceneCode::encode``).
+    """
+
+    FRAME_PAYLOAD_SIZE = 19  # 20-byte BLE frame minus the checksum byte
+
+    def __init__(self, scene_code: int, scene_param: bytes = b"") -> None:
+        if not 0 <= scene_code <= 0xFFFF:
+            raise ValueError(f"scene_code must be between 0 and 65535: {scene_code}")
+        frames = self._parameter_frames(scene_param) if scene_param else []
+        activation = b"\x33\x05\x04" + scene_code.to_bytes(2, "little")
+        frames.append(activation.ljust(self.FRAME_PAYLOAD_SIZE, b"\x00"))
+        super().__init__(frames)
+
+    @classmethod
+    def _parameter_frames(cls, scene_param: bytes) -> list[bytes]:
+        # Header a3 00 01 <frame count> 02, then the parameter bytes; every
+        # further frame starts with a3 <frame index>.
+        stream = bytearray(b"\xa3\x00\x01\x00\x02")
+        frame_count = 0
+        last_index_position = 1
+        for byte in scene_param:
+            if len(stream) % cls.FRAME_PAYLOAD_SIZE == 0:
+                frame_count += 1
+                stream.append(0xA3)
+                last_index_position = len(stream)
+                stream.append(frame_count)
+            stream.append(byte)
+        stream[last_index_position] = 0xFF
+        stream[3] = frame_count + 1
+        return [
+            bytes(stream[offset : offset + cls.FRAME_PAYLOAD_SIZE]).ljust(
+                cls.FRAME_PAYLOAD_SIZE, b"\x00"
+            )
+            for offset in range(0, len(stream), cls.FRAME_PAYLOAD_SIZE)
+        ]
+
+
 class ScanResponse(GoveeMessage):
     command = "scan"
 

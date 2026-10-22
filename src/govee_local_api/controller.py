@@ -23,6 +23,7 @@ from .message import (
     HexMessage,
     BrightnessMessage,
     ColorMessage,
+    SceneCodeMessage,
     SceneMessages,
     GoveeMessage,
     MessageResponseFactory,
@@ -747,6 +748,18 @@ class GoveeController:
             )
             return
         self._send_message(SceneMessages(scene_code), device)
+
+    async def set_scene_code(
+        self, device: GoveeDevice, scene_code: int, scene_param: bytes = b""
+    ) -> None:
+        """Activate a scene by its library code and optional parameter blob."""
+        if (
+            not device.capabilities
+            or device.capabilities.features & GoveeLightFeatures.SCENES == 0
+        ):
+            self._logger.warning("Scenes are not supported by device %s", device)
+            return
+        self._send_message(SceneCodeMessage(scene_code, scene_param), device)
 
     async def set_brightness(self, device: GoveeDevice, brightness: int) -> None:
         self._send_message(BrightnessMessage(brightness), device)

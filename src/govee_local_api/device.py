@@ -157,6 +157,9 @@ class GoveeDevice:
     async def set_scene(self, scene: str) -> None:
         await self._controller.set_scene(self, scene)
 
+    async def set_scene_code(self, scene_code: int, scene_param: bytes = b"") -> None:
+        await self._controller.set_scene_code(self, scene_code, scene_param)
+
     async def send_raw_command(self, command: str) -> None:
         await self._controller.send_raw_command(self, command)
 
