@@ -46,7 +46,7 @@ class GoveeDevice:
         # Per-device override; kept off the capabilities object because
         # capabilities are shared by every device of the same model.
         self._temperature_range: GoveeTemperatureRange | None = None
-        self._set_temperature_range(temperature_range)
+        self.temperature_range = temperature_range
 
         self._is_on: bool = False
         self._rgb_color = (0, 0, 0)
@@ -116,9 +116,6 @@ class GoveeDevice:
     @temperature_range.setter
     def temperature_range(self, temperature_range: tuple[int, int] | None) -> None:
         """Override the model's Kelvin range; None restores it."""
-        self._set_temperature_range(temperature_range)
-
-    def _set_temperature_range(self, temperature_range: tuple[int, int] | None) -> None:
         self._temperature_range = (
             None
             if temperature_range is None
