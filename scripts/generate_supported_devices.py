@@ -15,7 +15,6 @@ sys.path.insert(0, str(REPO_ROOT / "src"))
 from govee_local_api.light_capabilities import (  # noqa: E402
     DEFAULT_TEMPERATURE_RANGE,
     GOVEE_LIGHT_CAPABILITIES,
-    SCENE_CODES,
     GoveeLightFeatures,
 )
 
@@ -30,7 +29,6 @@ def _mark(features: GoveeLightFeatures, flag: GoveeLightFeatures) -> str:
 
 
 def generate() -> str:
-    scene_names = ", ".join(SCENE_CODES)
     lines = [
         "# Supported Devices",
         "",
@@ -43,10 +41,11 @@ def generate() -> str:
         " is missing or its capabilities are wrong, please"
         " [open an issue](https://github.com/Galorhallen/govee-local-api/issues).",
         "",
-        "Scene support refers to the library's built-in 1-byte scene codes"
-        f" ({scene_names}). Models marked {YES} honour all of them; models that"
-        " list scene names honour only those, per Govee's per-model scene"
-        f" library; models marked {NO} honour none.",
+        "Scenes are each model's firmware scenes from Govee's per-model scene"
+        " library (generated into `model_scenes.json` by"
+        " `scripts/generate_model_scenes.py`): the ones that play from their"
+        f" scene code alone. Models marked {NO} have none. Scenes that need a"
+        " parameter blob can still be sent with `set_scene_code()`.",
         "",
         "Color temperature defaults to"
         f" {DEFAULT_TEMPERATURE_RANGE.min_kelvin}-"
@@ -64,12 +63,7 @@ def generate() -> str:
         segments = (
             str(capabilities.segments_count) if capabilities.segments_count else "-"
         )
-        if not capabilities.scenes:
-            scenes = NO
-        elif set(capabilities.scenes) == set(SCENE_CODES):
-            scenes = YES
-        else:
-            scenes = ", ".join(capabilities.available_scenes)
+        scenes = ", ".join(capabilities.available_scenes) or NO
         if features & GoveeLightFeatures.COLOR_KELVIN_TEMPERATURE:
             min_kelvin, max_kelvin = capabilities.temperature_range
             temperature_range = f"{min_kelvin}-{max_kelvin}"
