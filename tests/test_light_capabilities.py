@@ -157,11 +157,38 @@ def test_models_with_the_same_scene_set_share_it():
 
 def test_h619a_keeps_only_the_firmware_variant_of_multi_variant_scenes():
     scenes = GOVEE_LIGHT_CAPABILITIES["H619A"].scenes
-    # Variant A plays from its code alone; variant B needs a parameter blob.
-    assert scenes["snow flake a"] == b"\x0f"
-    assert scenes["energetic a"] == b"\x10"
-    assert "snow flake b" not in scenes
-    assert "energetic b" not in scenes
+    # Variant A plays from its code alone; variant B needs a parameter blob
+    # and is dropped, so the variant letter is dropped with it.
+    assert scenes["snow flake"] == b"\x0f"
+    assert scenes["energetic"] == b"\x10"
+    assert scenes["rainbow"] == b"\x16"
+    assert not {"snow flake a", "snow flake b", "energetic a", "rainbow a"} & set(
+        scenes
+    )
+
+
+def test_govee_variant_letter_is_dropped_when_its_sibling_is_not_kept():
+    # H70B8 lists "Aurora" (blob only) and "Aurora B" (firmware): only the
+    # firmware twin is kept, so its letter tells nothing apart.
+    scenes = GOVEE_LIGHT_CAPABILITIES["H70B8"].scenes
+    assert scenes["aurora"] == b"\x6b"
+    assert scenes["rainbow heart"] == b"\x74"
+    assert not {"aurora b", "rainbow b", "rainbow heart b"} & set(scenes)
+
+
+def test_govee_variant_letter_stays_next_to_its_kept_sibling():
+    # "Shiny" and "Shiny B" are both firmware scenes on H6870.
+    scenes = GOVEE_LIGHT_CAPABILITIES["H6870"].scenes
+    assert "shiny" in scenes
+    assert "shiny b" in scenes
+    assert scenes["shiny"] != scenes["shiny b"]
+
+
+def test_no_model_lists_the_same_scene_code_twice():
+    # Two names for one code would mean a variant was split in two.
+    for sku, capabilities in GOVEE_LIGHT_CAPABILITIES.items():
+        codes = list(capabilities.scenes.values())
+        assert len(codes) == len(set(codes)), sku
 
 
 def test_h60a0_uses_its_own_codes_for_sunrise_and_sunset():

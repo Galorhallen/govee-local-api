@@ -21,12 +21,13 @@ or regenerate one derived file from an existing library (no requests) with
 """
 
 import argparse
-from collections import defaultdict
+from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor
 import hashlib
 import json
 import logging
 from pathlib import Path
+import re
 import sys
 import threading
 import time
@@ -56,6 +57,8 @@ SCENE_DEVICES_FILE = "scene_devices.json"
 MODEL_SCENES_FILE = REPO_ROOT / "src" / "govee_local_api" / "data" / "model_scenes.json"
 # Firmware scenes: the only type whose codes play without a parameter blob.
 MODEL_SCENE_TYPE = 0
+# " B" in "Aurora B": a single capital letter ending a scene name.
+VARIANT_SUFFIX = re.compile(r" [A-Z]$")
 
 Library = dict[str, list[dict[str, Any]]]
 
@@ -84,14 +87,18 @@ def fetch_library(sku: str) -> dict[str, Any]:
 def extract_scenes(
     data: dict[str, Any], scene_type: int | None
 ) -> list[dict[str, Any]]:
-    """Flatten the library into [{name, code, type, effects, param}],
-    skipping sceneCode 0.
+    """Flatten the library into [{name, code, type, effects, param,
+    scene_id, scene, variant}], skipping sceneCode 0.
 
     Scenes are filtered on the scene node's sceneType (`scene_type=None`
     keeps every type). The usable sceneCode lives on each scene's
     lightEffects; a scene with several effects gets the effect name appended
     to tell them apart, and `effects` records how many it has. `param` is
-    whether the effect needs a scenceParam blob to play.
+    whether the effect needs a scenceParam blob to play. `scene_id`, `scene`
+    and `variant` keep the scene node's id, its own name and the effect's
+    variant letter ("" for single-effect scenes) apart from `name`, so
+    build_model_scenes can tell an appended variant letter from a letter that
+    is part of Govee's scene name ("Sunset B").
     """
     scenes = []
     for category in data.get("categories", []):
@@ -113,6 +120,11 @@ def extract_scenes(
                         "type": scene.get("sceneType"),
                         "effects": len(effects),
                         "param": bool(effect.get("scenceParam")),
+                        "scene_id": scene.get("sceneId"),
+                        "scene": scene.get("sceneName", ""),
+                        "variant": (
+                            effect.get("scenceName", "") if len(effects) > 1 else ""
+                        ),
                     }
                 )
     return scenes
@@ -144,7 +156,14 @@ def build_model_scenes(library: Library) -> dict[str, dict[str, Any]]:
     {sku: id | None}}.
 
     Keeps firmware scenes only (sceneType 0, no scenceParam blob), with
-    lowercase names as the library's scene keys. Models with the same scenes
+    lowercase names as the library's scene keys. Variant letters only appear
+    where they tell two kept scenes apart: an effect's variant is appended
+    only when two or more variants of the same scene are kept, and a variant
+    letter in Govee's own scene name ("Aurora B", the firmware twin of a
+    blob-only "Aurora") is dropped unless another kept scene already has the
+    name without it ("shiny" next to "shiny b"). Two kept scenes with the
+    same name raise ValueError rather than one silently replacing the other.
+    Models with the same scenes
     share one set; a set's id is a hash of its contents, so regenerating
     keeps unchanged ids stable. Models without firmware scenes map to None, so
     the file records every model that was checked. Models no longer in
@@ -163,25 +182,36 @@ def build_model_scenes(library: Library) -> dict[str, dict[str, Any]]:
     for sku, scenes in library.items():
         if sku not in GOVEE_LIGHT_CAPABILITIES:
             continue
+        if any("scene_id" not in scene for scene in scenes):
+            raise ValueError(
+                f"{sku}: library entries lack 'scene_id'; refetch the library"
+            )
+        kept = [
+            scene
+            for scene in scenes
+            if scene["type"] == MODEL_SCENE_TYPE and not scene["param"]
+        ]
+        kept_variants = Counter(scene["scene_id"] for scene in kept)
+        named = []
+        for scene in kept:
+            name = scene["scene"]
+            if kept_variants[scene["scene_id"]] > 1 and scene["variant"]:
+                name = f"{name} {scene['variant']}"
+            named.append((name, scene["code"]))
+        # A trailing capital letter is a variant marker (Govee only uses
+        # A-D there); drop it when no other kept scene shares the base name.
+        bases = Counter(VARIANT_SUFFIX.sub("", name).lower() for name, _ in named)
         model_scenes: dict[str, int] = {}
-        for scene in scenes:
-            if "param" not in scene:
-                raise ValueError(
-                    f"{sku}: library entries lack 'param'; refetch the library"
-                )
-            if scene["type"] != MODEL_SCENE_TYPE or scene["param"]:
-                continue
-            name, code = scene["name"].lower(), scene["code"]
+        for name, code in named:
+            base = VARIANT_SUFFIX.sub("", name)
+            name = (base if bases[base.lower()] == 1 else name).lower()
             if code > 0xFF:
                 # SceneMessages carries a single code byte.
                 _LOGGER.warning("%s: skipping %r, code %d > 255", sku, name, code)
             elif name in model_scenes:
-                _LOGGER.warning(
-                    "%s: skipping duplicate %r (code %d, kept %d)",
-                    sku,
-                    name,
-                    code,
-                    model_scenes[name],
+                raise ValueError(
+                    f"{sku}: two scenes named {name!r} "
+                    f"(codes {model_scenes[name]} and {code})"
                 )
             else:
                 model_scenes[name] = code

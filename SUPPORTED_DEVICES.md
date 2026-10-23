@@ -23,9 +23,9 @@ Color temperature defaults to 2000-9000 K; models with a narrower or wider range
 | H16B0 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, lava, ripple, fireworks, white light, reading, work, breathe, gradient, graffiti, strike, gleam, dripping, crossing, night light |
 | H16C0 | ✅ | ✅ | 2000-9000 | ✅ | 7 | ripple, rainbow, white light, leisure, night light, fireworks, drinks, stacking, greedy snake, bouncing ball, strike, bubble, crossing |
 | H1A43 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, snow flake, white light, illumination, gradient |
-| H1A45 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, snow flake, sunset b, white light, illumination, gradient |
-| H2A40 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
-| H2A41 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
+| H1A45 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, snow flake, sunset, white light, illumination, gradient |
+| H2A40 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H2A41 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
 | H3200 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, seasonal, sunset, white light |
 | H3500 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, white light |
 | H3501 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, white light |
@@ -41,7 +41,7 @@ Color temperature defaults to 2000-9000 K; models with a narrower or wider range
 | H6020 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, forest, ocean, wave, fire, snow flake, white light, reading, illumination, work, starry sky, joyful, night light |
 | H6022 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, forest, ocean, wave, snow flake, fire, white light, reading, night light, joyful, starry sky |
 | H6038 | ✅ | ✅ | 2000-9000 | ✅ | - | sunrise, sunset, rainbow, snow flake, fireworks, white light, work, reading, romantic, crossing |
-| H6039 | ✅ | ✅ | 2000-9000 | ✅ | 12 | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
+| H6039 | ✅ | ✅ | 2000-9000 | ✅ | 12 | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
 | H6042 | ✅ | ✅ | 2000-9000 | ✅ | 5 | aurora, stream, rainbow |
 | H6043 | ✅ | ❌ | - | ✅ | 10 | aurora, stream, rainbow |
 | H6046 | ✅ | ✅ | 2000-9000 | ✅ | 10 | aurora, snow flake, seasonal, stream, rainbow, reading, movie, candlelight, romantic, breathe, energetic, crossing |
@@ -62,7 +62,7 @@ Color temperature defaults to 2000-9000 K; models with a narrower or wider range
 | H606A | ✅ | ✅ | 2000-9000 | ✅ | - | ❌ |
 | H6072 | ✅ | ✅ | 2000-9000 | ✅ | 8 | ocean, forest, sunset glow, ripple, rainbow, white light, leisure, night light, romantic, fireworks, breathe, gradient, energetic, christmas, stacking, greedy snake, bouncing ball, strike, bubble, crossing |
 | H6073 | ✅ | ✅ | 2000-9000 | ✅ | - | afternoon |
-| H6076 | ✅ | ✅ | 2700-6500 | ✅ | 7 | night light, fireworks, white light, stacking, bouncing ball, bubble, rainbow a, meteor, ripple |
+| H6076 | ✅ | ✅ | 2700-6500 | ✅ | 7 | night light, fireworks, white light, stacking, bouncing ball, bubble, rainbow, meteor, ripple |
 | H6076A | ✅ | ✅ | 2000-9000 | ✅ | - | ❌ |
 | H6078 | ✅ | ✅ | 2000-9000 | ✅ | - | work, sleep, rainbow, aurora, fire, water drop, gradient, meditation, candy crush, greedy snake, flow |
 | H6079 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, lava, ripple, fireworks, white light, reading, work, breathe, gradient, graffiti, gleam, dripping, crossing, strike, night light |
@@ -80,93 +80,93 @@ Color temperature defaults to 2000-9000 K; models with a narrower or wider range
 | H60A0 | ✅ | ✅ | 2000-9000 | ✅ | - | sunrise, sunset, candlelight, night light, work, leisure |
 | H60A1 | ✅ | ✅ | 2200-6500 | ✅ | 13 | sunrise, sunset, candlelight, white light, night light, work, leisure |
 | H60A4 | ✅ | ✅ | 2000-9000 | ✅ | 11 | sunrise, sunset, white light, work, reading |
-| H60A6 | ✅ | ✅ | 2700-6500 | ✅ | - | white light, illumination, blue sky & white clouds, relax, peaceful, radiance, ribbon, garden, sunset b, color split, clear lake |
+| H60A6 | ✅ | ✅ | 2700-6500 | ✅ | - | white light, illumination, blue sky & white clouds, relax, peaceful, radiance, ribbon, garden, sunset, color split, clear lake |
 | H60B0 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, moonlight, white light, leisure, gradient, breathe, twinkle, graffiti, flow, alternate, gleam, cover, colorful, colorful clouds, moonlight sprinkles, blue sky & white clouds, dense fog |
 | H60B1 | ✅ | ✅ | 2000-9000 | ✅ | 3 | sunset, white light, illumination |
-| H60B2 | ✅ | ✅ | 2000-9000 | ✅ | 3 | sunrise b, sunset b, rainbow, stream, white light, gradient, breathe, jumping, twinkle, marquee, gleam, graffiti, dripping |
+| H60B2 | ✅ | ✅ | 2000-9000 | ✅ | 3 | sunrise, sunset, rainbow, stream, white light, gradient, breathe, jumping, twinkle, marquee, gleam, graffiti, dripping |
 | H60C1 | ✅ | ✅ | 2000-9000 | ✅ | 3 | rainbow, white light, illumination, sunset |
 | H610A | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, rainbow, flowing light, breathe, stacking, greedy snake |
 | H610B | ✅ | ✅ | 2000-9000 | ✅ | - | ❌ |
 | H610E | ✅ | ✅ | 2000-9000 | ✅ | 7 | ❌ |
 | H610F | ✅ | ✅ | 2000-9000 | ✅ | 7 | ❌ |
 | H6110 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, candlelight, dating, romantic, twinkle, movie, breathe, energetic |
-| H6117 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
-| H612A | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
-| H612B | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
-| H612C | ✅ | ✅ | 2000-9000 | ✅ | 10 | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
-| H612D | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
+| H6117 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H612A | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H612B | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H612C | ✅ | ✅ | 2000-9000 | ✅ | 10 | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H612D | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
 | H612F | ✅ | ✅ | 2800-9000 | ✅ | 5 | sunset, rainbow, candlelight, romantic, movie, energetic, twinkle, breathe |
 | H6141 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, candlelight, dating, romantic, twinkle, movie, breathe, energetic |
-| H6143 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
-| H6144 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
+| H6143 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H6144 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
 | H6159 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, candlelight, dating, romantic, twinkle, movie, breathe, energetic |
 | H615A | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, candlelight, dating, romantic, twinkle, movie, breathe, energetic |
 | H615B | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, candlelight, dating, romantic, twinkle, movie, breathe, energetic |
 | H615C | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, candlelight, dating, romantic, twinkle, movie, breathe, energetic |
 | H615D | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, candlelight, dating, romantic, twinkle, movie, breathe, energetic |
 | H615E | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, candlelight, dating, romantic, twinkle, movie, breathe, energetic |
-| H6163 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
+| H6163 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
 | H6167 | ✅ | ✅ | 2000-9000 | ✅ | 12 | sunset, rainbow, candlelight, romantic, movie, energetic, twinkle, breathe |
-| H6168 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
-| H6169 | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
-| H616C | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
-| H616D | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
-| H616E | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
-| H6172 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
-| H6173 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
-| H6175 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
-| H6176 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
-| H617E | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
+| H6168 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H6169 | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H616C | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H616D | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H616E | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H6172 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H6173 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H6175 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H6176 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H617E | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
 | H6182 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, candlelight, dating, romantic, twinkle, movie, breathe, energetic |
 | H618A | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, rainbow, candlelight, romantic, movie, energetic, twinkle, breathe |
-| H618C | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
-| H618E | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
-| H618F | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
-| H618G | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
-| H619A | ✅ | ✅ | 2000-9000 | ✅ | 10 | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
-| H619B | ✅ | ✅ | 2000-9000 | ✅ | 10 | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
-| H619C | ✅ | ✅ | 2000-9000 | ✅ | 10 | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
-| H619D | ✅ | ✅ | 2000-9000 | ✅ | 10 | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
-| H619E | ✅ | ✅ | 2000-9000 | ✅ | 10 | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
+| H618C | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H618E | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H618F | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H618G | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H619A | ✅ | ✅ | 2000-9000 | ✅ | 10 | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H619B | ✅ | ✅ | 2000-9000 | ✅ | 10 | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H619C | ✅ | ✅ | 2000-9000 | ✅ | 10 | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H619D | ✅ | ✅ | 2000-9000 | ✅ | 10 | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H619E | ✅ | ✅ | 2000-9000 | ✅ | 10 | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
 | H619Z | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, rainbow, candlelight, romantic, movie, energetic, twinkle, breathe |
-| H61A0 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
-| H61A1 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
-| H61A2 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
-| H61A3 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
-| H61A5 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
-| H61A8 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
-| H61A9 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
-| H61B1 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
-| H61B2 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
-| H61B3 | ✅ | ✅ | 2000-7200 | ✅ | 15 | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
-| H61B5 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
-| H61B6 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
-| H61B8 | ✅ | ✅ | 2000-9000 | ✅ | 15 | rainbow, snow flake, sunset b, white light, illumination, gradient |
-| H61B9 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, snow flake, sunset b, white light, illumination, gradient |
-| H61BA | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
-| H61BC | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
-| H61BE | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
-| H61C2 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
-| H61C3 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
-| H61C5 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
+| H61A0 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H61A1 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H61A2 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H61A3 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H61A5 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H61A8 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H61A9 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H61B1 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H61B2 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H61B3 | ✅ | ✅ | 2000-7200 | ✅ | 15 | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H61B5 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H61B6 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H61B8 | ✅ | ✅ | 2000-9000 | ✅ | 15 | rainbow, snow flake, sunset, white light, illumination, gradient |
+| H61B9 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, snow flake, sunset, white light, illumination, gradient |
+| H61BA | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H61BC | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H61BE | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H61C2 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H61C3 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H61C5 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
 | H61D3 | ✅ | ✅ | 2000-9000 | ✅ | 15 | rainbow, snow flake, romantic, movie, gradient |
 | H61D4 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, snow flake, romantic, movie, gradient |
 | H61D5 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, snow flake, romantic, movie, gradient |
 | H61D6 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, snow flake, romantic, movie, gradient |
-| H61E0 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
-| H61E1 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
+| H61E0 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H61E1 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
 | H61E5 | ✅ | ✅ | 2000-9000 | ✅ | 12 | sunset, snow flake, rainbow, candlelight, white light, romantic, movie, crossing, study, business, reading, work, dinner, twinkle, breathe, energetic |
 | H61E6 | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow flake, rainbow, candlelight, white light, romantic, movie, crossing, study, business, reading, work, dinner, twinkle, breathe, energetic |
 | H61F2 | ✅ | ✅ | 2000-9000 | ✅ | 4 | rainbow, snow flake, white light, illumination, gradient |
-| H61F5 | ✅ | ✅ | 2000-9000 | ✅ | 10 | rainbow, snow flake, sunset b, white light, illumination, gradient |
+| H61F5 | ✅ | ✅ | 2000-9000 | ✅ | 10 | rainbow, snow flake, sunset, white light, illumination, gradient |
 | H61F6 | ✅ | ✅ | 2000-9000 | ✅ | 15 | rainbow, snow flake, white light, illumination, gradient |
-| H6609 | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
+| H6609 | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
 | H6630 | ✅ | ✅ | 2000-9000 | ✅ | - | white light |
 | H6631 | ✅ | ✅ | 2000-9000 | ✅ | - | white light |
-| H6640 | ✅ | ✅ | 2000-9000 | ✅ | 14 | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
-| H6641 | ✅ | ✅ | 2000-9000 | ✅ | 14 | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
-| H6671 | ✅ | ✅ | 2000-9000 | ✅ | 14 | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
-| H6672 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
+| H6640 | ✅ | ✅ | 2000-9000 | ✅ | 14 | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H6641 | ✅ | ✅ | 2000-9000 | ✅ | 14 | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H6671 | ✅ | ✅ | 2000-9000 | ✅ | 14 | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H6672 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
 | H6800 | ✅ | ✅ | 2000-9000 | ✅ | - | countdown, valentine's day, new years, meteor, star, bubble, rainbow, aircraft battle, ring toss, lottery machine, poker, dodging, stack |
 | H6810 | ✅ | ✅ | 2000-9000 | ✅ | - | bubble, rainbow, star, meteor, christmas tree, countdown, valentine's day, ring toss, bouncing ball, lottery machine, maze, racing, dodging, stack |
 | H6811 | ✅ | ✅ | 2000-9000 | ✅ | - | bubble, rainbow, star, meteor, christmas tree, countdown, valentine's day, ring toss, bouncing ball, lottery machine, maze, racing, dodging, stack |
@@ -232,18 +232,18 @@ Color temperature defaults to 2000-9000 K; models with a narrower or wider range
 | H707A | ✅ | ✅ | 2000-9000 | ✅ | - | white light, sunset, rainbow |
 | H707B | ✅ | ✅ | 2000-9000 | ✅ | - | white light, sunset, rainbow |
 | H707C | ✅ | ✅ | 2000-9000 | ✅ | - | white light, sunset, rainbow |
-| H7086 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, rainbow a, white light, illumination |
+| H7086 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, rainbow, white light, illumination |
 | H7087 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, white light, illumination |
 | H7093 | ✅ | ✅ | 2000-9000 | ✅ | 2 | rainbow, seasonal, sunset, white light |
 | H7094 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, seasonal, sunset, white light |
-| H70A1 | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
-| H70A2 | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
-| H70A3 | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow flake a, rainbow a, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic a |
+| H70A1 | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H70A2 | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H70A3 | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
 | H70B1 | ✅ | ✅ | 2000-9000 | ✅ | - | bubble, rainbow, star, meteor, christmas tree, countdown, valentine's day, aircraft battle, ring toss, bouncing ball, lottery machine, poker, dodging, maze, racing, tic-tac-toe, stack |
 | H70B3 | ✅ | ✅ | 2000-9000 | ✅ | - | bubble, rainbow, star, meteor, christmas tree, countdown, valentine's day, aircraft battle, ring toss, bouncing ball, lottery machine, poker, dodging, maze, racing, tic-tac-toe, stack |
 | H70B5 | ✅ | ✅ | 2000-9000 | ✅ | 3 | bubble, rainbow, star, meteor, christmas tree, valentine's day, santa claus, happy new year, aircraft battle, ring toss, bouncing ball, lottery machine, poker, maze, racing, stack, camping, beach |
-| H70B6 | ✅ | ✅ | 2000-9000 | ✅ | - | sunflower field, reel, highway driving, love gift box, easter egg, happy new year, wave b, meadow breeze, aurora b, rainbow b, sunset b, rainbow heart b, mars, cool, whack-a-mole b, goldfish in bowl, white light |
-| H70B8 | ✅ | ✅ | 2000-9000 | ✅ | - | reel, city racing, whack-a-mole b, train, station, sunset, aurora b, rainbow b, wave, meadow breeze, white light, vitruvian man, sunflower field, trolley under streetlight, collision, rainbow heart b, satellite orbiting, planet, hot |
+| H70B6 | ✅ | ✅ | 2000-9000 | ✅ | - | sunflower field, reel, highway driving, love gift box, easter egg, happy new year, wave, meadow breeze, aurora, rainbow, sunset, rainbow heart, mars, cool, whack-a-mole, goldfish in bowl, white light |
+| H70B8 | ✅ | ✅ | 2000-9000 | ✅ | - | reel, city racing, whack-a-mole, train, station, sunset, aurora, rainbow, wave, meadow breeze, white light, vitruvian man, sunflower field, trolley under streetlight, collision, rainbow heart, satellite orbiting, planet, hot |
 | H70BC | ✅ | ✅ | 2000-9000 | ✅ | - | bubble, rainbow, star, meteor, christmas tree, countdown, valentine's day, ring toss, bouncing ball, dodging, racing, stack |
 | H70C1 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake, rainbow, candlelight, romantic, movie, crossing, twinkle, breathe, energetic |
 | H70C2 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow flake, rainbow, candlelight, romantic, movie, crossing, twinkle, breathe, energetic |
@@ -270,7 +270,7 @@ Color temperature defaults to 2000-9000 K; models with a narrower or wider range
 | H8066 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, seasonal, sunset, white light |
 | H8069 | ✅ | ✅ | 2000-9000 | ✅ | - | ❌ |
 | H8072 | ✅ | ✅ | 2000-9000 | ✅ | 8 | ocean, forest, sunset glow, ripple, rainbow, white light, leisure, night light, romantic, fireworks, breathe, gradient, energetic, christmas, stacking, greedy snake, bouncing ball, strike, bubble, crossing |
-| H8076 | ✅ | ✅ | 2000-9000 | ✅ | - | night light, fireworks, white light, stacking, bouncing ball, bubble, rainbow a, meteor, ripple |
+| H8076 | ✅ | ✅ | 2000-9000 | ✅ | - | night light, fireworks, white light, stacking, bouncing ball, bubble, rainbow, meteor, ripple |
 | H8076A | ✅ | ✅ | 2000-9000 | ✅ | - | ❌ |
 | H807C | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, lava, ripple, fireworks, white light, reading, work, breathe, gradient, graffiti, strike, gleam, dripping, crossing, night light |
 | H808A | ✅ | ✅ | 2000-9000 | ✅ | 5 | sunset, rainbow, work, movie, romantic |
