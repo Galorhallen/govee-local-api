@@ -1,5 +1,6 @@
 from importlib.resources import files
 import json
+import re
 
 import pytest
 
@@ -136,9 +137,10 @@ def test_model_scenes_file_is_consistent():
     for set_id, scenes in data["sets"].items():
         assert scenes, set_id
         for name, code in scenes.items():
-            # SceneMessages carries one code byte; keys are lowercase names.
+            # SceneMessages carries one code byte; keys are valid Home
+            # Assistant translation keys, which must match [a-z0-9-_]+.
             assert 0 < code <= 0xFF, (set_id, name)
-            assert name == name.lower(), (set_id, name)
+            assert re.fullmatch(r"[a-z0-9_-]+", name), (set_id, name)
 
 
 def test_model_scenes_file_covers_exactly_the_registry():
@@ -152,17 +154,17 @@ def test_models_with_the_same_scene_set_share_it():
     h1232, h1250 = (GOVEE_LIGHT_CAPABILITIES[sku] for sku in ("H1232", "H1250"))
     assert data["models"]["H1232"] == data["models"]["H1250"]
     assert h1232 is h1250
-    assert h1232.scenes == {"white light": b"\x63", "illumination": b"\x19"}
+    assert h1232.scenes == {"white_light": b"\x63", "illumination": b"\x19"}
 
 
 def test_h619a_keeps_only_the_firmware_variant_of_multi_variant_scenes():
     scenes = GOVEE_LIGHT_CAPABILITIES["H619A"].scenes
     # Variant A plays from its code alone; variant B needs a parameter blob
     # and is dropped, so the variant letter is dropped with it.
-    assert scenes["snow flake"] == b"\x0f"
+    assert scenes["snow_flake"] == b"\x0f"
     assert scenes["energetic"] == b"\x10"
     assert scenes["rainbow"] == b"\x16"
-    assert not {"snow flake a", "snow flake b", "energetic a", "rainbow a"} & set(
+    assert not {"snow_flake_a", "snow_flake_b", "energetic_a", "rainbow_a"} & set(
         scenes
     )
 
@@ -172,16 +174,16 @@ def test_govee_variant_letter_is_dropped_when_its_sibling_is_not_kept():
     # firmware twin is kept, so its letter tells nothing apart.
     scenes = GOVEE_LIGHT_CAPABILITIES["H70B8"].scenes
     assert scenes["aurora"] == b"\x6b"
-    assert scenes["rainbow heart"] == b"\x74"
-    assert not {"aurora b", "rainbow b", "rainbow heart b"} & set(scenes)
+    assert scenes["rainbow_heart"] == b"\x74"
+    assert not {"aurora_b", "rainbow_b", "rainbow_heart_b"} & set(scenes)
 
 
 def test_govee_variant_letter_stays_next_to_its_kept_sibling():
     # "Shiny" and "Shiny B" are both firmware scenes on H6870.
     scenes = GOVEE_LIGHT_CAPABILITIES["H6870"].scenes
     assert "shiny" in scenes
-    assert "shiny b" in scenes
-    assert scenes["shiny"] != scenes["shiny b"]
+    assert "shiny_b" in scenes
+    assert scenes["shiny"] != scenes["shiny_b"]
 
 
 def test_no_model_lists_the_same_scene_code_twice():
