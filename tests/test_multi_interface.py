@@ -191,6 +191,7 @@ class TestSendMessageTransportPreference(unittest.TestCase):
     """_send_message prefers the transport the device was discovered on."""
 
     def _make_device(self, controller, ip, transport):
+        controller._loop.time = Mock(return_value=0.0)  # read by the send pacing
         device = GoveeDevice(controller, ip, "fp", "H6008", ON_OFF_CAPABILITIES)
         if transport is not None:
             transport.is_closing = Mock(return_value=False)

@@ -153,7 +153,7 @@ Color temperature defaults to 2000-9000 K; models with a narrower or wider range
 | H61D4 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, snow_flake, romantic, movie, gradient |
 | H61D5 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, snow_flake, romantic, movie, gradient |
 | H61D6 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, snow_flake, romantic, movie, gradient |
-| H61E0 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H61E0 | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
 | H61E1 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
 | H61E5 | ✅ | ✅ | 2000-9000 | ✅ | 12 | sunset, snow_flake, rainbow, candlelight, white_light, romantic, movie, crossing, study, business, reading, work, dinner, twinkle, breathe, energetic |
 | H61E6 | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow_flake, rainbow, candlelight, white_light, romantic, movie, crossing, study, business, reading, work, dinner, twinkle, breathe, energetic |
