@@ -282,6 +282,9 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     "H16C0": create_with_capabilities(True, True, True, 7),
     "H1A43": BASIC_CAPABILITIES,
     "H1A45": BASIC_CAPABILITIES,
+    "H1AB1": create_with_capabilities(
+        True, True, True, 15
+    ),  # HA core #187226 - COB Strip Light 2, new SKU of H6008
     "H2A40": BASIC_CAPABILITIES,
     "H2A41": BASIC_CAPABILITIES,
     "H3200": BASIC_CAPABILITIES,
