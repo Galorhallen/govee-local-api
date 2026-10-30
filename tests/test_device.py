@@ -222,6 +222,21 @@ class TestControllerTemperatureRange(unittest.TestCase):
         assert self._sent_temperature(device, 9000) == 6500
         assert self._sent_temperature(device, 4000) == 4000
 
+    def test_h1741_temperature_commands_match_its_hardware_range(self):
+        # The H1741 silently ignores out-of-range Kelvin values instead of
+        # clamping them itself, so they must be clamped before sending.
+        device = GoveeDevice(
+            self.controller,
+            "192.168.1.100",
+            "AA:BB:CC:DD:EE:FF",
+            "H1741",
+            GOVEE_LIGHT_CAPABILITIES["H1741"],
+        )
+
+        assert self._sent_temperature(device, 2000) == 2700
+        assert self._sent_temperature(device, 9000) == 6500
+        assert self._sent_temperature(device, 4000) == 4000
+
     def test_set_color_clamps_to_the_default_range(self):
         device = GoveeDevice(
             self.controller,

@@ -37,6 +37,7 @@ def test_every_registered_model_has_a_range():
         ("H6076", (2700, 6500)),
         ("H60A1", (2200, 6500)),
         ("H60A6", (2700, 6500)),
+        ("H1741", (2700, 6500)),
         ("H612F", (2800, 9000)),
         ("H61B3", (2000, 7200)),
         ("H6006", DEFAULT_TEMPERATURE_RANGE),
@@ -44,6 +45,15 @@ def test_every_registered_model_has_a_range():
 )
 def test_registered_models_with_a_reported_range(sku, expected_range):
     assert GOVEE_LIGHT_CAPABILITIES[sku].temperature_range == expected_range
+
+
+def test_h1741_supports_color_temperature_and_brightness_without_segments():
+    capabilities = GOVEE_LIGHT_CAPABILITIES["H1741"]
+    assert capabilities.features & GoveeLightFeatures.COLOR_RGB
+    assert capabilities.features & GoveeLightFeatures.COLOR_KELVIN_TEMPERATURE
+    assert capabilities.features & GoveeLightFeatures.BRIGHTNESS
+    assert not capabilities.features & GoveeLightFeatures.SEGMENT_CONTROL
+    assert capabilities.segments_count == 0
 
 
 def test_custom_temperature_range():
