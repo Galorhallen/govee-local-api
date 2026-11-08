@@ -94,7 +94,7 @@ Color temperature defaults to 2000-9000 K; models with a narrower or wider range
 | H612A | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
 | H612B | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
 | H612C | ✅ | ✅ | 2000-9000 | ✅ | 10 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H612D | ✅ | ✅ | 2000-9000 | ✅ | 20 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H612D | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
 | H612F | ✅ | ✅ | 2800-9000 | ✅ | 5 | sunset, rainbow, candlelight, romantic, movie, energetic, twinkle, breathe |
 | H6141 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, candlelight, dating, romantic, twinkle, movie, breathe, energetic |
 | H6143 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
@@ -160,7 +160,7 @@ Color temperature defaults to 2000-9000 K; models with a narrower or wider range
 | H61F2 | ✅ | ✅ | 2000-9000 | ✅ | 4 | rainbow, snow_flake, white_light, illumination, gradient |
 | H61F5 | ✅ | ✅ | 2000-9000 | ✅ | 10 | rainbow, snow_flake, sunset, white_light, illumination, gradient |
 | H61F6 | ✅ | ✅ | 2000-9000 | ✅ | 15 | rainbow, snow_flake, white_light, illumination, gradient |
-| H6609 | ✅ | ✅ | 2000-9000 | ✅ | 18 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H6609 | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
 | H6630 | ✅ | ✅ | 2000-9000 | ✅ | - | white_light |
 | H6631 | ✅ | ✅ | 2000-9000 | ✅ | - | white_light |
 | H6640 | ✅ | ✅ | 2000-9000 | ✅ | 14 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
@@ -237,7 +237,7 @@ Color temperature defaults to 2000-9000 K; models with a narrower or wider range
 | H7093 | ✅ | ✅ | 2000-9000 | ✅ | 2 | rainbow, seasonal, sunset, white_light |
 | H7094 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, seasonal, sunset, white_light |
 | H70A1 | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H70A2 | ✅ | ✅ | 2000-9000 | ✅ | 20 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H70A2 | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
 | H70A3 | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
 | H70B1 | ✅ | ✅ | 2000-9000 | ✅ | - | bubble, rainbow, star, meteor, christmas_tree, countdown, valentines_day, aircraft_battle, ring_toss, bouncing_ball, lottery_machine, poker, dodging, maze, racing, tic_tac_toe, stack |
 | H70B3 | ✅ | ✅ | 2000-9000 | ✅ | - | bubble, rainbow, star, meteor, christmas_tree, countdown, valentines_day, aircraft_battle, ring_toss, bouncing_ball, lottery_machine, poker, dodging, maze, racing, tic_tac_toe, stack |
