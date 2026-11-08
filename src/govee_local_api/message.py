@@ -130,13 +130,16 @@ class HexMessage(PtRealMessage):
 
 class SegmentColorMessages(PtRealMessage):
     def __init__(self, segment: bytes, color: tuple[int, int, int]) -> None:
+        if len(segment) > 7:
+            raise ValueError("Segment mask must fit in seven bytes")
         capped_color = [max(0, min(c, 255)) for c in color]
         data = (
             b"\x33\x05\x15\x01"
             + bytes(capped_color)
             + b"\x00\x00\x00\x00\x00"
-            + segment
-            + b"\x00\x00\x00\x00\x00"
+            # The seven-byte little-endian mask starts at payload byte 12.
+            # Keep the payload at 19 bytes when addressing sections above 16.
+            + segment.ljust(7, b"\x00")
         )
         super().__init__([data])
 
