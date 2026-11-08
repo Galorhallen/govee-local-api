@@ -14,7 +14,6 @@ from govee_local_api.device import GoveeDevice
 from govee_local_api.light_capabilities import (
     GOVEE_LIGHT_CAPABILITIES,
     SEGMENT_CODES,
-    H705E_SEGMENT_CODES,
 )
 from govee_local_api.message import SegmentColorMessages
 
@@ -46,15 +45,14 @@ def test_legacy_sections_remain_byte_identical(section):
         checksum ^= byte
     expected = payload + bytes([checksum])
     assert (
-        decode_frame(SegmentColorMessages(H705E_SEGMENT_CODES[section - 1], rgb))
-        == expected
+        decode_frame(SegmentColorMessages(SEGMENT_CODES[section - 1], rgb)) == expected
     )
 
 
 @pytest.mark.parametrize("section", range(1, 22))
 @pytest.mark.parametrize("rgb", [(0, 0, 0), (255, 137, 14)])
 def test_all_sections_keep_frame_size_mask_and_checksum(section, rgb):
-    frame = decode_frame(SegmentColorMessages(H705E_SEGMENT_CODES[section - 1], rgb))
+    frame = decode_frame(SegmentColorMessages(SEGMENT_CODES[section - 1], rgb))
     assert len(frame) == 20
     assert frame[:4] == bytes.fromhex("33 05 15 01")
     assert frame[4:7] == bytes(rgb)
@@ -72,7 +70,7 @@ def test_oversized_mask_is_rejected():
 
 
 def test_extended_sections_keep_color_clipping():
-    frame = decode_frame(SegmentColorMessages(H705E_SEGMENT_CODES[20], (-1, 137, 256)))
+    frame = decode_frame(SegmentColorMessages(SEGMENT_CODES[20], (-1, 137, 256)))
     assert frame[4:7] == bytes([0, 137, 255])
     assert len(frame) == 20
 
@@ -82,11 +80,11 @@ def test_h705e_capabilities_expose_21_sections():
     assert GOVEE_LIGHT_CAPABILITIES["H6076"].segments_count == 7
     assert GOVEE_LIGHT_CAPABILITIES["H705D"].segments_count == 9
     assert GOVEE_LIGHT_CAPABILITIES["H705F"].segments_count == 15
-    # Leave the shared table and every unvalidated model unchanged.
-    assert len(SEGMENT_CODES) == 15
-    assert GOVEE_LIGHT_CAPABILITIES["H612D"].segments_count == 15
-    assert GOVEE_LIGHT_CAPABILITIES["H6609"].segments_count == 15
-    assert GOVEE_LIGHT_CAPABILITIES["H70A2"].segments_count == 15
+    # Existing counts above 15 are no longer truncated by the shared table.
+    assert len(SEGMENT_CODES) == 21
+    assert GOVEE_LIGHT_CAPABILITIES["H612D"].segments_count == 20
+    assert GOVEE_LIGHT_CAPABILITIES["H6609"].segments_count == 18
+    assert GOVEE_LIGHT_CAPABILITIES["H70A2"].segments_count == 20
 
 
 @pytest.mark.parametrize("section", range(16, 22))

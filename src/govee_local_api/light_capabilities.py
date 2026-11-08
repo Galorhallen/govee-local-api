@@ -114,10 +114,6 @@ SEGMENT_CODES: list[bytes] = [
     b"\x00\x10",  # 13
     b"\x00\x20",  # 14
     b"\x00\x40",  # 15
-]
-
-# Extended masks verified on an 84-bulb H705E installation only.
-H705E_SEGMENT_CODES: list[bytes] = SEGMENT_CODES + [
     b"\x00\x80",  # 16
     b"\x00\x00\x01",  # 17
     b"\x00\x00\x02",  # 18
@@ -492,13 +488,7 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     "H705B": BASIC_CAPABILITIES,
     "H705C": BASIC_CAPABILITIES,
     "H705D": create_with_capabilities(True, True, True, 9),
-    "H705E": GoveeLightCapabilities(
-        GoveeLightFeatures.COLOR_RGB
-        | GoveeLightFeatures.COLOR_KELVIN_TEMPERATURE
-        | GoveeLightFeatures.BRIGHTNESS
-        | GoveeLightFeatures.SEGMENT_CONTROL,
-        H705E_SEGMENT_CODES,
-    ),
+    "H705E": create_with_capabilities(True, True, True, 21),
     "H705F": create_with_capabilities(True, True, True, 15),
     "H7060": BASIC_CAPABILITIES,
     "H7061": BASIC_CAPABILITIES,
