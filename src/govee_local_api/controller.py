@@ -18,6 +18,7 @@ from .light_capabilities import (
     GOVEE_LIGHT_CAPABILITIES,
     ON_OFF_CAPABILITIES,
     GoveeLightFeatures,
+    GoveeLightZone,
 )
 from .message import (
     HexMessage,
@@ -33,6 +34,10 @@ from .message import (
     SegmentColorMessages,
     DevStatusMessage,
     DevStatusResponse,
+    ZoneBrightnessMessage,
+    ZoneColorMessage,
+    ZoneFlowSpeedMessage,
+    ZoneOnOffMessage,
 )
 from .network import (
     _parse_listening_addresses,
@@ -732,6 +737,129 @@ class GoveeController:
         message = SegmentColorMessages(segment_data, rgb)
         self._logger.debug(f"Sending message {message} to device {device}")
         self._send_message(message, device)
+
+    def _get_zone(self, device: GoveeDevice, zone: int) -> GoveeLightZone | None:
+        if (
+            not device.capabilities
+            or device.capabilities.features & GoveeLightFeatures.ZONES == 0
+        ):
+            self._logger.warning("Zones are not supported by device %s", device)
+            return None
+        zone_info = device.capabilities.get_zone(zone)
+        if zone_info is None:
+            self._logger.warning("Zone %s is not valid for device %s", zone, device)
+        return zone_info
+
+    def _zone_segment_mask(
+        self, device: GoveeDevice, zone: GoveeLightZone, segments: list[int] | None
+    ) -> int | None:
+        """Segment mask for a zone: None for zones without segments, every
+        segment when ``segments`` is None. Raises ValueError for a bad index."""
+        if zone.segments == 0:
+            if segments:
+                raise ValueError(f"Zone {zone.index} of {device} has no segments")
+            return None
+        if segments is None:
+            return (1 << zone.segments) - 1
+        mask = 0
+        for segment in segments:
+            if not 1 <= segment <= zone.segments:
+                raise ValueError(
+                    f"Segment {segment} is not valid for zone {zone.index} of {device}"
+                )
+            mask |= 1 << (segment - 1)
+        return mask
+
+    async def set_zone_on_off(self, device: GoveeDevice, zone: int, on: bool) -> None:
+        """Switch one zone. The lamp ignores turning on more than
+        ``max_active_zones`` zones, and switching off its last lit zone
+        turns the whole lamp off."""
+        if self._get_zone(device, zone):
+            self._send_message(ZoneOnOffMessage(zone, on), device)
+
+    async def set_zone_rgb_color(
+        self,
+        device: GoveeDevice,
+        zone: int,
+        rgb: tuple[int, int, int],
+        segments: list[int] | None = None,
+    ) -> None:
+        zone_info = self._get_zone(device, zone)
+        if not zone_info:
+            return
+        if not zone_info.rgb:
+            self._logger.warning(
+                "Zone %s of device %s does not support RGB color", zone, device
+            )
+            return
+        try:
+            mask = self._zone_segment_mask(device, zone_info, segments)
+        except ValueError as err:
+            self._logger.warning("%s", err)
+            return
+        self._send_message(ZoneColorMessage(zone, rgb=rgb, segment_mask=mask), device)
+
+    async def set_zone_temperature(
+        self,
+        device: GoveeDevice,
+        zone: int,
+        temperature: int,
+        segments: list[int] | None = None,
+    ) -> None:
+        """Set a zone's white temperature, clamped to the device's range."""
+        zone_info = self._get_zone(device, zone)
+        if not zone_info:
+            return
+        if not zone_info.temperature:
+            self._logger.warning(
+                "Zone %s of device %s does not support white temperature",
+                zone,
+                device,
+            )
+            return
+        try:
+            mask = self._zone_segment_mask(device, zone_info, segments)
+        except ValueError as err:
+            self._logger.warning("%s", err)
+            return
+        low, high = device.temperature_range
+        message = ZoneColorMessage(
+            zone,
+            temperature=max(low, min(temperature, high)),
+            segment_mask=mask,
+            white_only=not zone_info.rgb,
+        )
+        self._send_message(message, device)
+
+    async def set_zone_brightness(
+        self,
+        device: GoveeDevice,
+        zone: int,
+        brightness: int,
+        segments: list[int] | None = None,
+    ) -> None:
+        """Set a zone's brightness (1-100), relative to the lamp's brightness."""
+        zone_info = self._get_zone(device, zone)
+        if not zone_info:
+            return
+        try:
+            mask = self._zone_segment_mask(device, zone_info, segments)
+        except ValueError as err:
+            self._logger.warning("%s", err)
+            return
+        self._send_message(ZoneBrightnessMessage(zone, brightness, mask), device)
+
+    async def set_zone_flow_speed(
+        self, device: GoveeDevice, zone: int, speed: int
+    ) -> None:
+        """Set a zone's animation speed (0-100)."""
+        zone_info = self._get_zone(device, zone)
+        if not zone_info:
+            return
+        if not zone_info.flow_speed:
+            self._logger.warning("Zone %s of device %s has no flow speed", zone, device)
+            return
+        self._send_message(ZoneFlowSpeedMessage(zone, speed), device)
 
     async def set_scene(self, device: GoveeDevice, scene: str) -> None:
         if (

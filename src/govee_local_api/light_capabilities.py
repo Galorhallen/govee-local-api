@@ -23,6 +23,24 @@ class GoveeLightFeatures(IntFlag):
     BRIGHTNESS = 0x04
     SEGMENT_CONTROL = 0x08
     SCENES = 0x10
+    ZONES = 0x20
+
+
+class GoveeLightZone(NamedTuple):
+    """An independently switchable section of a multi-zone lamp.
+
+    ``index`` is the zone number the lamp's ``ptReal`` zone frames use.
+    ``segments`` is the number of individually colorable segments in the zone
+    (0 if the zone is a single light), ``flow_speed`` whether the zone has an
+    adjustable animation speed.
+    """
+
+    index: int
+    name: str
+    rgb: bool
+    temperature: bool
+    segments: int = 0
+    flow_speed: bool = False
 
 
 COMMON_FEATURES: GoveeLightFeatures = (
@@ -59,9 +77,17 @@ class GoveeLightCapabilities:
         segments: list[bytes] | None = None,
         scenes: dict[str, bytes] | None = None,
         temperature_range: tuple[int, int] | None = None,
+        zones: tuple[GoveeLightZone, ...] = (),
+        max_active_zones: int = 0,
     ) -> None:
         self.features = features
         self.temperature_range = _normalize_temperature_range(temperature_range)
+        if features & GoveeLightFeatures.ZONES:
+            self.zones: tuple[GoveeLightZone, ...] = tuple(zones)
+            self.max_active_zones = max_active_zones or len(self.zones)
+        else:
+            self.zones = ()
+            self.max_active_zones = 0
         # Copy the inputs: they are module-level shared tables
         # (SEGMENT_CODES / SCENE_CODES), and capability objects are shared
         # across devices — a consumer mutating one instance must not
@@ -83,18 +109,24 @@ class GoveeLightCapabilities:
     def available_scenes(self) -> list[str]:
         return list(self.scenes.keys())
 
+    def get_zone(self, index: int) -> GoveeLightZone | None:
+        """Return the zone with the given zone number, if the model has it."""
+        return next((zone for zone in self.zones if zone.index == index), None)
+
     def __repr__(self) -> str:
         return (
             f"GoveeLightCapabilities(features={self.features!r}, "
             f"segments={self.segments!r}, scenes={self.scenes!r}, "
-            f"temperature_range={self.temperature_range!r})"
+            f"temperature_range={self.temperature_range!r}, "
+            f"zones={self.zones!r}, max_active_zones={self.max_active_zones!r})"
         )
 
     def __str__(self) -> str:
         return (
             f"GoveeLightCapabilities(features={self.features!r}, "
             f"segments={len(self.segments)}, scenes={len(self.scenes)}, "
-            f"temperature_range={tuple(self.temperature_range)})"
+            f"temperature_range={tuple(self.temperature_range)}, "
+            f"zones={len(self.zones)})"
         )
 
 
@@ -152,6 +184,8 @@ def create_with_capabilities(
     segments: int,
     scenes: bool | dict[str, bytes] = False,
     temperature_range: tuple[int, int] | None = None,
+    zones: tuple[GoveeLightZone, ...] = (),
+    max_active_zones: int = 0,
 ) -> GoveeLightCapabilities:
     """Build capabilities for a model.
 
@@ -160,6 +194,10 @@ def create_with_capabilities(
     only honour a subset; an empty dict means no scene support. Entries in
     GOVEE_LIGHT_CAPABILITIES leave it out: their scenes come from
     model_scenes.json.
+
+    ``zones`` lists the independently switchable sections of a multi-zone
+    lamp and ``max_active_zones`` how many of them the lamp lights at once
+    (0 means all of them).
     """
     features: GoveeLightFeatures = GoveeLightFeatures(0)
     segments_codes = []
@@ -181,12 +219,16 @@ def create_with_capabilities(
         scene_codes = SCENE_CODES if scenes else {}
     if scene_codes:
         features = features | GoveeLightFeatures.SCENES
+    if zones:
+        features = features | GoveeLightFeatures.ZONES
 
     return GoveeLightCapabilities(
         features,
         segments_codes,
         scene_codes,
         temperature_range,
+        zones,
+        max_active_zones,
     )
 
 
@@ -200,6 +242,16 @@ BASIC_CAPABILITIES_NO_SCENES = create_with_capabilities(
 
 ON_OFF_CAPABILITIES = create_with_capabilities(
     rgb=False, temperature=False, brightness=False, segments=0, scenes=False
+)
+
+# Govee Uplighter Floor Lamp (H60B0): a ceiling projector on top, an 8-segment
+# RGBWW side light below it and a white down light, at most two lit at once.
+# Zone frames verified on real hardware over LAN, see issue #296. The ripple
+# shows a palette of colors and its color frame sets one of them.
+UPLIGHTER_ZONES: tuple[GoveeLightZone, ...] = (
+    GoveeLightZone(1, "ripple", rgb=True, temperature=True, flow_speed=True),
+    GoveeLightZone(2, "side", rgb=True, temperature=True, segments=8),
+    GoveeLightZone(3, "lower", rgb=False, temperature=True),
 )
 
 
@@ -257,7 +309,12 @@ def _with_model_scenes(
             if scenes:
                 features |= GoveeLightFeatures.SCENES
             shared[key] = GoveeLightCapabilities(
-                features, base.segments, scenes, base.temperature_range
+                features,
+                base.segments,
+                scenes,
+                base.temperature_range,
+                base.zones,
+                base.max_active_zones,
             )
         result[sku] = shared[key]
     return result
@@ -347,7 +404,15 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     "H60A6": create_with_capabilities(
         True, True, True, 0, temperature_range=(2700, 6500)
     ),  # H60A6 firmware 1.00.41: LAN requests clamp to 2700-6500K
-    "H60B0": BASIC_CAPABILITIES,  # Issue #252 - segments TBD
+    "H60B0": create_with_capabilities(  # Issues #176, #252, #296
+        True,
+        True,
+        True,
+        0,
+        temperature_range=(2700, 6500),
+        zones=UPLIGHTER_ZONES,
+        max_active_zones=2,
+    ),
     "H60B1": create_with_capabilities(True, True, True, 3),
     "H60B2": create_with_capabilities(True, True, True, 3),
     "H60C1": create_with_capabilities(True, True, True, 3),  # Issue #232
