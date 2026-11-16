@@ -784,6 +784,8 @@ class GoveeController:
         rgb: tuple[int, int, int],
         segments: list[int] | None = None,
     ) -> None:
+        """Set a zone's color. Like the other zone setters this doesn't
+        turn the zone on; call ``set_zone_on_off`` first if it's off."""
         zone_info = self._get_zone(device, zone)
         if not zone_info:
             return
@@ -806,7 +808,8 @@ class GoveeController:
         temperature: int,
         segments: list[int] | None = None,
     ) -> None:
-        """Set a zone's white temperature, clamped to the device's range."""
+        """Set a zone's white temperature, clamped to the device's range.
+        Doesn't turn the zone on."""
         zone_info = self._get_zone(device, zone)
         if not zone_info:
             return
