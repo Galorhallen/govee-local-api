@@ -6,6 +6,7 @@ from .light_capabilities import (
     DEFAULT_TEMPERATURE_RANGE,
     GoveeLightFeatures,
     GoveeLightCapabilities,
+    GoveeLightZone,
     GoveeTemperatureRange,
 )
 
@@ -14,6 +15,7 @@ __all__ = [
     "GoveeDevice",
     "GoveeLightFeatures",
     "GoveeLightCapabilities",
+    "GoveeLightZone",
     "GoveeTemperatureRange",
     "DEFAULT_TEMPERATURE_RANGE",
 ]
