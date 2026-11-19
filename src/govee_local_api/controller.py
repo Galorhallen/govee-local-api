@@ -741,13 +741,22 @@ class GoveeController:
             self._logger.warning("Scenes are not supported by device %s", device)
             return
 
-        scene_code: bytes | None = device.capabilities.scenes.get(scene.lower(), None)
+        scene = scene.lower()
+        scene_code: bytes | None = device.capabilities.scenes.get(scene, None)
         if not scene_code:
             self._logger.warning(
                 "Scene %s is not available for device %s", scene, device
             )
             return
-        self._send_message(SceneMessages(scene_code), device)
+        scene_param = device.capabilities.scene_params.get(scene)
+        if scene_param:
+            # Library scene: 16-bit code plus its parameter blob.
+            self._send_message(
+                SceneCodeMessage(int.from_bytes(scene_code, "little"), scene_param),
+                device,
+            )
+        else:
+            self._send_message(SceneMessages(scene_code), device)
 
     async def set_scene_code(
         self, device: GoveeDevice, scene_code: int, scene_param: bytes = b""

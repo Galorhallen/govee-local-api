@@ -41,11 +41,13 @@ def generate() -> str:
         " is missing or its capabilities are wrong, please"
         " [open an issue](https://github.com/Galorhallen/govee-local-api/issues).",
         "",
-        "Scenes are each model's firmware scenes from Govee's per-model scene"
-        " library (generated into `model_scenes.json` by"
-        " `scripts/generate_model_scenes.py`): the ones that play from their"
-        f" scene code alone. Models marked {NO} have none. Scenes that need a"
-        " parameter blob can still be sent with `set_scene_code()`.",
+        "Scenes come from Govee's per-model scene library (generated into"
+        " `model_scenes.json` by `scripts/generate_model_scenes.py`). The"
+        " names listed are the firmware scenes, which play from their scene"
+        " code alone. The count after them is the number of parameter scenes,"
+        " which are sent with a parameter blob; their names are in"
+        f" `capabilities.available_scenes`. Models marked {NO} have none."
+        " Other library scenes can be sent with `set_scene_code()`.",
         "",
         "Color temperature defaults to"
         f" {DEFAULT_TEMPERATURE_RANGE.min_kelvin}-"
@@ -63,7 +65,15 @@ def generate() -> str:
         segments = (
             str(capabilities.segments_count) if capabilities.segments_count else "-"
         )
-        scenes = ", ".join(capabilities.available_scenes) or NO
+        firmware = [
+            name
+            for name in capabilities.available_scenes
+            if name not in capabilities.scene_params
+        ]
+        parts = [", ".join(firmware)] if firmware else []
+        if capabilities.scene_params:
+            parts.append(f"+ {len(capabilities.scene_params)} parameter scenes")
+        scenes = " ".join(parts) or NO
         if features & GoveeLightFeatures.COLOR_KELVIN_TEMPERATURE:
             min_kelvin, max_kelvin = capabilities.temperature_range
             temperature_range = f"{min_kelvin}-{max_kelvin}"
