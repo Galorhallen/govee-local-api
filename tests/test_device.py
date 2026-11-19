@@ -8,9 +8,11 @@ from govee_local_api.light_capabilities import (
     BASIC_CAPABILITIES,
     DEFAULT_TEMPERATURE_RANGE,
     GOVEE_LIGHT_CAPABILITIES,
+    GoveeLightCapabilities,
+    GoveeLightFeatures,
     create_with_capabilities,
 )
-from govee_local_api.message import ScanResponse
+from govee_local_api.message import ScanResponse, SceneCodeMessage, SceneMessages
 
 
 class TestGoveeDevice(unittest.TestCase):
@@ -233,3 +235,42 @@ class TestControllerTemperatureRange(unittest.TestCase):
 
         assert self._sent_temperature(device, 99999) == 9000
         assert self._sent_temperature(device, 1) == 2000
+
+
+class TestControllerSetScene(unittest.TestCase):
+    """set_scene() picks the message type from the scene's entry."""
+
+    PARAM = bytes(range(1, 60))
+
+    def setUp(self):
+        self.controller = GoveeController.__new__(GoveeController)
+        self.controller._send_message = Mock()
+        self.controller._logger = Mock()
+        capabilities = GoveeLightCapabilities(
+            GoveeLightFeatures.SCENES,
+            scenes={"rainbow": b"\x16", "candy_cane": (12368).to_bytes(2, "little")},
+            scene_params={"candy_cane": self.PARAM},
+        )
+        self.device = GoveeDevice(
+            self.controller, "192.168.1.100", "AA:BB", "H805A", capabilities
+        )
+
+    def _sent(self, scene):
+        asyncio.run(self.controller.set_scene(self.device, scene))
+        return self.controller._send_message.call_args[0][0]
+
+    def test_parameter_scene_is_sent_with_its_code_and_blob(self):
+        message = self._sent("candy_cane")
+
+        assert isinstance(message, SceneCodeMessage)
+        assert message.as_dict() == SceneCodeMessage(12368, self.PARAM).as_dict()
+
+    def test_firmware_scene_is_still_sent_as_a_bare_code(self):
+        message = self._sent("rainbow")
+
+        assert message.as_dict() == SceneMessages(b"\x16").as_dict()
+
+    def test_unknown_scene_sends_nothing(self):
+        asyncio.run(self.controller.set_scene(self.device, "no_such_scene"))
+
+        self.controller._send_message.assert_not_called()

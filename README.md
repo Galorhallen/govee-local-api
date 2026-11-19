@@ -187,17 +187,27 @@ Register a model with a custom range in `GOVEE_LIGHT_CAPABILITIES`:
 
 ### Library Scenes
 
-`set_scene()` plays one of the model's firmware scenes, listed in
+`set_scene()` plays one of the model's packaged scenes, listed in
 `device.capabilities.available_scenes`. They come from Govee's per-model scene
-library and are the ones that play from their scene code alone; see
-[SUPPORTED_DEVICES.md](SUPPORTED_DEVICES.md) for each model's list.
+library and are of two kinds:
+
+- firmware scenes, which play from their scene code alone;
+- parameter scenes, which need a parameter blob. The blob is packaged, and
+  `set_scene()` sends it with the scene code. The scenes that have a blob are
+  the keys of `device.capabilities.scene_params`.
+
+See [SUPPORTED_DEVICES.md](SUPPORTED_DEVICES.md) for each model's list.
 
 ```python
-await device.set_scene("sunset")
+await device.set_scene("sunset")       # firmware scene
+await device.set_scene("candy_cane")   # parameter scene (H805A)
 ```
 
-The rest of the library's scenes (most of the ones the Govee app shows) need a
-parameter blob and can be sent with their library code and that blob:
+Parameter scenes are packaged only where the light effect has `sceneType` 2
+and no different blob for the model in its `specialEffect` list. That type is
+confirmed on H706B, H706C and H805A; other models are not tested.
+
+The other library scenes can be sent with their library code and blob:
 
 ```python
 # "Halloween B" on an H706C: sceneCode and base64-decoded scenceParam

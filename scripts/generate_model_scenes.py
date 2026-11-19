@@ -32,7 +32,6 @@ from typing import Any
 
 from fetch_scene_library import (
     GOVEE_LIGHT_CAPABILITIES,
-    MODEL_SCENE_TYPE,
     MODEL_SCENES_FILE,
     REPO_ROOT,
     build_ha_scene_names,
@@ -60,9 +59,23 @@ def merge(existing: dict[str, Any], update: dict[str, Any]) -> dict[str, Any]:
     models.update(update["models"])
     sets = {**existing["sets"], **update["sets"]}
     used = set(models.values())
+    sets = {set_id: sets[set_id] for set_id in sorted(sets) if set_id in used}
+    # A file written before parameter scenes has no blob table.
+    blobs = {**existing.get("blobs", {}), **update.get("blobs", {})}
+    used_blobs = {
+        entry[1]
+        for scenes in sets.values()
+        for entry in scenes.values()
+        if not isinstance(entry, int)
+    }
     return {
-        "sets": {set_id: sets[set_id] for set_id in sorted(sets) if set_id in used},
+        "sets": sets,
         "models": dict(sorted(models.items())),
+        "blobs": {
+            blob_id: blobs[blob_id]
+            for blob_id in sorted(blobs)
+            if blob_id in used_blobs
+        },
     }
 
 
@@ -124,7 +137,8 @@ def main() -> int:
             _LOGGER.info("Removed models: %s", ", ".join(removed))
 
     started = time.monotonic()
-    library, failures = fetch_all(MODEL_SCENE_TYPE, skus)
+    # Every scene type: parameter scenes are picked by their effect's type.
+    library, failures = fetch_all(None, skus)
     if failures:
         _LOGGER.error(
             "Not writing %s: %d devices failed: %s",
