@@ -24,6 +24,7 @@ Color temperature defaults to 2000-9000 K; models with a narrower or wider range
 | H16C0 | ✅ | ✅ | 2000-9000 | ✅ | 7 | ripple, rainbow, white_light, leisure, night_light, fireworks, drinks, stacking, greedy_snake, bouncing_ball, strike, bubble, crossing |
 | H1A43 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, snow_flake, white_light, illumination, gradient |
 | H1A45 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, snow_flake, sunset, white_light, illumination, gradient |
+| H1AB1 | ✅ | ✅ | 2000-9000 | ✅ | 15 | rainbow, snow_flake, gradient, movie, romantic, sunset |
 | H2A40 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
 | H2A41 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
 | H3200 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, seasonal, sunset, white_light |
