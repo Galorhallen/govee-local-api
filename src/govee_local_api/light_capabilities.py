@@ -351,7 +351,7 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     "H60B1": create_with_capabilities(True, True, True, 3),
     "H60B2": create_with_capabilities(True, True, True, 3),
     "H60C1": create_with_capabilities(True, True, True, 3),  # Issue #232
-    "H610A": BASIC_CAPABILITIES,
+    "H610A": create_with_capabilities(True, True, True, 12),  # verified over LAN
     "H610B": BASIC_CAPABILITIES,
     "H610E": create_with_capabilities(True, True, True, 7),
     "H610F": create_with_capabilities(True, True, True, 7),
@@ -409,7 +409,7 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     "H61B3": create_with_capabilities(
         True, True, True, 15, temperature_range=(2000, 7200)
     ),  # Issue #107 - range found by UDP testing
-    "H61B5": BASIC_CAPABILITIES,
+    "H61B5": create_with_capabilities(True, True, True, 15),  # verified over LAN
     "H61B6": BASIC_CAPABILITIES,
     "H61B8": create_with_capabilities(True, True, True, 15),
     "H61B9": BASIC_CAPABILITIES,
