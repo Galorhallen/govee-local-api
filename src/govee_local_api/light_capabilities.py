@@ -114,6 +114,12 @@ SEGMENT_CODES: list[bytes] = [
     b"\x00\x10",  # 13
     b"\x00\x20",  # 14
     b"\x00\x40",  # 15
+    b"\x00\x80",  # 16
+    b"\x00\x00\x01",  # 17
+    b"\x00\x00\x02",  # 18
+    b"\x00\x00\x04",  # 19
+    b"\x00\x00\x08",  # 20
+    b"\x00\x00\x10",  # 21
 ]
 
 SCENE_CODES: dict[str, bytes] = {
@@ -482,7 +488,7 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     "H705B": BASIC_CAPABILITIES,
     "H705C": BASIC_CAPABILITIES,
     "H705D": create_with_capabilities(True, True, True, 9),
-    "H705E": create_with_capabilities(True, True, True, 15),
+    "H705E": create_with_capabilities(True, True, True, 21),
     "H705F": create_with_capabilities(True, True, True, 15),
     "H7060": BASIC_CAPABILITIES,
     "H7061": BASIC_CAPABILITIES,
