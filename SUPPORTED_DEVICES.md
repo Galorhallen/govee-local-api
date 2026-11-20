@@ -22,6 +22,7 @@ Color temperature defaults to 2000-9000 K; models with a narrower or wider range
 | H1630 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, night_light, white_light, work, reading |
 | H16B0 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, lava, ripple, fireworks, white_light, reading, work, breathe, gradient, graffiti, strike, gleam, dripping, crossing, night_light |
 | H16C0 | ✅ | ✅ | 2000-9000 | ✅ | 7 | ripple, rainbow, white_light, leisure, night_light, fireworks, drinks, stacking, greedy_snake, bouncing_ball, strike, bubble, crossing |
+| H1741 | ✅ | ✅ | 2700-6500 | ✅ | - | rainbow, snow_flake, gradient, white_light, reading, illumination |
 | H1A43 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, snow_flake, white_light, illumination, gradient |
 | H1A45 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, snow_flake, sunset, white_light, illumination, gradient |
 | H2A40 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
