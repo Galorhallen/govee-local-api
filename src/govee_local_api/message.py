@@ -115,6 +115,17 @@ class PtRealMessage(GoveeMessage):
 
         super().__init__({"command": checksumed_data})
 
+    @property
+    def frame_count(self) -> int:
+        return len(self.data["command"])
+
+    @staticmethod
+    def combine(messages: list[PtRealMessage]) -> PtRealMessage:
+        """One packet carrying the frames of several messages, in order."""
+        combined = PtRealMessage([])
+        combined.data["command"] = [f for m in messages for f in m.data["command"]]
+        return combined
+
     @staticmethod
     def _with_checksum(data: bytes) -> bytes:
         xor_result: int = 0
@@ -128,17 +139,59 @@ class HexMessage(PtRealMessage):
         super().__init__([bytes.fromhex(d) for d in data], do_checksum=False)
 
 
+def segment_color_frame(segment: bytes, color: tuple[int, int, int]) -> bytes:
+    """Segment colour frame (before checksum): ``33 05 15 01 RR GG BB 00×5 <mask>``."""
+    capped_color = [max(0, min(c, 255)) for c in color]
+    return (
+        b"\x33\x05\x15\x01"
+        + bytes(capped_color)
+        + b"\x00\x00\x00\x00\x00"
+        + segment
+        + b"\x00\x00\x00\x00\x00"
+    )
+
+
+def segment_temperature_frame(segment: bytes, temperature: int) -> bytes:
+    """Segment white-temperature frame (before checksum).
+
+    ``33 05 15 01 00 00 00 KK KK 00 00 00 <mask>``: the Kelvin value goes
+    big-endian where the colour frame has its first two padding bytes.
+    """
+    kelvin = max(0, min(int(temperature), 0xFFFF))
+    return (
+        b"\x33\x05\x15\x01"
+        + b"\x00\x00\x00"
+        + kelvin.to_bytes(2, "big")
+        + b"\x00\x00\x00"
+        + segment
+        + b"\x00\x00\x00\x00\x00"
+    )
+
+
+def segment_brightness_frame(segment: bytes, brightness: int) -> bytes:
+    """Segment brightness frame (before checksum): ``33 05 15 02 <pct> <mask>``.
+
+    Unlike the colour frames, the mask follows the value directly; devices
+    ignore a brightness frame whose mask sits at byte 12.
+    """
+    percent = max(0, min(int(brightness), 100))
+    data = b"\x33\x05\x15\x02" + bytes([percent]) + segment
+    return data + b"\x00" * (19 - len(data))
+
+
 class SegmentColorMessages(PtRealMessage):
     def __init__(self, segment: bytes, color: tuple[int, int, int]) -> None:
-        capped_color = [max(0, min(c, 255)) for c in color]
-        data = (
-            b"\x33\x05\x15\x01"
-            + bytes(capped_color)
-            + b"\x00\x00\x00\x00\x00"
-            + segment
-            + b"\x00\x00\x00\x00\x00"
-        )
-        super().__init__([data])
+        super().__init__([segment_color_frame(segment, color)])
+
+
+class SegmentTemperatureMessage(PtRealMessage):
+    def __init__(self, segment: bytes, temperature: int) -> None:
+        super().__init__([segment_temperature_frame(segment, temperature)])
+
+
+class SegmentBrightnessMessage(PtRealMessage):
+    def __init__(self, segment: bytes, brightness: int) -> None:
+        super().__init__([segment_brightness_frame(segment, brightness)])
 
 
 class SceneMessages(PtRealMessage):

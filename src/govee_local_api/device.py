@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
 
@@ -12,6 +13,19 @@ from .light_capabilities import (
     ON_OFF_CAPABILITIES,
 )
 from .message import DevStatusResponse
+
+
+@dataclass(frozen=True)
+class SegmentUpdate:
+    """One segment's change for ``GoveeDevice.set_segments``.
+
+    Set ``rgb`` or ``temperature`` (not both) and/or ``brightness`` (0-100).
+    """
+
+    segment: int
+    rgb: tuple[int, int, int] | None = None
+    temperature: int | None = None
+    brightness: int | None = None
 
 
 class GoveeSegment:
@@ -135,6 +149,16 @@ class GoveeDevice:
 
     async def turn_segment_off(self, segment: int) -> None:
         await self._controller.set_segment_rgb_color(self, segment, (0, 0, 0))
+
+    async def set_segment_temperature(self, segment: int, temperature: int) -> None:
+        await self._controller.set_segment_temperature(self, segment, temperature)
+
+    async def set_segment_brightness(self, segment: int, brightness: int) -> None:
+        await self._controller.set_segment_brightness(self, segment, brightness)
+
+    async def set_segments(self, updates: Sequence[SegmentUpdate]) -> None:
+        """Apply several segment changes at once, in as few packets as possible."""
+        await self._controller.set_segments(self, updates)
 
     async def turn_off(self) -> None:
         await self._controller.turn_on_off(self, False)
