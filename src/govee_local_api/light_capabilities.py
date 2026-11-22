@@ -296,7 +296,9 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     "H600A": BASIC_CAPABILITIES,
     "H600D": BASIC_CAPABILITIES,
     "H601A": BASIC_CAPABILITIES,  # Issue #129
-    "H6020": BASIC_CAPABILITIES,
+    "H6020": create_with_capabilities(
+        True, True, True, 15, temperature_range=(2700, 6500)
+    ),  # 15 segments and range from the Govee Cloud API
     "H6022": BASIC_CAPABILITIES,
     "H6038": BASIC_CAPABILITIES,
     "H6039": create_with_capabilities(True, True, True, 12),
@@ -328,7 +330,9 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     "H6076A": BASIC_CAPABILITIES,
     "H6078": BASIC_CAPABILITIES,
     "H6079": BASIC_CAPABILITIES,
-    "H607C": create_with_capabilities(True, True, True, 13),
+    "H607C": create_with_capabilities(
+        True, True, True, 13, temperature_range=(2200, 6500)
+    ),  # Issue #250 - 13 segments (8 top + 5 bottom); range from the Cloud API
     "H6087": create_with_capabilities(True, True, True, 12),
     "H6088": create_with_capabilities(True, True, True, 6),
     "H608A": BASIC_CAPABILITIES,
@@ -347,9 +351,15 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     "H60A6": create_with_capabilities(
         True, True, True, 0, temperature_range=(2700, 6500)
     ),  # H60A6 firmware 1.00.41: LAN requests clamp to 2700-6500K
-    "H60B0": BASIC_CAPABILITIES,  # Issue #252 - segments TBD
+    "H60B0": create_with_capabilities(
+        True, True, True, 0, temperature_range=(2700, 6500)
+    ),  # Issues #252, #296 - range from the Cloud API (values outside it black
+    # the lamp out); the 8-segment side ring takes its own 33 05 2c frames, not
+    # the generic segment command, so no segments are advertised
     "H60B1": create_with_capabilities(True, True, True, 3),
-    "H60B2": create_with_capabilities(True, True, True, 3),
+    "H60B2": create_with_capabilities(
+        True, True, True, 3, temperature_range=(2700, 6500)
+    ),  # Issues #260, #278 - range from the Cloud API
     "H60C1": create_with_capabilities(True, True, True, 3),  # Issue #232
     "H610A": BASIC_CAPABILITIES,
     "H610B": BASIC_CAPABILITIES,
@@ -425,7 +435,9 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     "H61D6": BASIC_CAPABILITIES,
     "H61E0": BASIC_CAPABILITIES,
     "H61E1": BASIC_CAPABILITIES,
-    "H61E5": create_with_capabilities(True, True, True, 12),
+    "H61E5": create_with_capabilities(
+        True, True, True, 15, temperature_range=(2700, 6500)
+    ),  # 15 segments and range from the Govee Cloud API
     "H61E6": create_with_capabilities(True, True, True, 15),
     "H61F2": create_with_capabilities(True, True, True, 4),
     "H61F5": create_with_capabilities(True, True, True, 10),
@@ -450,7 +462,10 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     "H7013": create_with_capabilities(False, False, True, 0),
     "H7020": BASIC_CAPABILITIES,
     "H7021": BASIC_CAPABILITIES,
-    "H7025": create_with_capabilities(True, False, True, 15),
+    "H7025": create_with_capabilities(
+        True, True, True, 15, temperature_range=(2700, 6500)
+    ),  # Issues #163, #209 - white temperature works over LAN (colorwc),
+    # range from the Cloud API
     "H7026": create_with_capabilities(True, False, True, 15),
     "H7027": BASIC_CAPABILITIES,
     "H7028": BASIC_CAPABILITIES,

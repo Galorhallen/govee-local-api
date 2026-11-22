@@ -38,7 +38,7 @@ Color temperature defaults to 2000-9000 K; models with a narrower or wider range
 | H600A | ✅ | ✅ | 2000-9000 | ✅ | - | study, business, reading, night_light |
 | H600D | ✅ | ✅ | 2000-9000 | ✅ | - | study, business, reading, night_light |
 | H601A | ✅ | ✅ | 2000-9000 | ✅ | - | white_light, study, business, reading, night_light |
-| H6020 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, forest, ocean, wave, fire, snow_flake, white_light, reading, illumination, work, starry_sky, joyful, night_light |
+| H6020 | ✅ | ✅ | 2700-6500 | ✅ | 15 | rainbow, forest, ocean, wave, fire, snow_flake, white_light, reading, illumination, work, starry_sky, joyful, night_light |
 | H6022 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, forest, ocean, wave, snow_flake, fire, white_light, reading, night_light, joyful, starry_sky |
 | H6038 | ✅ | ✅ | 2000-9000 | ✅ | - | sunrise, sunset, rainbow, snow_flake, fireworks, white_light, work, reading, romantic, crossing |
 | H6039 | ✅ | ✅ | 2000-9000 | ✅ | 12 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
@@ -66,7 +66,7 @@ Color temperature defaults to 2000-9000 K; models with a narrower or wider range
 | H6076A | ✅ | ✅ | 2000-9000 | ✅ | - | ❌ |
 | H6078 | ✅ | ✅ | 2000-9000 | ✅ | - | work, sleep, rainbow, aurora, fire, water_drop, gradient, meditation, candy_crush, greedy_snake, flow |
 | H6079 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, lava, ripple, fireworks, white_light, reading, work, breathe, gradient, graffiti, gleam, dripping, crossing, strike, night_light |
-| H607C | ✅ | ✅ | 2000-9000 | ✅ | 13 | rainbow, lava, ripple, fireworks, white_light, reading, work, breathe, gradient, graffiti, strike, gleam, dripping, crossing, night_light |
+| H607C | ✅ | ✅ | 2200-6500 | ✅ | 13 | rainbow, lava, ripple, fireworks, white_light, reading, work, breathe, gradient, graffiti, strike, gleam, dripping, crossing, night_light |
 | H6087 | ✅ | ✅ | 2000-9000 | ✅ | 12 | leisure, night_light, breathe, gradient |
 | H6088 | ✅ | ✅ | 2000-9000 | ✅ | 6 | reading, illumination |
 | H608A | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, rainbow, work, movie, romantic |
@@ -81,9 +81,9 @@ Color temperature defaults to 2000-9000 K; models with a narrower or wider range
 | H60A1 | ✅ | ✅ | 2200-6500 | ✅ | 13 | sunrise, sunset, candlelight, white_light, night_light, work, leisure |
 | H60A4 | ✅ | ✅ | 2000-9000 | ✅ | 11 | sunrise, sunset, white_light, work, reading |
 | H60A6 | ✅ | ✅ | 2700-6500 | ✅ | - | white_light, illumination, blue_sky_white_clouds, relax, peaceful, radiance, ribbon, garden, sunset, color_split, clear_lake |
-| H60B0 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, moonlight, white_light, leisure, gradient, breathe, twinkle, graffiti, flow, alternate, gleam, cover, colorful, colorful_clouds, moonlight_sprinkles, blue_sky_white_clouds, dense_fog |
+| H60B0 | ✅ | ✅ | 2700-6500 | ✅ | - | rainbow, moonlight, white_light, leisure, gradient, breathe, twinkle, graffiti, flow, alternate, gleam, cover, colorful, colorful_clouds, moonlight_sprinkles, blue_sky_white_clouds, dense_fog |
 | H60B1 | ✅ | ✅ | 2000-9000 | ✅ | 3 | sunset, white_light, illumination |
-| H60B2 | ✅ | ✅ | 2000-9000 | ✅ | 3 | sunrise, sunset, rainbow, stream, white_light, gradient, breathe, jumping, twinkle, marquee, gleam, graffiti, dripping |
+| H60B2 | ✅ | ✅ | 2700-6500 | ✅ | 3 | sunrise, sunset, rainbow, stream, white_light, gradient, breathe, jumping, twinkle, marquee, gleam, graffiti, dripping |
 | H60C1 | ✅ | ✅ | 2000-9000 | ✅ | 3 | rainbow, white_light, illumination, sunset |
 | H610A | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, rainbow, flowing_light, breathe, stacking, greedy_snake |
 | H610B | ✅ | ✅ | 2000-9000 | ✅ | - | ❌ |
@@ -155,7 +155,7 @@ Color temperature defaults to 2000-9000 K; models with a narrower or wider range
 | H61D6 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, snow_flake, romantic, movie, gradient |
 | H61E0 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
 | H61E1 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H61E5 | ✅ | ✅ | 2000-9000 | ✅ | 12 | sunset, snow_flake, rainbow, candlelight, white_light, romantic, movie, crossing, study, business, reading, work, dinner, twinkle, breathe, energetic |
+| H61E5 | ✅ | ✅ | 2700-6500 | ✅ | 15 | sunset, snow_flake, rainbow, candlelight, white_light, romantic, movie, crossing, study, business, reading, work, dinner, twinkle, breathe, energetic |
 | H61E6 | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow_flake, rainbow, candlelight, white_light, romantic, movie, crossing, study, business, reading, work, dinner, twinkle, breathe, energetic |
 | H61F2 | ✅ | ✅ | 2000-9000 | ✅ | 4 | rainbow, snow_flake, white_light, illumination, gradient |
 | H61F5 | ✅ | ✅ | 2000-9000 | ✅ | 10 | rainbow, snow_flake, sunset, white_light, illumination, gradient |
@@ -180,7 +180,7 @@ Color temperature defaults to 2000-9000 K; models with a narrower or wider range
 | H7013 | ❌ | ❌ | - | ✅ | - | steady, breathe, starry_sky, drumming, twinkle, candlelight |
 | H7020 | ✅ | ✅ | 2000-9000 | ✅ | - | ripple, devour, illumination, heartbeat |
 | H7021 | ✅ | ✅ | 2000-9000 | ✅ | - | ripple, devour, illumination, heartbeat |
-| H7025 | ✅ | ❌ | - | ✅ | 15 | rainbow, sunset, white_light |
+| H7025 | ✅ | ✅ | 2700-6500 | ✅ | 15 | rainbow, sunset, white_light |
 | H7026 | ✅ | ❌ | - | ✅ | 15 | rainbow, sunset, white_light |
 | H7027 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, sunset, white_light |
 | H7028 | ✅ | ✅ | 2000-9000 | ✅ | - | ripple, devour, illumination, heartbeat |
