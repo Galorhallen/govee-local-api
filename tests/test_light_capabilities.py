@@ -19,6 +19,19 @@ from govee_local_api.light_capabilities import (
 )
 
 
+def test_h3a53_supports_standard_lan_light_controls():
+    capabilities = GOVEE_LIGHT_CAPABILITIES["H3A53"]
+    assert capabilities.features == (
+        GoveeLightFeatures.COLOR_RGB
+        | GoveeLightFeatures.COLOR_KELVIN_TEMPERATURE
+        | GoveeLightFeatures.BRIGHTNESS
+        | GoveeLightFeatures.SCENES
+    )
+    assert set(capabilities.scenes) == {
+        "white_light", "illumination", "rainbow", "going_home"
+    }
+
+
 def test_default_temperature_range():
     assert DEFAULT_TEMPERATURE_RANGE == (2000, 9000)
     assert BASIC_CAPABILITIES.temperature_range == DEFAULT_TEMPERATURE_RANGE
