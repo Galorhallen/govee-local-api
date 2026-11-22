@@ -323,8 +323,8 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     "H6072": create_with_capabilities(True, True, True, 8),
     "H6073": BASIC_CAPABILITIES,
     "H6076": create_with_capabilities(
-        True, True, True, 7, temperature_range=(2700, 6500)
-    ),  # Issue #271 - range confirmed in the Govee app
+        True, True, True, 7, temperature_range=(2200, 6500)
+    ),  # Issue #271 - 2200-6500K confirmed in Govee app and LAN status
     "H6076A": BASIC_CAPABILITIES,
     "H6078": BASIC_CAPABILITIES,
     "H6079": BASIC_CAPABILITIES,

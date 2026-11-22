@@ -62,7 +62,7 @@ Color temperature defaults to 2000-9000 K; models with a narrower or wider range
 | H606A | ✅ | ✅ | 2000-9000 | ✅ | - | ❌ |
 | H6072 | ✅ | ✅ | 2000-9000 | ✅ | 8 | ocean, forest, sunset_glow, ripple, rainbow, white_light, leisure, night_light, romantic, fireworks, breathe, gradient, energetic, christmas, stacking, greedy_snake, bouncing_ball, strike, bubble, crossing |
 | H6073 | ✅ | ✅ | 2000-9000 | ✅ | - | afternoon |
-| H6076 | ✅ | ✅ | 2700-6500 | ✅ | 7 | night_light, fireworks, white_light, stacking, bouncing_ball, bubble, rainbow, meteor, ripple |
+| H6076 | ✅ | ✅ | 2200-6500 | ✅ | 7 | night_light, fireworks, white_light, stacking, bouncing_ball, bubble, rainbow, meteor, ripple |
 | H6076A | ✅ | ✅ | 2000-9000 | ✅ | - | ❌ |
 | H6078 | ✅ | ✅ | 2000-9000 | ✅ | - | work, sleep, rainbow, aurora, fire, water_drop, gradient, meditation, candy_crush, greedy_snake, flow |
 | H6079 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, lava, ripple, fireworks, white_light, reading, work, breathe, gradient, graffiti, gleam, dripping, crossing, strike, night_light |

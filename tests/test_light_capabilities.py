@@ -34,7 +34,7 @@ def test_every_registered_model_has_a_range():
 @pytest.mark.parametrize(
     "sku,expected_range",
     [
-        ("H6076", (2700, 6500)),
+        ("H6076", (2200, 6500)),
         ("H60A1", (2200, 6500)),
         ("H60A6", (2700, 6500)),
         ("H612F", (2800, 9000)),
