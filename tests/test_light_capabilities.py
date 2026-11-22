@@ -28,7 +28,10 @@ def test_h3a53_supports_standard_lan_light_controls():
         | GoveeLightFeatures.SCENES
     )
     assert set(capabilities.scenes) == {
-        "white_light", "illumination", "rainbow", "going_home"
+        "white_light",
+        "illumination",
+        "rainbow",
+        "going_home",
     }
 
 
