@@ -1,0 +1,208 @@
+diff --git a/homeassistant/components/govee_light_local/config_flow.py b/homeassistant/components/govee_light_local/config_flow.py
+index 03b16b2..1bd2967 100644
+--- a/homeassistant/components/govee_light_local/config_flow.py
++++ b/homeassistant/components/govee_light_local/config_flow.py
+@@ -1,16 +1,19 @@
+ """Config flow for Govee light local."""
+ 
+ import asyncio
+-from contextlib import suppress
+ import logging
++from contextlib import suppress
++from ipaddress import IPv4Address
+ 
++import voluptuous as vol
+ from govee_local_api import GoveeController
+ 
+-from homeassistant.core import HomeAssistant
+-from homeassistant.helpers import config_entry_flow
++from homeassistant.config_entries import ConfigEntry, ConfigFlow, OptionsFlowWithReload
++from homeassistant.core import HomeAssistant, callback
+ 
+ from . import async_get_listening_addresses
+ from .const import (
++    CONF_DEVICE_IP,
+     CONF_LISTENING_PORT_DEFAULT,
+     CONF_MULTICAST_ADDRESS_DEFAULT,
+     CONF_TARGET_PORT_DEFAULT,
+@@ -22,7 +25,7 @@ from .coordinator import log_bound_addresses
+ _LOGGER = logging.getLogger(__name__)
+ 
+ 
+-async def _async_has_devices(hass: HomeAssistant) -> bool:
++async def _async_has_devices(hass: HomeAssistant, address: str) -> bool:
+     """Return if there are devices that can be discovered."""
+ 
+     listening_addresses = await async_get_listening_addresses(hass)
+@@ -42,6 +45,8 @@ async def _async_has_devices(hass: HomeAssistant) -> bool:
+         update_enabled=False,
+     )
+ 
++    if address:
++        controller.add_device_to_discovery_queue(address)
+     try:
+         _LOGGER.debug("Starting discovery on %s", listening_addresses)
+         # Probe through whichever adapters bind; only a total failure aborts.
+@@ -67,6 +72,57 @@ async def _async_has_devices(hass: HomeAssistant) -> bool:
+     return devices_count > 0
+ 
+ 
+-config_entry_flow.register_discovery_flow(
+-    DOMAIN, "Govee light local", _async_has_devices
+-)
++def _schema(default: str = "") -> vol.Schema:
++    return vol.Schema({vol.Optional(CONF_DEVICE_IP, default=default): str})
++
++
++def _address(user_input: dict) -> str:
++    value = user_input.get(CONF_DEVICE_IP, "").strip()
++    return str(IPv4Address(value)) if value else ""
++
++
++class GoveeConfigFlow(ConfigFlow, domain=DOMAIN):
++    VERSION = 1
++
++    @staticmethod
++    @callback
++    def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlowWithReload:
++        return GoveeOptionsFlow()
++
++    async def async_step_user(self, user_input=None):
++        if self._async_current_entries():
++            return self.async_abort(reason="single_instance_allowed")
++        errors = {}
++        if user_input is not None:
++            try:
++                address = _address(user_input)
++            except ValueError:
++                errors[CONF_DEVICE_IP] = "invalid_ip"
++            else:
++                if await _async_has_devices(self.hass, address):
++                    return self.async_create_entry(
++                        title="Govee lights local", data={CONF_DEVICE_IP: address}
++                    )
++                errors["base"] = "no_devices_found"
++        return self.async_show_form(
++            step_id="user", data_schema=_schema(), errors=errors
++        )
++
++
++class GoveeOptionsFlow(OptionsFlowWithReload):
++    async def async_step_init(self, user_input=None):
++        entry = self.config_entry
++        current = entry.options.get(CONF_DEVICE_IP, entry.data.get(CONF_DEVICE_IP, ""))
++        errors = {}
++        if user_input is not None:
++            try:
++                address = _address(user_input)
++            except ValueError:
++                errors[CONF_DEVICE_IP] = "invalid_ip"
++            else:
++                return self.async_create_entry(
++                    data={**entry.options, CONF_DEVICE_IP: address}
++                )
++        return self.async_show_form(
++            step_id="init", data_schema=_schema(current), errors=errors
++        )
+diff --git a/homeassistant/components/govee_light_local/const.py b/homeassistant/components/govee_light_local/const.py
+index 41ae13d..ff3a5c1 100644
+--- a/homeassistant/components/govee_light_local/const.py
++++ b/homeassistant/components/govee_light_local/const.py
+@@ -16,3 +16,5 @@ SCAN_INTERVAL = timedelta(seconds=30)
+ # UDP response plus some jitter before flapping the entity state.
+ DEVICE_TIMEOUT = SCAN_INTERVAL * 3
+ DISCOVERY_TIMEOUT = 5
++
++CONF_DEVICE_IP = "device_ip"
+diff --git a/homeassistant/components/govee_light_local/coordinator.py b/homeassistant/components/govee_light_local/coordinator.py
+index 0eee54c..a270b9c 100644
+--- a/homeassistant/components/govee_light_local/coordinator.py
++++ b/homeassistant/components/govee_light_local/coordinator.py
+@@ -1,8 +1,8 @@
+ """Coordinator for Govee light local."""
+ 
+ import asyncio
+-from collections.abc import Callable
+ import logging
++from collections.abc import Callable
+ from typing import override
+ 
+ from govee_local_api import GoveeController, GoveeDevice
+@@ -12,6 +12,7 @@ from homeassistant.core import HomeAssistant, callback
+ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+ 
+ from .const import (
++    CONF_DEVICE_IP,
+     CONF_DISCOVERY_INTERVAL_DEFAULT,
+     CONF_LISTENING_PORT_DEFAULT,
+     CONF_MULTICAST_ADDRESS_DEFAULT,
+@@ -61,6 +62,9 @@ class GoveeLocalApiCoordinator(DataUpdateCoordinator[list[GoveeDevice]]):
+             update_interval=SCAN_INTERVAL,
+         )
+ 
++        self._device_ip = config_entry.options.get(
++            CONF_DEVICE_IP, config_entry.data.get(CONF_DEVICE_IP, "")
++        )
+         self._controller = GoveeController(
+             loop=hass.loop,
+             logger=_LOGGER,
+@@ -78,6 +82,8 @@ class GoveeLocalApiCoordinator(DataUpdateCoordinator[list[GoveeDevice]]):
+ 
+         # Home Assistant enumerates adapters once at startup, so an address can
+         # be stale by the time we bind it. Keep the adapters that do bind.
++        if self._device_ip:
++            self._controller.add_device_to_discovery_queue(self._device_ip)
+         await self._controller.start(require_all=False)
+         self._controller.send_update_message()
+         log_bound_addresses(self._controller)
+diff --git a/homeassistant/components/govee_light_local/strings.json b/homeassistant/components/govee_light_local/strings.json
+index 6161d76..2bbdd64 100644
+--- a/homeassistant/components/govee_light_local/strings.json
++++ b/homeassistant/components/govee_light_local/strings.json
+@@ -1,9 +1,22 @@
+ {
+   "config": {
+     "step": {
+-      "confirm": {
+-        "description": "[%key:common::config_flow::description::confirm_setup%]"
++      "user": {
++        "title": "Govee LAN discovery",
++        "data": {
++          "device_ip": "Device IPv4 address (optional)"
++        },
++        "data_description": {
++          "device_ip": "Leave blank to use automatic discovery only."
++        }
+       }
++    },
++    "error": {
++      "invalid_ip": "Enter a valid IPv4 address.",
++      "no_devices_found": "No Govee lights found. Check LAN Control and the device address."
++    },
++    "abort": {
++      "single_instance_allowed": "Govee lights local is already configured."
+     }
+   },
+   "entity": {
+@@ -167,5 +180,21 @@
+     "port_in_use": {
+       "message": "Port {port} is already in use"
+     }
++  },
++  "options": {
++    "step": {
++      "init": {
++        "title": "Govee LAN discovery",
++        "data": {
++          "device_ip": "Device IPv4 address (optional)"
++        },
++        "data_description": {
++          "device_ip": "Leave blank to use automatic discovery only."
++        }
++      }
++    },
++    "error": {
++      "invalid_ip": "Enter a valid IPv4 address."
++    }
+   }
+ }
