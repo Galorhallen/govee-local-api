@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import ipaddress
 import socket
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
     from .controller import GoveeController
@@ -12,13 +12,13 @@ if TYPE_CHECKING:
 class GoveeControllerProtocol(asyncio.DatagramProtocol):
     """Protocol handler for a single network interface."""
 
-    def __init__(self, controller: GoveeController, listening_address: str):
+    def __init__(self, controller: GoveeController, listening_address: str) -> None:
         self.controller = controller
         self.listening_address = listening_address
-        self.transport = None
+        self.transport: asyncio.DatagramTransport | None = None
 
-    def connection_made(self, transport):
-        self.transport = transport
+    def connection_made(self, transport: asyncio.BaseTransport) -> None:
+        self.transport = cast(asyncio.DatagramTransport, transport)
         sock = transport.get_extra_info("socket")
 
         # SO_REUSEADDR / SO_REUSEPORT / SO_BROADCAST are configured on the raw
@@ -59,11 +59,11 @@ class GoveeControllerProtocol(asyncio.DatagramProtocol):
                     exc,
                 )
 
-    def connection_lost(self, *args, **kwargs):
+    def connection_lost(self, *args: Any, **kwargs: Any) -> None:
         self.controller._logger.debug("Disconnected from %s", self.listening_address)
         self.controller._protocol_disconnected(self)
 
-    def datagram_received(self, data: bytes, addr: tuple):
+    def datagram_received(self, data: bytes, addr: tuple[str | Any, int]) -> None:
         if data:
             self.controller._loop.create_task(
                 self.controller._handle_datagram_received(data, addr, self)

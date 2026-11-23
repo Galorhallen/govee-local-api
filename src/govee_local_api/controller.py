@@ -7,7 +7,7 @@ import ipaddress
 import logging
 import socket
 import warnings
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any, NamedTuple
@@ -70,7 +70,7 @@ class _Endpoint:
 class GoveeController:
     def __init__(
         self,
-        loop=None,
+        loop: asyncio.AbstractEventLoop | None = None,
         broadcast_address: str = BROADCAST_ADDRESS,
         broadcast_port: int = BROADCAST_PORT,
         listening_addresses: str | list[str] | None = None,
@@ -223,7 +223,7 @@ class GoveeController:
         # Dispatch table for incoming messages: maps the message's "cmd"
         # string to its handler. All handlers share the signature
         # (message, addr, protocol).
-        self._response_handler: dict[str, Callable] = {
+        self._response_handler: dict[str, Callable[..., Awaitable[None]]] = {
             ScanResponse.command: self._handle_scan_response,
             DevStatusResponse.command: self._handle_status_update_response,
         }
@@ -846,8 +846,11 @@ class GoveeController:
             )
 
     async def _handle_datagram_received(
-        self, data: bytes, addr: tuple, protocol: GoveeControllerProtocol
-    ):
+        self,
+        data: bytes,
+        addr: tuple[str, int],
+        protocol: GoveeControllerProtocol,
+    ) -> None:
         # datagram_received() schedules this coroutine via create_task() and
         # never observes the resulting task, so an uncaught exception here
         # surfaces only as asyncio's generic "Task exception was never
@@ -886,8 +889,11 @@ class GoveeController:
             )
 
     async def _handle_status_update_response(
-        self, message: DevStatusResponse, addr, protocol: GoveeControllerProtocol
-    ):
+        self,
+        message: DevStatusResponse,
+        addr: tuple[str, int],
+        protocol: GoveeControllerProtocol,
+    ) -> None:
         self._logger.debug("Status update received from %s: %s", addr, message)
         ip = addr[0]
         if device := self.get_device_by_ip(ip):
@@ -896,7 +902,10 @@ class GoveeController:
             device.update(message)
 
     async def _handle_scan_response(
-        self, message: ScanResponse, addr: tuple, protocol: GoveeControllerProtocol
+        self,
+        message: ScanResponse,
+        addr: tuple[str, int],
+        protocol: GoveeControllerProtocol,
     ) -> None:
         if not message.ip:
             sender_ip = addr[0]
@@ -1075,7 +1084,7 @@ class GoveeController:
         )
         return self._endpoints[0].transport
 
-    def _send_update_message(self, device: GoveeDevice):
+    def _send_update_message(self, device: GoveeDevice) -> None:
         self._send_message(DevStatusMessage(), device)
 
     def _schedule_evict(self) -> None:

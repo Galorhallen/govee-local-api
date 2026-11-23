@@ -47,6 +47,7 @@ To add a new Govee device model, add an entry to `GOVEE_LIGHT_CAPABILITIES` in `
 ## Key Conventions
 
 - Version lives only in `pyproject.toml` (bump with `uv version --bump <part>`); `__version__` reads it from the installed package metadata
+- The package is typed: it ships `py.typed` (PEP 561) and `src/` must pass `mypy --strict` (enforced by the `mypy (strict, package)` pre-commit hook; tests and scripts are checked non-strict)
 - Tests are in `tests/` and use plain pytest (no fixtures framework)
 - `pythonpath = "src"` is configured in pytest settings — imports use `govee_local_api.*`
 - CI tests against Python 3.11, 3.12, and 3.13

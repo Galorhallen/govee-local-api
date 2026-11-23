@@ -205,15 +205,15 @@ class ScanResponse(GoveeMessage):
         super().__init__(data)
 
     @property
-    def device(self):
+    def device(self) -> str | None:
         return self._data.get("device", None)
 
     @property
-    def sku(self):
+    def sku(self) -> str | None:
         return self._data.get("sku", None)
 
     @property
-    def ip(self):
+    def ip(self) -> str | None:
         return self._data.get("ip", None)
 
     def set_ip(self, ip_addr: str) -> None:

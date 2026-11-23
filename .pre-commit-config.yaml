@@ -49,7 +49,14 @@ repos:
   - repo: "https://github.com/pre-commit/mirrors-mypy"
     rev: "v2.4.0"
     hooks:
+      # Tests and scripts: default (non-strict) check.
       - id: mypy
+        exclude: ^src/
+      # The package ships py.typed, so it must stay strict-clean.
+      - id: mypy
+        name: mypy (strict, package)
+        files: ^src/
+        args: [--strict, --ignore-missing-imports, --scripts-are-modules]
   - repo: local
     hooks:
       - id: generate-supported-devices

@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Callable
 from datetime import datetime, timezone
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from .light_capabilities import (
     DEFAULT_TEMPERATURE_RANGE,
@@ -12,6 +12,9 @@ from .light_capabilities import (
     ON_OFF_CAPABILITIES,
 )
 from .message import DevStatusResponse
+
+if TYPE_CHECKING:
+    from .controller import GoveeController
 
 
 class GoveeSegment:
@@ -29,7 +32,7 @@ class GoveeSegment:
 class GoveeDevice:
     def __init__(
         self,
-        controller,
+        controller: GoveeController,
         ip: str,
         fingerprint: str,
         sku: str,
@@ -51,7 +54,7 @@ class GoveeDevice:
         self.is_manual: bool = False
 
     @property
-    def controller(self):
+    def controller(self) -> GoveeController:
         return self._controller
 
     @property

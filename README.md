@@ -21,6 +21,8 @@ or
 
     python3 -m pip install govee-local-api
 
+The package ships type information (`py.typed`, PEP 561) and is checked with `mypy --strict`.
+
 # Usage
 
 ## Basic Usage
