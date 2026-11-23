@@ -27,6 +27,7 @@ Color temperature defaults to 2000-9000 K; models with a narrower or wider range
 | H2A40 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
 | H2A41 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
 | H3200 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, seasonal, sunset, white_light |
+| H3401 | ✅ | ✅ | 2000-9000 | ✅ | 10 | sunset, rainbow, ripple, white_light, gleam, graffiti, gradient, swing, fluctuate, breathe, colorful, dreamlike |
 | H3500 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, white_light |
 | H3501 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, white_light |
 | H3510 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, white_light, breathe, gradient |

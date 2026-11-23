@@ -285,6 +285,9 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     "H2A40": BASIC_CAPABILITIES,
     "H2A41": BASIC_CAPABILITIES,
     "H3200": BASIC_CAPABILITIES,
+    "H3401": create_with_capabilities(
+        True, True, True, 10
+    ),  # Outdoor Deck Lights 2 (retail SKU H3401311)
     "H3500": BASIC_CAPABILITIES,
     "H3501": BASIC_CAPABILITIES,
     "H3510": BASIC_CAPABILITIES,
