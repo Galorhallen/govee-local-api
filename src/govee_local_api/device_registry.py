@@ -11,13 +11,24 @@ class DeviceRegistry:
         self._custom_devices_queue: set[str] = set()
         self._logger = logger or logging.getLogger(__name__)
 
+    def claim_queued_address(self, device: GoveeDevice) -> bool:
+        """Drain the device's address from the queue and mark it manual.
+
+        The queue holds manual addresses that have not answered yet, so any
+        device answering at one (new or already known) claims it. Returns
+        False, changing nothing, when the address is not queued.
+        """
+        if device.ip not in self._custom_devices_queue:
+            return False
+        self._logger.debug(
+            f"Found manually added device {device}. Removing from queue."
+        )
+        self._custom_devices_queue.remove(device.ip)
+        device.is_manual = True
+        return True
+
     def add_discovered_device(self, device: GoveeDevice) -> GoveeDevice:
-        if device.ip in self._custom_devices_queue:
-            self._logger.debug(
-                f"Found manually added device {device}. Removing from queue."
-            )
-            self._custom_devices_queue.remove(device.ip)
-            device.is_manual = True
+        self.claim_queued_address(device)
         self._discovered_devices[device.fingerprint] = device
         return device
 

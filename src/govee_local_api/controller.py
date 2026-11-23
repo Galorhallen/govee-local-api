@@ -935,6 +935,11 @@ class GoveeController:
                     message.ip,
                 )
                 device.update_ip(message.ip)
+            # A known device answering at a queued manual address has
+            # answered the probe: drain the address and mark the device
+            # manual, same as the new-fingerprint path. Otherwise the
+            # address is probed forever.
+            self._registry.claim_queued_address(device)
             if protocol.transport:
                 device.update_transport(protocol.transport)
             if self._call_discovered_callback(device, False):
