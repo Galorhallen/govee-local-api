@@ -139,6 +139,34 @@ class GoveeDevice:
     async def turn_segment_off(self, segment: int) -> None:
         await self._controller.set_segment_rgb_color(self, segment, (0, 0, 0))
 
+    async def set_zone_on_off(self, zone: int, on: bool) -> None:
+        await self._controller.set_zone_on_off(self, zone, on)
+
+    async def set_zone_rgb_color(
+        self,
+        zone: int,
+        red: int,
+        green: int,
+        blue: int,
+        segments: list[int] | None = None,
+    ) -> None:
+        await self._controller.set_zone_rgb_color(
+            self, zone, (red, green, blue), segments
+        )
+
+    async def set_zone_temperature(
+        self, zone: int, temperature: int, segments: list[int] | None = None
+    ) -> None:
+        await self._controller.set_zone_temperature(self, zone, temperature, segments)
+
+    async def set_zone_brightness(
+        self, zone: int, brightness: int, segments: list[int] | None = None
+    ) -> None:
+        await self._controller.set_zone_brightness(self, zone, brightness, segments)
+
+    async def set_zone_flow_speed(self, zone: int, speed: int) -> None:
+        await self._controller.set_zone_flow_speed(self, zone, speed)
+
     async def turn_off(self) -> None:
         await self._controller.turn_on_off(self, False)
         self._is_on = False

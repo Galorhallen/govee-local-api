@@ -141,6 +141,81 @@ class SegmentColorMessages(PtRealMessage):
         super().__init__([data])
 
 
+ZONE_FRAME_SIZE = 19  # 20-byte frame minus the checksum byte
+
+
+def _zone_frame(data: bytes) -> bytes:
+    return data.ljust(ZONE_FRAME_SIZE, b"\x00")
+
+
+def _clamp(value: int, low: int, high: int) -> int:
+    return max(low, min(value, high))
+
+
+class ZoneOnOffMessage(PtRealMessage):
+    """Switch one zone of a multi-zone lamp: ``33 30 <zone> 01|00``."""
+
+    def __init__(self, zone: int, on: bool) -> None:
+        super().__init__([_zone_frame(bytes([0x33, 0x30, zone, 0x01 if on else 0x00]))])
+
+
+class ZoneColorMessage(PtRealMessage):
+    """Set a zone's color or white temperature.
+
+    ``33 05 2c <zone> 01 RR GG BB KK KK [mask]``: Kelvin is big-endian and
+    ``00 00`` for a plain color. A white temperature is sent with RGB
+    ``ff ff ff``; with ``00 00 00`` the side light of the H60B0 ignores it.
+    ``segment_mask`` (one bit per segment) is only sent for zones with
+    segments. White-only zones take the temperature alone, without RGB
+    bytes: ``33 05 2c <zone> 01 KK KK``.
+    """
+
+    def __init__(
+        self,
+        zone: int,
+        *,
+        rgb: tuple[int, int, int] | None = None,
+        temperature: int | None = None,
+        segment_mask: int | None = None,
+        white_only: bool = False,
+    ) -> None:
+        if (rgb is None) == (temperature is None):
+            raise ValueError("Pass exactly one of rgb or temperature")
+        kelvin = (temperature or 0).to_bytes(2, "big")
+        data = bytes([0x33, 0x05, 0x2C, zone, 0x01])
+        if white_only:
+            if temperature is None:
+                raise ValueError(f"Zone {zone} only takes a white temperature")
+            data += kelvin
+        else:
+            color = rgb if rgb is not None else (255, 255, 255)
+            data += bytes(_clamp(c, 0, 255) for c in color) + kelvin
+            if segment_mask is not None:
+                data += bytes([segment_mask & 0xFF])
+        super().__init__([_zone_frame(data)])
+
+
+class ZoneBrightnessMessage(PtRealMessage):
+    """Set a zone's brightness: ``33 05 2c <zone> 02 <1-100> [mask]``."""
+
+    def __init__(
+        self, zone: int, brightness_pct: int, segment_mask: int | None = None
+    ) -> None:
+        data = bytes([0x33, 0x05, 0x2C, zone, 0x02, _clamp(brightness_pct, 1, 100)])
+        if segment_mask is not None:
+            data += bytes([segment_mask & 0xFF])
+        super().__init__([_zone_frame(data)])
+
+
+class ZoneFlowSpeedMessage(PtRealMessage):
+    """Set a zone's animation speed: ``33 05 2c <zone> 03 <0-100>``."""
+
+    def __init__(self, zone: int, speed: int) -> None:
+        super().__init__(
+            [_zone_frame(bytes([0x33, 0x05, 0x2C, zone, 0x03, _clamp(speed, 0, 100)]))]
+        )
+
+
 class SceneMessages(PtRealMessage):
     def __init__(self, scene: bytes) -> None:
         data = (
