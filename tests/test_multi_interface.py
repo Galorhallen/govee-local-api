@@ -739,6 +739,69 @@ class TestRediscoveryRefreshesLastseen(unittest.TestCase):
         self.assertGreater(device.lastseen, old)
 
 
+class TestKnownDeviceDrainsQueue(unittest.TestCase):
+    """The discovery queue means "manual addresses that have not answered
+    yet". A scan response from an already-known device at a queued address
+    must drain that address and mark the device manual, exactly like a new
+    fingerprint does — otherwise the address is probed forever."""
+
+    def _make(self, ip="192.168.1.42", manual=False):
+        controller = _make_controller(["192.168.1.100/24"])
+        callback = Mock(return_value=True)
+        controller.set_device_discovered_callback(callback)
+        device = GoveeDevice(controller, ip, "fp-x", "H6008", ON_OFF_CAPABILITIES)
+        device.is_manual = manual
+        controller._registry.add_discovered_device(device)
+        return controller, device, callback
+
+    def _respond_from(self, controller, ip):
+        from govee_local_api.message import ScanResponse
+
+        protocol = Mock()
+        protocol.transport = Mock()
+        asyncio.run(
+            controller._handle_scan_response(
+                ScanResponse({"device": "fp-x", "sku": "H6008", "ip": ip}),
+                (ip, 4002),
+                protocol,
+            )
+        )
+
+    def test_known_device_at_its_queued_address_drains_queue(self):
+        controller, device, callback = self._make()
+        controller._registry.add_device_to_queue("192.168.1.42")
+
+        self._respond_from(controller, "192.168.1.42")
+
+        self.assertEqual(controller.discovery_queue, set())
+        self.assertTrue(device.is_manual)
+        callback.assert_called_once_with(device, False)
+        self.assertIs(controller.get_device_by_fingerprint("fp-x"), device)
+
+    def test_known_device_moving_to_queued_address_drains_queue(self):
+        controller, device, callback = self._make(ip="192.168.1.42")
+        controller._registry.add_device_to_queue("192.168.1.99")
+
+        self._respond_from(controller, "192.168.1.99")
+
+        self.assertEqual(device.ip, "192.168.1.99")
+        self.assertEqual(controller.discovery_queue, set())
+        self.assertTrue(device.is_manual)
+        callback.assert_called_once_with(device, False)
+        self.assertIs(controller.get_device_by_fingerprint("fp-x"), device)
+
+    def test_known_device_at_unqueued_address_leaves_queue_and_manual(self):
+        for manual in (False, True):
+            with self.subTest(manual=manual):
+                controller, device, _ = self._make(manual=manual)
+                controller._registry.add_device_to_queue("192.168.1.99")
+
+                self._respond_from(controller, "192.168.1.42")
+
+                self.assertEqual(controller.discovery_queue, {"192.168.1.99"})
+                self.assertIs(device.is_manual, manual)
+
+
 class TestProtocolErrorReceived(unittest.TestCase):
     """C5: error_received must log async UDP send/recv errors with the
     interface that hit them so NIC failures are diagnosable."""

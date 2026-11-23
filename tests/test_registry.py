@@ -31,6 +31,20 @@ class TestDeviceRegistry(unittest.TestCase):
         GoveeDevice(self._mock_controller, "192.168.1.2", "device2", "sku2", None)
         assert "192.168.1.2" in self.registry.devices_queue
 
+    def test_claim_queued_address(self):
+        self.registry.add_device_to_queue("192.168.1.1")
+        assert self.registry.claim_queued_address(self.device) is True
+        assert len(self.registry.devices_queue) == 0
+        assert self.device.is_manual is True
+
+    def test_claim_queued_address_not_queued(self):
+        self.registry.add_device_to_queue("192.168.1.2")
+        for manual in (False, True):
+            self.device.is_manual = manual
+            assert self.registry.claim_queued_address(self.device) is False
+            assert self.registry.devices_queue == {"192.168.1.2"}
+            assert self.device.is_manual is manual
+
     def test_cleanup(self):
         self.registry.add_discovered_device(self.device)
         self.registry.add_device_to_queue("192.168.1.2")
