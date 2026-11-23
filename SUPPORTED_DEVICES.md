@@ -85,7 +85,7 @@ Color temperature defaults to 2000-9000 K; models with a narrower or wider range
 | H60B1 | ✅ | ✅ | 2000-9000 | ✅ | 3 | sunset, white_light, illumination |
 | H60B2 | ✅ | ✅ | 2000-9000 | ✅ | 3 | sunrise, sunset, rainbow, stream, white_light, gradient, breathe, jumping, twinkle, marquee, gleam, graffiti, dripping |
 | H60C1 | ✅ | ✅ | 2000-9000 | ✅ | 3 | rainbow, white_light, illumination, sunset |
-| H610A | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, rainbow, flowing_light, breathe, stacking, greedy_snake |
+| H610A | ✅ | ✅ | 2000-9000 | ✅ | 12 | sunset, rainbow, flowing_light, breathe, stacking, greedy_snake |
 | H610B | ✅ | ✅ | 2000-9000 | ✅ | - | ❌ |
 | H610E | ✅ | ✅ | 2000-9000 | ✅ | 7 | ❌ |
 | H610F | ✅ | ✅ | 2000-9000 | ✅ | 7 | ❌ |
@@ -139,7 +139,7 @@ Color temperature defaults to 2000-9000 K; models with a narrower or wider range
 | H61B1 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
 | H61B2 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
 | H61B3 | ✅ | ✅ | 2000-7200 | ✅ | 15 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H61B5 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H61B5 | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
 | H61B6 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
 | H61B8 | ✅ | ✅ | 2000-9000 | ✅ | 15 | rainbow, snow_flake, sunset, white_light, illumination, gradient |
 | H61B9 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, snow_flake, sunset, white_light, illumination, gradient |
