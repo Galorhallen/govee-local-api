@@ -268,6 +268,7 @@ Color temperature defaults to 2000-9000 K; models with a narrower or wider range
 | H805A | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, white_light, fluctuate, stacking, gradient |
 | H805B | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, white_light, fluctuate, stacking, gradient |
 | H805C | ✅ | ✅ | 2000-9000 | ✅ | 9 | rainbow, white_light, fluctuate, stacking, gradient |
+| H805D | ✅ | ✅ | 2700-6500 | ✅ | - | rainbow, white_light, fluctuate, stacking, gradient |
 | H8066 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, seasonal, sunset, white_light |
 | H8069 | ✅ | ✅ | 2000-9000 | ✅ | - | ❌ |
 | H8072 | ✅ | ✅ | 2000-9000 | ✅ | 8 | ocean, forest, sunset_glow, ripple, rainbow, white_light, leisure, night_light, romantic, fireworks, breathe, gradient, energetic, christmas, stacking, greedy_snake, bouncing_ball, strike, bubble, crossing |
