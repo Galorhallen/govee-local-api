@@ -84,6 +84,7 @@ Color temperature defaults to 2000-9000 K; models with a narrower or wider range
 | H60B0 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, moonlight, white_light, leisure, gradient, breathe, twinkle, graffiti, flow, alternate, gleam, cover, colorful, colorful_clouds, moonlight_sprinkles, blue_sky_white_clouds, dense_fog |
 | H60B1 | ✅ | ✅ | 2000-9000 | ✅ | 3 | sunset, white_light, illumination |
 | H60B2 | ✅ | ✅ | 2000-9000 | ✅ | 3 | sunrise, sunset, rainbow, stream, white_light, gradient, breathe, jumping, twinkle, marquee, gleam, graffiti, dripping |
+| H60B3 | ✅ | ✅ | 2700-6500 | ✅ | - | rainbow, moonlight, white_light, leisure, sleep, soothing, moonlight_sprinkles, dense_fog, fantasy, gradient, breathe, twinkle, graffiti, flow, alternate, gleam, cover, colorful |
 | H60C1 | ✅ | ✅ | 2000-9000 | ✅ | 3 | rainbow, white_light, illumination, sunset |
 | H610A | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, rainbow, flowing_light, breathe, stacking, greedy_snake |
 | H610B | ✅ | ✅ | 2000-9000 | ✅ | - | ❌ |

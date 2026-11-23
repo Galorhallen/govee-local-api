@@ -350,6 +350,9 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     "H60B0": BASIC_CAPABILITIES,  # Issue #252 - segments TBD
     "H60B1": create_with_capabilities(True, True, True, 3),
     "H60B2": create_with_capabilities(True, True, True, 3),
+    "H60B3": create_with_capabilities(
+        True, True, True, 0, temperature_range=(2700, 6500)
+    ),  # Tri-zone uplighter (nebula), sibling of H60B0
     "H60C1": create_with_capabilities(True, True, True, 3),  # Issue #232
     "H610A": BASIC_CAPABILITIES,
     "H610B": BASIC_CAPABILITIES,
