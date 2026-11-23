@@ -220,7 +220,9 @@ def _load_model_scenes() -> dict[str, dict[str, bytes]]:
     single byte SceneMessages can play.
     """
     data = json.loads(
-        files(__package__).joinpath(DATA_DIR, MODEL_SCENES_FILE).read_text("utf-8")
+        files("govee_local_api")
+        .joinpath(DATA_DIR, MODEL_SCENES_FILE)
+        .read_text("utf-8")
     )
     scene_sets = {
         set_id: {name: bytes([code]) for name, code in scenes.items()}
