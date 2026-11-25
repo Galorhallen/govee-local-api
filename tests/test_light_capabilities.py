@@ -39,11 +39,39 @@ def test_every_registered_model_has_a_range():
         ("H60A6", (2700, 6500)),
         ("H612F", (2800, 9000)),
         ("H61B3", (2000, 7200)),
+        ("H6020", (2700, 6500)),
+        ("H607C", (2200, 6500)),
+        ("H60B0", (2700, 6500)),
+        ("H60B2", (2700, 6500)),
+        ("H61E5", (2700, 6500)),
+        ("H7025", (2700, 6500)),
+        ("H8057", (2700, 6500)),
         ("H6006", DEFAULT_TEMPERATURE_RANGE),
     ],
 )
 def test_registered_models_with_a_reported_range(sku, expected_range):
     assert GOVEE_LIGHT_CAPABILITIES[sku].temperature_range == expected_range
+
+
+@pytest.mark.parametrize(
+    "sku,expected_segments",
+    [
+        ("H6020", 15),
+        ("H607C", 13),
+        ("H60B0", 0),
+        ("H60B2", 3),
+        ("H61E5", 15),
+        ("H7025", 15),
+        ("H8057", 4),
+    ],
+)
+def test_registered_models_with_a_reported_segment_count(sku, expected_segments):
+    assert GOVEE_LIGHT_CAPABILITIES[sku].segments_count == expected_segments
+
+
+def test_h7025_supports_white_temperature():
+    features = GOVEE_LIGHT_CAPABILITIES["H7025"].features
+    assert features & GoveeLightFeatures.COLOR_KELVIN_TEMPERATURE
 
 
 def test_custom_temperature_range():
