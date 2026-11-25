@@ -1,3 +1,4 @@
+import base64
 from importlib.resources import files
 import json
 import re
@@ -17,6 +18,7 @@ from govee_local_api.light_capabilities import (
     builtin_scenes,
     create_with_capabilities,
 )
+from govee_local_api.message import SceneCodeMessage
 
 
 def test_default_temperature_range():
@@ -112,16 +114,27 @@ def _model_scenes_file():
     )
 
 
+def _expected_code(entry):
+    # A bare code is a firmware scene (one byte); [code, blob id] is a
+    # parameter scene (16-bit little-endian code).
+    if isinstance(entry, int):
+        return bytes([entry])
+    return entry[0].to_bytes(2, "little")
+
+
 def test_registry_scenes_come_from_the_model_scenes_file():
     data = _model_scenes_file()
     for sku, capabilities in GOVEE_LIGHT_CAPABILITIES.items():
         set_id = data["models"].get(sku)
-        expected = (
-            {name: bytes([code]) for name, code in data["sets"][set_id].items()}
-            if set_id
-            else {}
-        )
+        entries = data["sets"][set_id] if set_id else {}
+        expected = {name: _expected_code(entry) for name, entry in entries.items()}
+        expected_params = {
+            name: base64.b64decode(data["blobs"][entry[1]])
+            for name, entry in entries.items()
+            if not isinstance(entry, int)
+        }
         assert capabilities.scenes == expected, sku
+        assert capabilities.scene_params == expected_params, sku
 
 
 def test_scene_feature_flag_matches_the_scene_set():
@@ -132,15 +145,79 @@ def test_scene_feature_flag_matches_the_scene_set():
 
 def test_model_scenes_file_is_consistent():
     data = _model_scenes_file()
-    # null: the model was checked and has no firmware scenes.
+    # null: the model was checked and has no scenes this package can play.
     assert set(data["models"].values()) - {None} == set(data["sets"])
+    used_blobs = set()
     for set_id, scenes in data["sets"].items():
         assert scenes, set_id
-        for name, code in scenes.items():
-            # SceneMessages carries one code byte; keys are valid Home
-            # Assistant translation keys, which must match [a-z0-9-_]+.
-            assert 0 < code <= 0xFF, (set_id, name)
+        for name, entry in scenes.items():
+            # Keys are valid Home Assistant translation keys ([a-z0-9-_]+).
             assert re.fullmatch(r"[a-z0-9_-]+", name), (set_id, name)
+            if isinstance(entry, int):
+                # SceneMessages carries one code byte.
+                assert 0 < entry <= 0xFF, (set_id, name)
+            else:
+                code, blob_id = entry
+                assert 0 < code <= 0xFFFF, (set_id, name)
+                assert blob_id in data["blobs"], (set_id, name)
+                used_blobs.add(blob_id)
+    assert used_blobs == set(data["blobs"])
+
+
+def test_every_packaged_blob_decodes_and_fits_the_encoder():
+    for blob_id, encoded in _model_scenes_file()["blobs"].items():
+        blob = base64.b64decode(encoded, validate=True)
+        assert blob, blob_id
+        SceneCodeMessage(1, blob)  # raises if the blob needs too many frames
+
+
+def test_h805a_lists_its_parameter_scenes():
+    capabilities = GOVEE_LIGHT_CAPABILITIES["H805A"]
+    assert capabilities.scenes["christmas"] == (11271).to_bytes(2, "little")
+    assert capabilities.scenes["candy_cane"] == (12368).to_bytes(2, "little")
+    assert capabilities.scene_params["candy_cane"]
+    # Two different scenes are named "Halloween" on this model.
+    assert capabilities.scenes["halloween"] == (11275).to_bytes(2, "little")
+    assert capabilities.scenes["halloween_2"] == (12492).to_bytes(2, "little")
+
+
+def test_h805a_firmware_scenes_are_unchanged():
+    capabilities = GOVEE_LIGHT_CAPABILITIES["H805A"]
+    firmware = {
+        name: code
+        for name, code in capabilities.scenes.items()
+        if name not in capabilities.scene_params
+    }
+    assert firmware == {
+        "rainbow": b"\x16",
+        "white_light": b"\x28",
+        "fluctuate": b"\x4c",
+        "stacking": b"\x29",
+        "gradient": b"\x03",
+    }
+
+
+def test_scene_params_default_to_empty():
+    capabilities = create_with_capabilities(True, True, True, 0, True)
+    assert capabilities.scene_params == {}
+
+
+def test_scene_params_are_dropped_without_the_scene_feature():
+    capabilities = GoveeLightCapabilities(
+        GoveeLightFeatures.COLOR_RGB,
+        scenes={"sled": b"\x0a\x2c"},
+        scene_params={"sled": b"\x01"},
+    )
+    assert capabilities.scene_params == {}
+
+
+def test_scene_params_without_a_matching_scene_are_rejected():
+    with pytest.raises(ValueError):
+        GoveeLightCapabilities(
+            GoveeLightFeatures.SCENES,
+            scenes={"rainbow": b"\x16"},
+            scene_params={"sled": b"\x01"},
+        )
 
 
 def test_model_scenes_file_covers_exactly_the_registry():
@@ -154,19 +231,22 @@ def test_models_with_the_same_scene_set_share_it():
     h1232, h1250 = (GOVEE_LIGHT_CAPABILITIES[sku] for sku in ("H1232", "H1250"))
     assert data["models"]["H1232"] == data["models"]["H1250"]
     assert h1232 is h1250
-    assert h1232.scenes == {"white_light": b"\x63", "illumination": b"\x19"}
+    assert h1232.scenes["white_light"] == b"\x63"
+    assert h1232.scenes["illumination"] == b"\x19"
 
 
-def test_h619a_keeps_only_the_firmware_variant_of_multi_variant_scenes():
-    scenes = GOVEE_LIGHT_CAPABILITIES["H619A"].scenes
-    # Variant A plays from its code alone; variant B needs a parameter blob
-    # and is dropped, so the variant letter is dropped with it.
+def test_h619a_firmware_variant_keeps_the_bare_key():
+    capabilities = GOVEE_LIGHT_CAPABILITIES["H619A"]
+    scenes = capabilities.scenes
+    # Variant A plays from its code alone and keeps the key it always had.
     assert scenes["snow_flake"] == b"\x0f"
     assert scenes["energetic"] == b"\x10"
     assert scenes["rainbow"] == b"\x16"
-    assert not {"snow_flake_a", "snow_flake_b", "energetic_a", "rainbow_a"} & set(
-        scenes
-    )
+    assert not {"snow_flake_a", "energetic_a", "rainbow_a"} & set(scenes)
+    # Variant B needs a parameter blob and is listed under its own key.
+    assert scenes["snow_flake_b"] == (2154).to_bytes(2, "little")
+    assert "snow_flake_b" in capabilities.scene_params
+    assert "snow_flake" not in capabilities.scene_params
 
 
 def test_govee_variant_letter_is_dropped_when_its_sibling_is_not_kept():
@@ -189,7 +269,10 @@ def test_govee_variant_letter_stays_next_to_its_kept_sibling():
 def test_no_model_lists_the_same_scene_code_twice():
     # Two names for one code would mean a variant was split in two.
     for sku, capabilities in GOVEE_LIGHT_CAPABILITIES.items():
-        codes = list(capabilities.scenes.values())
+        codes = [
+            (code, capabilities.scene_params.get(name))
+            for name, code in capabilities.scenes.items()
+        ]
         assert len(codes) == len(set(codes)), sku
 
 
