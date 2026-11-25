@@ -264,7 +264,7 @@ Color temperature defaults to 2000-9000 K; models with a narrower or wider range
 | H8026 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, sunset, white_light |
 | H802A | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, rainbow, candlelight, romantic, movie, energetic, twinkle, breathe |
 | H8048 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, aurora, snow_flake, stream, torch, fireworks, white_light, swing, stacking, candy_crush |
-| H8057 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, seasonal, sunset, white_light |
+| H8057 | ✅ | ✅ | 2700-6500 | ✅ | 4 | rainbow, seasonal, sunset, white_light |
 | H805A | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, white_light, fluctuate, stacking, gradient |
 | H805B | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, white_light, fluctuate, stacking, gradient |
 | H805C | ✅ | ✅ | 2000-9000 | ✅ | 9 | rainbow, white_light, fluctuate, stacking, gradient |

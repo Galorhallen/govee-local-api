@@ -551,7 +551,10 @@ GOVEE_LIGHT_CAPABILITIES: dict[str, GoveeLightCapabilities] = {
     "H8026": BASIC_CAPABILITIES,
     "H802A": BASIC_CAPABILITIES,
     "H8048": BASIC_CAPABILITIES,
-    "H8057": BASIC_CAPABILITIES,
+    "H8057": create_with_capabilities(
+        True, True, True, 4, temperature_range=(2700, 6500)
+    ),  # Outdoor Flood Lights 2 (4 heads): range from the Govee Cloud API; the
+    # generic segment command sets each head over the LAN (checked by `aa a5` readback)
     "H805A": BASIC_CAPABILITIES,
     "H805B": BASIC_CAPABILITIES,
     "H805C": create_with_capabilities(True, True, True, 9),

@@ -45,6 +45,7 @@ def test_every_registered_model_has_a_range():
         ("H60B2", (2700, 6500)),
         ("H61E5", (2700, 6500)),
         ("H7025", (2700, 6500)),
+        ("H8057", (2700, 6500)),
         ("H6006", DEFAULT_TEMPERATURE_RANGE),
     ],
 )
@@ -61,6 +62,7 @@ def test_registered_models_with_a_reported_range(sku, expected_range):
         ("H60B2", 3),
         ("H61E5", 15),
         ("H7025", 15),
+        ("H8057", 4),
     ],
 )
 def test_registered_models_with_a_reported_segment_count(sku, expected_segments):
