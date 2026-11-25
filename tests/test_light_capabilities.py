@@ -1,3 +1,4 @@
+import base64
 from importlib.resources import files
 import json
 import re
@@ -17,6 +18,7 @@ from govee_local_api.light_capabilities import (
     builtin_scenes,
     create_with_capabilities,
 )
+from govee_local_api.message import SegmentColorMessages
 
 
 def test_default_temperature_range():
@@ -204,3 +206,20 @@ def test_model_unknown_to_the_scene_library_has_no_scenes():
     capabilities = GOVEE_LIGHT_CAPABILITIES["H6076A"]
     assert capabilities.scenes == {}
     assert capabilities.features & GoveeLightFeatures.COLOR_RGB
+
+
+def test_h7056_colours_each_of_its_eight_segments():
+    """An H7056 (Outdoor Pathway Lights) is two strings of four bulbs, eight segments,
+    each taking its own colour over LAN: on a real light, segment 2 red is this frame.
+    """
+    capabilities = GOVEE_LIGHT_CAPABILITIES["H7056"]
+    assert capabilities.features & GoveeLightFeatures.SEGMENT_CONTROL
+    assert capabilities.segments_count == 8
+
+    message = SegmentColorMessages(capabilities.segments[1], (255, 0, 0))
+
+    assert message.as_dict()["msg"]["data"]["command"] == [
+        base64.b64encode(
+            bytes.fromhex("33051501ff0000" "0000000000" "0200" "0000000000" "df")
+        ).decode()
+    ]

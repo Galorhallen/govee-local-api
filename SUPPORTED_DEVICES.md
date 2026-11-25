@@ -203,7 +203,7 @@ Color temperature defaults to 2000-9000 K; models with a narrower or wider range
 | H7052 | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow_flake, rainbow, candlelight, white_light, romantic, breathe |
 | H7053 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, white_light, romantic, breathe |
 | H7055 | ✅ | ✅ | 2000-9000 | ✅ | - | breathe, gradient |
-| H7056 | ✅ | ✅ | 2000-9000 | ✅ | - | sunrise, sunset, rainbow, white_light, gradient, breathe, cover, gleam, blossom, flowing_light, twinkle, graffiti, spin, colorful |
+| H7056 | ✅ | ✅ | 2000-9000 | ✅ | 8 | sunrise, sunset, rainbow, white_light, gradient, breathe, cover, gleam, blossom, flowing_light, twinkle, graffiti, spin, colorful |
 | H7057 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, seasonal, sunset, white_light |
 | H7058 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, seasonal, sunset, white_light |
 | H705A | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, fluctuate, stacking, gradient |
