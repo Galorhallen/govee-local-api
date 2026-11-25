@@ -21,6 +21,8 @@ or regenerate one derived file from an existing library (no requests) with
 """
 
 import argparse
+import base64
+import binascii
 from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor
 import hashlib
@@ -41,6 +43,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
 from govee_local_api.light_capabilities import GOVEE_LIGHT_CAPABILITIES  # noqa: E402
+from govee_local_api.message import SceneCodeMessage  # noqa: E402
 
 LIBRARY_URL = "https://app2.govee.com/appsku/v1/light-effect-libraries"
 # Without an AppVersion header the endpoint answers with an empty library.
@@ -57,6 +60,10 @@ SCENE_DEVICES_FILE = "scene_devices.json"
 MODEL_SCENES_FILE = REPO_ROOT / "src" / "govee_local_api" / "data" / "model_scenes.json"
 # Firmware scenes: the only type whose codes play without a parameter blob.
 MODEL_SCENE_TYPE = 0
+# Parameter scenes: the light effect's own sceneType (it can differ from the
+# scene node's) whose code plus scenceParam blob SceneCodeMessage can play.
+# The only type confirmed on hardware (H706B, H706C, H805A).
+PARAM_SCENE_TYPE = 2
 # " B" in "Aurora B": a single capital letter ending a scene name.
 VARIANT_SUFFIX = re.compile(r" [A-Z]$")
 # Home Assistant translation keys must match [a-z0-9-_]+ (hassfest).
@@ -86,11 +93,31 @@ def fetch_library(sku: str) -> dict[str, Any]:
     raise AssertionError("unreachable")
 
 
+def _has_own_override(effect: dict[str, Any], sku: str) -> bool:
+    """Whether the effect has a specialEffect entry that names this SKU and
+    carries a different scenceParam from the effect's own."""
+    base = effect.get("scenceParam") or ""
+    for special in effect.get("specialEffect") or []:
+        if not isinstance(special, dict):
+            continue
+        if (
+            sku in (special.get("supportSku") or [])
+            and (special.get("scenceParam") or "") != base
+        ):
+            return True
+    return False
+
+
 def extract_scenes(
-    data: dict[str, Any], scene_type: int | None
+    data: dict[str, Any], scene_type: int | None, sku: str = ""
 ) -> list[dict[str, Any]]:
     """Flatten the library into [{name, code, type, effects, param,
-    scene_id, scene, variant}], skipping sceneCode 0.
+    scene_id, scene, variant, effect_type, blob, override}], skipping
+    sceneCode 0.
+
+    `effect_type` is the light effect's own sceneType, `blob` its base64
+    scenceParam ("" when it has none) and `override` whether a specialEffect
+    entry gives `sku` a different blob (see _has_own_override).
 
     Scenes are filtered on the scene node's sceneType (`scene_type=None`
     keeps every type). The usable sceneCode lives on each scene's
@@ -127,6 +154,9 @@ def extract_scenes(
                         "variant": (
                             effect.get("scenceName", "") if len(effects) > 1 else ""
                         ),
+                        "effect_type": effect.get("sceneType", scene.get("sceneType")),
+                        "blob": effect.get("scenceParam") or "",
+                        "override": _has_own_override(effect, sku),
                     }
                 )
     return scenes
@@ -186,6 +216,88 @@ def name_model_scenes(scenes: list[dict[str, Any]]) -> list[tuple[str, int]]:
     return result
 
 
+def _decode_blob(encoded: str) -> bytes | None:
+    """The scenceParam bytes, or None when it is not strict base64."""
+    try:
+        return base64.b64decode(encoded, validate=True)
+    except (binascii.Error, ValueError):
+        return None
+
+
+def _encodable(code: int, blob: bytes) -> bool:
+    """Whether SceneCodeMessage can frame this code and blob."""
+    try:
+        SceneCodeMessage(code, blob)
+    except ValueError:
+        return False
+    return True
+
+
+def name_parameter_scenes(
+    scenes: list[dict[str, Any]], taken: set[str]
+) -> list[tuple[str, str, int, bytes]]:
+    """A model's parameter scenes as [(key, display name, code, blob)].
+
+    Keeps effects of PARAM_SCENE_TYPE that have a blob SceneCodeMessage can
+    send. Left out: effects with a different blob for this SKU in
+    specialEffect (which blob the device needs is not known), blobs that are
+    not strict base64 or need too many frames, and names that give no key.
+    A scene listed more than once (same code and blob) is kept once.
+
+    Keys never replace one in `taken` (the model's firmware scene keys).
+    When several scenes share a key, the lowest code keeps it and the others
+    get "_2", "_3", ... in code order ("Halloween 2" as display name), so a
+    key does not depend on the order of Govee's listing.
+    """
+    kept: dict[tuple[int, bytes], str] = {}
+    for scene in scenes:
+        if (
+            scene.get("effect_type") != PARAM_SCENE_TYPE
+            or not scene.get("blob")
+            or scene.get("override")
+        ):
+            continue
+        code, name = scene["code"], scene["name"]
+        blob = _decode_blob(scene["blob"])
+        if not blob or not _encodable(code, blob):
+            _LOGGER.warning("skipping %r (code %d): blob cannot be sent", name, code)
+            continue
+        if not scene_key(name):
+            _LOGGER.warning("skipping %r (code %d): no usable key", name, code)
+            continue
+        kept.setdefault((code, blob), name)
+
+    by_key: dict[str, list[tuple[int, bytes]]] = defaultdict(list)
+    for entry, name in kept.items():
+        by_key[scene_key(name)].append(entry)
+
+    used = set(taken)
+    keys: dict[tuple[int, bytes], tuple[str, str]] = {}
+    # First the bare keys, so a numbered key can never take one of them.
+    for key, entries in by_key.items():
+        if key not in used:
+            first = min(entries)
+            keys[first] = (key, kept[first])
+            used.add(key)
+    for key, entries in sorted(by_key.items()):
+        number = 1
+        for entry in sorted(entries):
+            if entry in keys:
+                continue
+            numbered = key
+            while numbered in used:
+                number += 1
+                numbered = f"{key}_{number}"
+            keys[entry] = (numbered, f"{kept[entry]} {number}")
+            used.add(numbered)
+    return [(*keys[entry], *entry) for entry in kept]
+
+
+def firmware_scene_keys(scenes: list[dict[str, Any]]) -> set[str]:
+    """The keys of a model's packaged firmware scenes."""
+    return {scene_key(name) for name, code in name_model_scenes(scenes) if code <= 0xFF}
+
+
 def scene_key(name: str) -> str:
     """The library's key for a Govee scene name, usable as-is as a Home
     Assistant translation key ([a-z0-9-_]+): "Blue sky & white clouds" ->
@@ -207,6 +319,10 @@ def build_ha_scene_names(library: Library) -> dict[str, str]:
         for name, code in name_model_scenes(scenes):
             if code <= 0xFF:  # the same filter build_model_scenes applies
                 spellings[scene_key(name)][name] += 1
+        for key, display, _code, _blob in name_parameter_scenes(
+            scenes, firmware_scene_keys(scenes)
+        ):
+            spellings[key][display] += 1
     names = {}
     for key, counts in sorted(spellings.items()):
         display = sorted(counts.items(), key=lambda c: (-c[1], c[0]))[0][0]
@@ -227,8 +343,9 @@ def build_model_scenes(library: Library) -> dict[str, dict[str, Any]]:
     GOVEE_LIGHT_CAPABILITIES (a library file can predate a registry change)
     are left out.
     """
-    sets: dict[str, dict[str, int]] = {}
+    sets: dict[str, dict[str, Any]] = {}
     models: dict[str, str | None] = {}
+    blobs: dict[str, str] = {}
     unregistered = sorted(set(library) - set(GOVEE_LIGHT_CAPABILITIES))
     if unregistered:
         _LOGGER.warning(
@@ -239,11 +356,12 @@ def build_model_scenes(library: Library) -> dict[str, dict[str, Any]]:
     for sku, scenes in library.items():
         if sku not in GOVEE_LIGHT_CAPABILITIES:
             continue
-        if any("scene_id" not in scene for scene in scenes):
+        if any("scene_id" not in scene or "blob" not in scene for scene in scenes):
             raise ValueError(
-                f"{sku}: library entries lack 'scene_id'; refetch the library"
+                f"{sku}: library entries lack 'scene_id' or 'blob'; "
+                "refetch the library"
             )
-        model_scenes: dict[str, int] = {}
+        model_scenes: dict[str, Any] = {}
         for name, code in name_model_scenes(scenes):
             name = scene_key(name)
             if code > 0xFF:
@@ -256,6 +374,14 @@ def build_model_scenes(library: Library) -> dict[str, dict[str, Any]]:
                 )
             else:
                 model_scenes[name] = code
+        for key, _display, code, blob in name_parameter_scenes(
+            scenes, set(model_scenes)
+        ):
+            blob_id = hashlib.sha1(blob).hexdigest()[:8]
+            encoded = base64.b64encode(blob).decode()
+            if blobs.setdefault(blob_id, encoded) != encoded:
+                raise ValueError(f"{sku}: two blobs share the id {blob_id}")
+            model_scenes[key] = [code, blob_id]
         if not model_scenes:
             models[sku] = None
             continue
@@ -263,7 +389,11 @@ def build_model_scenes(library: Library) -> dict[str, dict[str, Any]]:
         set_id = hashlib.sha1(canonical.encode()).hexdigest()[:8]
         sets[set_id] = model_scenes
         models[sku] = set_id
-    return {"sets": dict(sorted(sets.items())), "models": dict(sorted(models.items()))}
+    return {
+        "sets": dict(sorted(sets.items())),
+        "models": dict(sorted(models.items())),
+        "blobs": dict(sorted(blobs.items())),
+    }
 
 
 def _depth(data: Any) -> int:
@@ -327,7 +457,7 @@ def fetch_all(
         # pulled this SKU; the lock guards the shared progress state.
         nonlocal done
         try:
-            scenes = extract_scenes(fetch_library(sku), scene_type)
+            scenes = extract_scenes(fetch_library(sku), scene_type, sku)
         except RuntimeError as ex:
             scenes, error = None, ex
         with lock:

@@ -5,7 +5,7 @@
 
 The library currently knows **273** device models and the features each one supports. Models not listed here are still discovered, but fall back to on/off control only. If your device is missing or its capabilities are wrong, please [open an issue](https://github.com/Galorhallen/govee-local-api/issues).
 
-Scenes are each model's firmware scenes from Govee's per-model scene library (generated into `model_scenes.json` by `scripts/generate_model_scenes.py`): the ones that play from their scene code alone. Models marked ❌ have none. Scenes that need a parameter blob can still be sent with `set_scene_code()`.
+Scenes come from Govee's per-model scene library (generated into `model_scenes.json` by `scripts/generate_model_scenes.py`). The names listed are the firmware scenes, which play from their scene code alone. The count after them is the number of parameter scenes, which are sent with a parameter blob; their names are in `capabilities.available_scenes`. Models marked ❌ have none. Other library scenes can be sent with `set_scene_code()`.
 
 Color temperature defaults to 2000-9000 K; models with a narrower or wider range declare their own.
 
@@ -14,24 +14,24 @@ Color temperature defaults to 2000-9000 K; models with a narrower or wider range
 | H1232 | ✅ | ✅ | 2000-9000 | ✅ | - | white_light, illumination |
 | H1250 | ✅ | ✅ | 2000-9000 | ✅ | - | white_light, illumination |
 | H1270 | ✅ | ✅ | 2000-9000 | ✅ | - | white_light |
-| H1310 | ✅ | ✅ | 2000-9000 | ✅ | - | sunrise, sunset, rainbow, white_light |
+| H1310 | ✅ | ✅ | 2000-9000 | ✅ | - | sunrise, sunset, rainbow, white_light + 6 parameter scenes |
 | H1401 | ✅ | ✅ | 2000-9000 | ✅ | - | white_light, study, business, reading, night_light |
 | H14A1 | ✅ | ✅ | 2000-9000 | ✅ | - | white_light, study, business, reading, night_light |
 | H14C0 | ✅ | ✅ | 2000-9000 | ✅ | - | study, business, reading, night_light, white_light, tomato_timer |
 | H14C1 | ✅ | ✅ | 2000-9000 | ✅ | - | study, business, reading, night_light, white_light, tomato_timer |
 | H1630 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, night_light, white_light, work, reading |
 | H16B0 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, lava, ripple, fireworks, white_light, reading, work, breathe, gradient, graffiti, strike, gleam, dripping, crossing, night_light |
-| H16C0 | ✅ | ✅ | 2000-9000 | ✅ | 7 | ripple, rainbow, white_light, leisure, night_light, fireworks, drinks, stacking, greedy_snake, bouncing_ball, strike, bubble, crossing |
-| H1A43 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, snow_flake, white_light, illumination, gradient |
-| H1A45 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, snow_flake, sunset, white_light, illumination, gradient |
-| H2A40 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H2A41 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H3200 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, seasonal, sunset, white_light |
-| H3500 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, white_light |
-| H3501 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, white_light |
-| H3510 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, white_light, breathe, gradient |
-| H3511 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, white_light, breathe, gradient |
-| H3751 | ✅ | ✅ | 2000-9000 | ✅ | - | white_light, illumination |
+| H16C0 | ✅ | ✅ | 2000-9000 | ✅ | 7 | ripple, rainbow, white_light, leisure, night_light, fireworks, drinks, stacking, greedy_snake, bouncing_ball, strike, bubble, crossing + 98 parameter scenes |
+| H1A43 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, snow_flake, white_light, illumination, gradient + 156 parameter scenes |
+| H1A45 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, snow_flake, sunset, white_light, illumination, gradient + 159 parameter scenes |
+| H2A40 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 74 parameter scenes |
+| H2A41 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 74 parameter scenes |
+| H3200 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, seasonal, sunset, white_light + 72 parameter scenes |
+| H3500 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, white_light + 97 parameter scenes |
+| H3501 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, white_light + 97 parameter scenes |
+| H3510 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, white_light, breathe, gradient + 64 parameter scenes |
+| H3511 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, white_light, breathe, gradient + 42 parameter scenes |
+| H3751 | ✅ | ✅ | 2000-9000 | ✅ | - | white_light, illumination + 12 parameter scenes |
 | H6004 | ✅ | ✅ | 2000-9000 | ✅ | - | study, business, reading, night_light |
 | H6006 | ✅ | ✅ | 2000-9000 | ✅ | - | study, business, reading, night_light |
 | H6008 | ✅ | ✅ | 2000-9000 | ✅ | - | study, business, reading, night_light |
@@ -40,205 +40,205 @@ Color temperature defaults to 2000-9000 K; models with a narrower or wider range
 | H601A | ✅ | ✅ | 2000-9000 | ✅ | - | white_light, study, business, reading, night_light |
 | H6020 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, forest, ocean, wave, fire, snow_flake, white_light, reading, illumination, work, starry_sky, joyful, night_light |
 | H6022 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, forest, ocean, wave, snow_flake, fire, white_light, reading, night_light, joyful, starry_sky |
-| H6038 | ✅ | ✅ | 2000-9000 | ✅ | - | sunrise, sunset, rainbow, snow_flake, fireworks, white_light, work, reading, romantic, crossing |
-| H6039 | ✅ | ✅ | 2000-9000 | ✅ | 12 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H6042 | ✅ | ✅ | 2000-9000 | ✅ | 5 | aurora, stream, rainbow |
-| H6043 | ✅ | ❌ | - | ✅ | 10 | aurora, stream, rainbow |
-| H6046 | ✅ | ✅ | 2000-9000 | ✅ | 10 | aurora, snow_flake, seasonal, stream, rainbow, reading, movie, candlelight, romantic, breathe, energetic, crossing |
-| H6047 | ✅ | ✅ | 2000-9000 | ✅ | 10 | rainbow, aurora, snow_flake, stream, fireworks, swing, stacking, candy_crush |
-| H6048 | ✅ | ✅ | 2000-9000 | ✅ | 15 | rainbow, aurora, snow_flake, stream, torch, fireworks, white_light, swing, stacking, candy_crush |
+| H6038 | ✅ | ✅ | 2000-9000 | ✅ | - | sunrise, sunset, rainbow, snow_flake, fireworks, white_light, work, reading, romantic, crossing + 2 parameter scenes |
+| H6039 | ✅ | ✅ | 2000-9000 | ✅ | 12 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 113 parameter scenes |
+| H6042 | ✅ | ✅ | 2000-9000 | ✅ | 5 | aurora, stream, rainbow + 47 parameter scenes |
+| H6043 | ✅ | ❌ | - | ✅ | 10 | aurora, stream, rainbow + 58 parameter scenes |
+| H6046 | ✅ | ✅ | 2000-9000 | ✅ | 10 | aurora, snow_flake, seasonal, stream, rainbow, reading, movie, candlelight, romantic, breathe, energetic, crossing + 59 parameter scenes |
+| H6047 | ✅ | ✅ | 2000-9000 | ✅ | 10 | rainbow, aurora, snow_flake, stream, fireworks, swing, stacking, candy_crush + 57 parameter scenes |
+| H6048 | ✅ | ✅ | 2000-9000 | ✅ | 15 | rainbow, aurora, snow_flake, stream, torch, fireworks, white_light, swing, stacking, candy_crush + 60 parameter scenes |
 | H6051 | ✅ | ✅ | 2000-9000 | ✅ | - | leisure, night_light |
 | H6052 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, sunset_glow, snow_flake, aurora, forest, ocean, fire, reading, night_light, dancing, breathe, gradient |
-| H6056 | ✅ | ✅ | 2000-9000 | ✅ | - | aurora, snow_flake, seasonal, stream, rainbow, reading, movie, candlelight, romantic, breathe, energetic, crossing |
+| H6056 | ✅ | ✅ | 2000-9000 | ✅ | - | aurora, snow_flake, seasonal, stream, rainbow, reading, movie, candlelight, romantic, breathe, energetic, crossing + 63 parameter scenes |
 | H6059 | ✅ | ✅ | 2000-9000 | ✅ | - | study, reading, night_light |
 | H605D | ✅ | ✅ | 2000-9000 | ✅ | - | ❌ |
 | H6061 | ✅ | ✅ | 2000-9000 | ✅ | - | leisure, night_light, breathe |
-| H6062 | ✅ | ✅ | 2000-9000 | ✅ | - | ocean, forest, sunset_glow, rainbow, leisure, night_light, romantic, breathe, gradient, energetic, christmas, stacking, greedy_snake, bouncing_ball, strike, bubble |
+| H6062 | ✅ | ✅ | 2000-9000 | ✅ | - | ocean, forest, sunset_glow, rainbow, leisure, night_light, romantic, breathe, gradient, energetic, christmas, stacking, greedy_snake, bouncing_ball, strike, bubble + 53 parameter scenes |
 | H6063 | ✅ | ✅ | 2000-9000 | ✅ | - | ❌ |
 | H6065 | ✅ | ✅ | 2000-9000 | ✅ | - | leisure, night_light, breathe |
 | H6066 | ✅ | ✅ | 2000-9000 | ✅ | - | leisure, night_light, breathe |
 | H6067 | ✅ | ✅ | 2000-9000 | ✅ | - | leisure, night_light, breathe |
 | H6069 | ✅ | ❌ | - | ✅ | 15 | ❌ |
 | H606A | ✅ | ✅ | 2000-9000 | ✅ | - | ❌ |
-| H6072 | ✅ | ✅ | 2000-9000 | ✅ | 8 | ocean, forest, sunset_glow, ripple, rainbow, white_light, leisure, night_light, romantic, fireworks, breathe, gradient, energetic, christmas, stacking, greedy_snake, bouncing_ball, strike, bubble, crossing |
+| H6072 | ✅ | ✅ | 2000-9000 | ✅ | 8 | ocean, forest, sunset_glow, ripple, rainbow, white_light, leisure, night_light, romantic, fireworks, breathe, gradient, energetic, christmas, stacking, greedy_snake, bouncing_ball, strike, bubble, crossing + 48 parameter scenes |
 | H6073 | ✅ | ✅ | 2000-9000 | ✅ | - | afternoon |
-| H6076 | ✅ | ✅ | 2700-6500 | ✅ | 7 | night_light, fireworks, white_light, stacking, bouncing_ball, bubble, rainbow, meteor, ripple |
+| H6076 | ✅ | ✅ | 2700-6500 | ✅ | 7 | night_light, fireworks, white_light, stacking, bouncing_ball, bubble, rainbow, meteor, ripple + 101 parameter scenes |
 | H6076A | ✅ | ✅ | 2000-9000 | ✅ | - | ❌ |
 | H6078 | ✅ | ✅ | 2000-9000 | ✅ | - | work, sleep, rainbow, aurora, fire, water_drop, gradient, meditation, candy_crush, greedy_snake, flow |
 | H6079 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, lava, ripple, fireworks, white_light, reading, work, breathe, gradient, graffiti, gleam, dripping, crossing, strike, night_light |
 | H607C | ✅ | ✅ | 2000-9000 | ✅ | 13 | rainbow, lava, ripple, fireworks, white_light, reading, work, breathe, gradient, graffiti, strike, gleam, dripping, crossing, night_light |
-| H6087 | ✅ | ✅ | 2000-9000 | ✅ | 12 | leisure, night_light, breathe, gradient |
-| H6088 | ✅ | ✅ | 2000-9000 | ✅ | 6 | reading, illumination |
-| H608A | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, rainbow, work, movie, romantic |
-| H608B | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, rainbow, work, movie, romantic |
-| H608C | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, rainbow, work, movie, romantic |
-| H608D | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, rainbow, work, movie, romantic |
+| H6087 | ✅ | ✅ | 2000-9000 | ✅ | 12 | leisure, night_light, breathe, gradient + 21 parameter scenes |
+| H6088 | ✅ | ✅ | 2000-9000 | ✅ | 6 | reading, illumination + 49 parameter scenes |
+| H608A | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, rainbow, work, movie, romantic + 60 parameter scenes |
+| H608B | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, rainbow, work, movie, romantic + 58 parameter scenes |
+| H608C | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, rainbow, work, movie, romantic + 58 parameter scenes |
+| H608D | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, rainbow, work, movie, romantic + 58 parameter scenes |
 | H6093 | ❌ | ✅ | 2000-9000 | ✅ | - | white_light |
 | H6094 | ✅ | ✅ | 2000-9000 | ✅ | - | white_light |
 | H6095 | ✅ | ✅ | 2000-9000 | ✅ | - | white_light |
 | H609D | ✅ | ✅ | 2000-9000 | ✅ | - | dusk, milky_way, awakening, interstellar_travel, big_universe, space_walk |
-| H60A0 | ✅ | ✅ | 2000-9000 | ✅ | - | sunrise, sunset, candlelight, night_light, work, leisure |
-| H60A1 | ✅ | ✅ | 2200-6500 | ✅ | 13 | sunrise, sunset, candlelight, white_light, night_light, work, leisure |
-| H60A4 | ✅ | ✅ | 2000-9000 | ✅ | 11 | sunrise, sunset, white_light, work, reading |
+| H60A0 | ✅ | ✅ | 2000-9000 | ✅ | - | sunrise, sunset, candlelight, night_light, work, leisure + 65 parameter scenes |
+| H60A1 | ✅ | ✅ | 2200-6500 | ✅ | 13 | sunrise, sunset, candlelight, white_light, night_light, work, leisure + 72 parameter scenes |
+| H60A4 | ✅ | ✅ | 2000-9000 | ✅ | 11 | sunrise, sunset, white_light, work, reading + 102 parameter scenes |
 | H60A6 | ✅ | ✅ | 2700-6500 | ✅ | - | white_light, illumination, blue_sky_white_clouds, relax, peaceful, radiance, ribbon, garden, sunset, color_split, clear_lake |
 | H60B0 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, moonlight, white_light, leisure, gradient, breathe, twinkle, graffiti, flow, alternate, gleam, cover, colorful, colorful_clouds, moonlight_sprinkles, blue_sky_white_clouds, dense_fog |
-| H60B1 | ✅ | ✅ | 2000-9000 | ✅ | 3 | sunset, white_light, illumination |
-| H60B2 | ✅ | ✅ | 2000-9000 | ✅ | 3 | sunrise, sunset, rainbow, stream, white_light, gradient, breathe, jumping, twinkle, marquee, gleam, graffiti, dripping |
-| H60C1 | ✅ | ✅ | 2000-9000 | ✅ | 3 | rainbow, white_light, illumination, sunset |
+| H60B1 | ✅ | ✅ | 2000-9000 | ✅ | 3 | sunset, white_light, illumination + 72 parameter scenes |
+| H60B2 | ✅ | ✅ | 2000-9000 | ✅ | 3 | sunrise, sunset, rainbow, stream, white_light, gradient, breathe, jumping, twinkle, marquee, gleam, graffiti, dripping + 75 parameter scenes |
+| H60C1 | ✅ | ✅ | 2000-9000 | ✅ | 3 | rainbow, white_light, illumination, sunset + 87 parameter scenes |
 | H610A | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, rainbow, flowing_light, breathe, stacking, greedy_snake |
 | H610B | ✅ | ✅ | 2000-9000 | ✅ | - | ❌ |
 | H610E | ✅ | ✅ | 2000-9000 | ✅ | 7 | ❌ |
 | H610F | ✅ | ✅ | 2000-9000 | ✅ | 7 | ❌ |
 | H6110 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, candlelight, dating, romantic, twinkle, movie, breathe, energetic |
-| H6117 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H612A | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H612B | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H612C | ✅ | ✅ | 2000-9000 | ✅ | 10 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H612D | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H612F | ✅ | ✅ | 2800-9000 | ✅ | 5 | sunset, rainbow, candlelight, romantic, movie, energetic, twinkle, breathe |
+| H6117 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 226 parameter scenes |
+| H612A | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 131 parameter scenes |
+| H612B | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 103 parameter scenes |
+| H612C | ✅ | ✅ | 2000-9000 | ✅ | 10 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 114 parameter scenes |
+| H612D | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 114 parameter scenes |
+| H612F | ✅ | ✅ | 2800-9000 | ✅ | 5 | sunset, rainbow, candlelight, romantic, movie, energetic, twinkle, breathe + 67 parameter scenes |
 | H6141 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, candlelight, dating, romantic, twinkle, movie, breathe, energetic |
-| H6143 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H6144 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H6143 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 84 parameter scenes |
+| H6144 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 84 parameter scenes |
 | H6159 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, candlelight, dating, romantic, twinkle, movie, breathe, energetic |
 | H615A | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, candlelight, dating, romantic, twinkle, movie, breathe, energetic |
 | H615B | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, candlelight, dating, romantic, twinkle, movie, breathe, energetic |
 | H615C | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, candlelight, dating, romantic, twinkle, movie, breathe, energetic |
 | H615D | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, candlelight, dating, romantic, twinkle, movie, breathe, energetic |
 | H615E | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, candlelight, dating, romantic, twinkle, movie, breathe, energetic |
-| H6163 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H6167 | ✅ | ✅ | 2000-9000 | ✅ | 12 | sunset, rainbow, candlelight, romantic, movie, energetic, twinkle, breathe |
-| H6168 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H6169 | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H616C | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H616D | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H616E | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H6172 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H6173 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H6175 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H6176 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H617E | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H6163 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 226 parameter scenes |
+| H6167 | ✅ | ✅ | 2000-9000 | ✅ | 12 | sunset, rainbow, candlelight, romantic, movie, energetic, twinkle, breathe + 67 parameter scenes |
+| H6168 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 225 parameter scenes |
+| H6169 | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 113 parameter scenes |
+| H616C | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 113 parameter scenes |
+| H616D | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 113 parameter scenes |
+| H616E | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 113 parameter scenes |
+| H6172 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 225 parameter scenes |
+| H6173 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 121 parameter scenes |
+| H6175 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 106 parameter scenes |
+| H6176 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 136 parameter scenes |
+| H617E | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 218 parameter scenes |
 | H6182 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, candlelight, dating, romantic, twinkle, movie, breathe, energetic |
-| H618A | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, rainbow, candlelight, romantic, movie, energetic, twinkle, breathe |
-| H618C | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H618E | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H618F | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H618G | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H619A | ✅ | ✅ | 2000-9000 | ✅ | 10 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H619B | ✅ | ✅ | 2000-9000 | ✅ | 10 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H619C | ✅ | ✅ | 2000-9000 | ✅ | 10 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H619D | ✅ | ✅ | 2000-9000 | ✅ | 10 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H619E | ✅ | ✅ | 2000-9000 | ✅ | 10 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H619Z | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, rainbow, candlelight, romantic, movie, energetic, twinkle, breathe |
-| H61A0 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H61A1 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H61A2 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H61A3 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H61A5 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H61A8 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H61A9 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H61B1 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H61B2 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H61B3 | ✅ | ✅ | 2000-7200 | ✅ | 15 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H61B5 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H61B6 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H61B8 | ✅ | ✅ | 2000-9000 | ✅ | 15 | rainbow, snow_flake, sunset, white_light, illumination, gradient |
-| H61B9 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, snow_flake, sunset, white_light, illumination, gradient |
-| H61BA | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H61BC | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H61BE | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H61C2 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H61C3 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H61C5 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H61D3 | ✅ | ✅ | 2000-9000 | ✅ | 15 | rainbow, snow_flake, romantic, movie, gradient |
-| H61D4 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, snow_flake, romantic, movie, gradient |
-| H61D5 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, snow_flake, romantic, movie, gradient |
-| H61D6 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, snow_flake, romantic, movie, gradient |
-| H61E0 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H61E1 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H61E5 | ✅ | ✅ | 2000-9000 | ✅ | 12 | sunset, snow_flake, rainbow, candlelight, white_light, romantic, movie, crossing, study, business, reading, work, dinner, twinkle, breathe, energetic |
-| H61E6 | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow_flake, rainbow, candlelight, white_light, romantic, movie, crossing, study, business, reading, work, dinner, twinkle, breathe, energetic |
-| H61F2 | ✅ | ✅ | 2000-9000 | ✅ | 4 | rainbow, snow_flake, white_light, illumination, gradient |
-| H61F5 | ✅ | ✅ | 2000-9000 | ✅ | 10 | rainbow, snow_flake, sunset, white_light, illumination, gradient |
-| H61F6 | ✅ | ✅ | 2000-9000 | ✅ | 15 | rainbow, snow_flake, white_light, illumination, gradient |
-| H6609 | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H618A | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, rainbow, candlelight, romantic, movie, energetic, twinkle, breathe + 71 parameter scenes |
+| H618C | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 221 parameter scenes |
+| H618E | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 222 parameter scenes |
+| H618F | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 225 parameter scenes |
+| H618G | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 84 parameter scenes |
+| H619A | ✅ | ✅ | 2000-9000 | ✅ | 10 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 202 parameter scenes |
+| H619B | ✅ | ✅ | 2000-9000 | ✅ | 10 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 223 parameter scenes |
+| H619C | ✅ | ✅ | 2000-9000 | ✅ | 10 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 224 parameter scenes |
+| H619D | ✅ | ✅ | 2000-9000 | ✅ | 10 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 223 parameter scenes |
+| H619E | ✅ | ✅ | 2000-9000 | ✅ | 10 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 224 parameter scenes |
+| H619Z | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, rainbow, candlelight, romantic, movie, energetic, twinkle, breathe + 67 parameter scenes |
+| H61A0 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 226 parameter scenes |
+| H61A1 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 122 parameter scenes |
+| H61A2 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 122 parameter scenes |
+| H61A3 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 132 parameter scenes |
+| H61A5 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 74 parameter scenes |
+| H61A8 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 218 parameter scenes |
+| H61A9 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 207 parameter scenes |
+| H61B1 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 149 parameter scenes |
+| H61B2 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 213 parameter scenes |
+| H61B3 | ✅ | ✅ | 2000-7200 | ✅ | 15 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 112 parameter scenes |
+| H61B5 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 73 parameter scenes |
+| H61B6 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 81 parameter scenes |
+| H61B8 | ✅ | ✅ | 2000-9000 | ✅ | 15 | rainbow, snow_flake, sunset, white_light, illumination, gradient + 159 parameter scenes |
+| H61B9 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, snow_flake, sunset, white_light, illumination, gradient + 159 parameter scenes |
+| H61BA | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 131 parameter scenes |
+| H61BC | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 113 parameter scenes |
+| H61BE | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 113 parameter scenes |
+| H61C2 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 89 parameter scenes |
+| H61C3 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 123 parameter scenes |
+| H61C5 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 75 parameter scenes |
+| H61D3 | ✅ | ✅ | 2000-9000 | ✅ | 15 | rainbow, snow_flake, romantic, movie, gradient + 327 parameter scenes |
+| H61D4 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, snow_flake, romantic, movie, gradient + 327 parameter scenes |
+| H61D5 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, snow_flake, romantic, movie, gradient + 327 parameter scenes |
+| H61D6 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, snow_flake, romantic, movie, gradient + 31 parameter scenes |
+| H61E0 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 114 parameter scenes |
+| H61E1 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 147 parameter scenes |
+| H61E5 | ✅ | ✅ | 2000-9000 | ✅ | 12 | sunset, snow_flake, rainbow, candlelight, white_light, romantic, movie, crossing, study, business, reading, work, dinner, twinkle, breathe, energetic + 138 parameter scenes |
+| H61E6 | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow_flake, rainbow, candlelight, white_light, romantic, movie, crossing, study, business, reading, work, dinner, twinkle, breathe, energetic + 138 parameter scenes |
+| H61F2 | ✅ | ✅ | 2000-9000 | ✅ | 4 | rainbow, snow_flake, white_light, illumination, gradient + 156 parameter scenes |
+| H61F5 | ✅ | ✅ | 2000-9000 | ✅ | 10 | rainbow, snow_flake, sunset, white_light, illumination, gradient + 159 parameter scenes |
+| H61F6 | ✅ | ✅ | 2000-9000 | ✅ | 15 | rainbow, snow_flake, white_light, illumination, gradient + 151 parameter scenes |
+| H6609 | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 215 parameter scenes |
 | H6630 | ✅ | ✅ | 2000-9000 | ✅ | - | white_light |
 | H6631 | ✅ | ✅ | 2000-9000 | ✅ | - | white_light |
-| H6640 | ✅ | ✅ | 2000-9000 | ✅ | 14 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H6641 | ✅ | ✅ | 2000-9000 | ✅ | 14 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H6671 | ✅ | ✅ | 2000-9000 | ✅ | 14 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H6672 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H6640 | ✅ | ✅ | 2000-9000 | ✅ | 14 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 113 parameter scenes |
+| H6641 | ✅ | ✅ | 2000-9000 | ✅ | 14 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 104 parameter scenes |
+| H6671 | ✅ | ✅ | 2000-9000 | ✅ | 14 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 83 parameter scenes |
+| H6672 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 83 parameter scenes |
 | H6800 | ✅ | ✅ | 2000-9000 | ✅ | - | countdown, valentines_day, new_years, meteor, star, bubble, rainbow, aircraft_battle, ring_toss, lottery_machine, poker, dodging, stack |
 | H6810 | ✅ | ✅ | 2000-9000 | ✅ | - | bubble, rainbow, star, meteor, christmas_tree, countdown, valentines_day, ring_toss, bouncing_ball, lottery_machine, maze, racing, dodging, stack |
 | H6811 | ✅ | ✅ | 2000-9000 | ✅ | - | bubble, rainbow, star, meteor, christmas_tree, countdown, valentines_day, ring_toss, bouncing_ball, lottery_machine, maze, racing, dodging, stack |
 | H6840 | ✅ | ✅ | 2000-9000 | ✅ | - | countdown, valentines_day, meteor, star, bubble, rainbow, aircraft_battle, ring_toss, lottery_machine, poker, dodging, stack |
 | H6841 | ✅ | ✅ | 2000-9000 | ✅ | - | countdown, valentines_day, meteor, star, bubble, rainbow, aircraft_battle, ring_toss, lottery_machine, poker, dodging, stack |
-| H6860 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, rainbow, white_light, movie, romantic |
-| H6861 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, rainbow, white_light, movie, romantic |
-| H6870 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, rainbow, star, stars, shiny, shiny_b, candlelight, twinkle, crossing, white_light, movie, romantic, breathe, energetic |
-| H6871 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, rainbow, star, stars, shiny, shiny_b, candlelight, twinkle, crossing, white_light, movie, romantic, breathe, energetic |
+| H6860 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, rainbow, white_light, movie, romantic + 74 parameter scenes |
+| H6861 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, rainbow, white_light, movie, romantic + 74 parameter scenes |
+| H6870 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, rainbow, star, stars, shiny, shiny_b, candlelight, twinkle, crossing, white_light, movie, romantic, breathe, energetic + 80 parameter scenes |
+| H6871 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, rainbow, star, stars, shiny, shiny_b, candlelight, twinkle, crossing, white_light, movie, romantic, breathe, energetic + 80 parameter scenes |
 | H7012 | ❌ | ❌ | - | ✅ | - | steady, breathe, starry_sky, drumming, twinkle, candlelight |
 | H7013 | ❌ | ❌ | - | ✅ | - | steady, breathe, starry_sky, drumming, twinkle, candlelight |
-| H7020 | ✅ | ✅ | 2000-9000 | ✅ | - | ripple, devour, illumination, heartbeat |
-| H7021 | ✅ | ✅ | 2000-9000 | ✅ | - | ripple, devour, illumination, heartbeat |
-| H7025 | ✅ | ❌ | - | ✅ | 15 | rainbow, sunset, white_light |
-| H7026 | ✅ | ❌ | - | ✅ | 15 | rainbow, sunset, white_light |
-| H7027 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, sunset, white_light |
-| H7028 | ✅ | ✅ | 2000-9000 | ✅ | - | ripple, devour, illumination, heartbeat |
-| H702A | ✅ | ✅ | 2000-9000 | ✅ | 15 | rainbow, sunset, white_light |
-| H702B | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, sunset, white_light |
-| H702C | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, sunset, white_light |
-| H7030 | ✅ | ✅ | 2000-9000 | ✅ | - | white_light, work, reading, candlelight |
-| H7033 | ✅ | ✅ | 2000-9000 | ✅ | - | illumination |
-| H7037 | ✅ | ✅ | 2000-9000 | ✅ | - | white_light, work, reading, candlelight |
-| H7038 | ✅ | ✅ | 2000-9000 | ✅ | - | white_light, work, reading, candlelight |
-| H7039 | ✅ | ✅ | 2000-9000 | ✅ | 15 | white_light, work, reading, candlelight |
-| H703A | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, white_light, romantic, breathe |
-| H703B | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, white_light, romantic, breathe |
-| H7041 | ✅ | ✅ | 2000-9000 | ✅ | - | ripple, devour, illumination, heartbeat |
-| H7042 | ✅ | ✅ | 2000-9000 | ✅ | - | ripple, devour, illumination, heartbeat |
-| H7045 | ✅ | ✅ | 2000-9000 | ✅ | - | white_light, smudge |
-| H7046 | ✅ | ✅ | 2000-9000 | ✅ | - | white_light, smudge |
-| H7050 | ✅ | ✅ | 2000-9000 | ✅ | - | illumination, heartbeat |
-| H7051 | ✅ | ✅ | 2000-9000 | ✅ | - | illumination, heartbeat |
-| H7052 | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow_flake, rainbow, candlelight, white_light, romantic, breathe |
-| H7053 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, white_light, romantic, breathe |
-| H7055 | ✅ | ✅ | 2000-9000 | ✅ | - | breathe, gradient |
+| H7020 | ✅ | ✅ | 2000-9000 | ✅ | - | ripple, devour, illumination, heartbeat + 76 parameter scenes |
+| H7021 | ✅ | ✅ | 2000-9000 | ✅ | - | ripple, devour, illumination, heartbeat + 76 parameter scenes |
+| H7025 | ✅ | ❌ | - | ✅ | 15 | rainbow, sunset, white_light + 110 parameter scenes |
+| H7026 | ✅ | ❌ | - | ✅ | 15 | rainbow, sunset, white_light + 110 parameter scenes |
+| H7027 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, sunset, white_light + 110 parameter scenes |
+| H7028 | ✅ | ✅ | 2000-9000 | ✅ | - | ripple, devour, illumination, heartbeat + 76 parameter scenes |
+| H702A | ✅ | ✅ | 2000-9000 | ✅ | 15 | rainbow, sunset, white_light + 115 parameter scenes |
+| H702B | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, sunset, white_light + 115 parameter scenes |
+| H702C | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, sunset, white_light + 115 parameter scenes |
+| H7030 | ✅ | ✅ | 2000-9000 | ✅ | - | white_light, work, reading, candlelight + 66 parameter scenes |
+| H7033 | ✅ | ✅ | 2000-9000 | ✅ | - | illumination + 1 parameter scenes |
+| H7037 | ✅ | ✅ | 2000-9000 | ✅ | - | white_light, work, reading, candlelight + 71 parameter scenes |
+| H7038 | ✅ | ✅ | 2000-9000 | ✅ | - | white_light, work, reading, candlelight + 71 parameter scenes |
+| H7039 | ✅ | ✅ | 2000-9000 | ✅ | 15 | white_light, work, reading, candlelight + 71 parameter scenes |
+| H703A | ✅ | ✅ | 2000-9000 | ✅ | - | white_light, romantic, sunset, snow_flake, rainbow, candlelight, breathe + 59 parameter scenes |
+| H703B | ✅ | ✅ | 2000-9000 | ✅ | - | white_light, romantic, sunset, snow_flake, rainbow, candlelight, breathe + 59 parameter scenes |
+| H7041 | ✅ | ✅ | 2000-9000 | ✅ | - | ripple, devour, illumination, heartbeat + 52 parameter scenes |
+| H7042 | ✅ | ✅ | 2000-9000 | ✅ | - | ripple, devour, illumination, heartbeat + 52 parameter scenes |
+| H7045 | ✅ | ✅ | 2000-9000 | ✅ | - | white_light, smudge + 2 parameter scenes |
+| H7046 | ✅ | ✅ | 2000-9000 | ✅ | - | white_light, smudge + 2 parameter scenes |
+| H7050 | ✅ | ✅ | 2000-9000 | ✅ | - | illumination, heartbeat + 49 parameter scenes |
+| H7051 | ✅ | ✅ | 2000-9000 | ✅ | - | illumination, heartbeat + 49 parameter scenes |
+| H7052 | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow_flake, rainbow, candlelight, white_light, romantic, breathe + 58 parameter scenes |
+| H7053 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, white_light, romantic, breathe + 58 parameter scenes |
+| H7055 | ✅ | ✅ | 2000-9000 | ✅ | - | breathe, gradient + 57 parameter scenes |
 | H7056 | ✅ | ✅ | 2000-9000 | ✅ | - | sunrise, sunset, rainbow, white_light, gradient, breathe, cover, gleam, blossom, flowing_light, twinkle, graffiti, spin, colorful |
-| H7057 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, seasonal, sunset, white_light |
-| H7058 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, seasonal, sunset, white_light |
-| H705A | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, fluctuate, stacking, gradient |
-| H705B | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, fluctuate, stacking, gradient |
-| H705C | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, fluctuate, stacking, gradient |
-| H705D | ✅ | ✅ | 2000-9000 | ✅ | 9 | rainbow, white_light, fluctuate, stacking, gradient |
-| H705E | ✅ | ✅ | 2000-9000 | ✅ | 15 | rainbow, white_light, fluctuate, stacking, gradient |
-| H705F | ✅ | ✅ | 2000-9000 | ✅ | 15 | rainbow, white_light, fluctuate, stacking, gradient |
-| H7060 | ✅ | ✅ | 2000-9000 | ✅ | - | thunderstorm, halloween |
-| H7061 | ✅ | ✅ | 2000-9000 | ✅ | - | ❌ |
-| H7062 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, thunderstorm, halloween |
-| H7063 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, rainbow, white_light, illumination |
-| H7065 | ✅ | ✅ | 2000-9000 | ✅ | - | ❌ |
-| H7066 | ✅ | ✅ | 2000-9000 | ✅ | - | thunderstorm, halloween |
-| H7067 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, rainbow, white_light, gleam, graffiti, gradient, swing, fluctuate, breathe, colorful, dreamlike |
-| H706A | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, white_light, fluctuate, stacking, gradient |
-| H706B | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, white_light, fluctuate, stacking, gradient |
-| H706C | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, white_light, fluctuate, stacking, gradient |
+| H7057 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, sunset, seasonal, white_light + 51 parameter scenes |
+| H7058 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, sunset, seasonal, white_light + 51 parameter scenes |
+| H705A | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, fluctuate, stacking, gradient + 89 parameter scenes |
+| H705B | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, fluctuate, stacking, gradient + 89 parameter scenes |
+| H705C | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, fluctuate, stacking, gradient + 90 parameter scenes |
+| H705D | ✅ | ✅ | 2000-9000 | ✅ | 9 | rainbow, white_light, fluctuate, stacking, gradient + 108 parameter scenes |
+| H705E | ✅ | ✅ | 2000-9000 | ✅ | 15 | rainbow, white_light, fluctuate, stacking, gradient + 108 parameter scenes |
+| H705F | ✅ | ✅ | 2000-9000 | ✅ | 15 | rainbow, white_light, fluctuate, stacking, gradient + 108 parameter scenes |
+| H7060 | ✅ | ✅ | 2000-9000 | ✅ | - | thunderstorm, halloween + 36 parameter scenes |
+| H7061 | ✅ | ✅ | 2000-9000 | ✅ | - | + 42 parameter scenes |
+| H7062 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, thunderstorm, halloween + 33 parameter scenes |
+| H7063 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, rainbow, white_light, illumination + 58 parameter scenes |
+| H7065 | ✅ | ✅ | 2000-9000 | ✅ | - | + 42 parameter scenes |
+| H7066 | ✅ | ✅ | 2000-9000 | ✅ | - | thunderstorm, halloween + 36 parameter scenes |
+| H7067 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, rainbow, white_light, gleam, graffiti, gradient, swing, fluctuate, breathe, colorful, dreamlike + 52 parameter scenes |
+| H706A | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, white_light, fluctuate, stacking, gradient + 138 parameter scenes |
+| H706B | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, white_light, fluctuate, stacking, gradient + 138 parameter scenes |
+| H706C | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, white_light, fluctuate, stacking, gradient + 138 parameter scenes |
 | H7070 | ✅ | ✅ | 2000-9000 | ✅ | - | ❌ |
 | H7071 | ✅ | ✅ | 2000-9000 | ✅ | - | ❌ |
-| H7072 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, sunrise, sunset, white_light, energy_saving, relax, warm_welcome, night_light, illumination, work |
+| H7072 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, sunrise, sunset, white_light, energy_saving, relax, warm_welcome, night_light, illumination, work + 75 parameter scenes |
 | H7073 | ✅ | ✅ | 2000-9000 | ✅ | - | ❌ |
-| H7075 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, white_light, illumination |
+| H7075 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, white_light, illumination + 43 parameter scenes |
 | H7076 | ✅ | ✅ | 2000-9000 | ✅ | 15 | rainbow, white_light, illumination, new_years |
-| H7078 | ✅ | ✅ | 2000-9000 | ✅ | 4 | rainbow, white_light, illumination |
-| H707A | ✅ | ✅ | 2000-9000 | ✅ | - | white_light, sunset, rainbow |
-| H707B | ✅ | ✅ | 2000-9000 | ✅ | - | white_light, sunset, rainbow |
-| H707C | ✅ | ✅ | 2000-9000 | ✅ | - | white_light, sunset, rainbow |
+| H7078 | ✅ | ✅ | 2000-9000 | ✅ | 4 | rainbow, white_light, illumination + 51 parameter scenes |
+| H707A | ✅ | ✅ | 2000-9000 | ✅ | - | white_light, sunset, rainbow + 106 parameter scenes |
+| H707B | ✅ | ✅ | 2000-9000 | ✅ | - | white_light, sunset, rainbow + 106 parameter scenes |
+| H707C | ✅ | ✅ | 2000-9000 | ✅ | - | white_light, sunset, rainbow + 106 parameter scenes |
 | H7086 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, rainbow, white_light, illumination |
-| H7087 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, white_light, illumination |
-| H7093 | ✅ | ✅ | 2000-9000 | ✅ | 2 | rainbow, seasonal, sunset, white_light |
-| H7094 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, seasonal, sunset, white_light |
-| H70A1 | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H70A2 | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
-| H70A3 | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic |
+| H7087 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, white_light, illumination + 68 parameter scenes |
+| H7093 | ✅ | ✅ | 2000-9000 | ✅ | 2 | rainbow, seasonal, sunset, white_light + 64 parameter scenes |
+| H7094 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, seasonal, sunset, white_light + 73 parameter scenes |
+| H70A1 | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 201 parameter scenes |
+| H70A2 | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 216 parameter scenes |
+| H70A3 | ✅ | ✅ | 2000-9000 | ✅ | 15 | sunset, snow_flake, rainbow, candlelight, romantic, dating, movie, crossing, twinkle, breathe, energetic + 208 parameter scenes |
 | H70B1 | ✅ | ✅ | 2000-9000 | ✅ | - | bubble, rainbow, star, meteor, christmas_tree, countdown, valentines_day, aircraft_battle, ring_toss, bouncing_ball, lottery_machine, poker, dodging, maze, racing, tic_tac_toe, stack |
 | H70B3 | ✅ | ✅ | 2000-9000 | ✅ | - | bubble, rainbow, star, meteor, christmas_tree, countdown, valentines_day, aircraft_battle, ring_toss, bouncing_ball, lottery_machine, poker, dodging, maze, racing, tic_tac_toe, stack |
 | H70B4 | ✅ | ✅ | 2000-9000 | ✅ | - | bubble, rainbow, star, meteor, christmas_tree, countdown, valentines_day, aircraft_battle, ring_toss, bouncing_ball, lottery_machine, poker, dodging, maze, racing, stack |
@@ -246,40 +246,40 @@ Color temperature defaults to 2000-9000 K; models with a narrower or wider range
 | H70B6 | ✅ | ✅ | 2000-9000 | ✅ | - | sunflower_field, reel, highway_driving, love_gift_box, easter_egg, happy_new_year, wave, meadow_breeze, aurora, rainbow, sunset, rainbow_heart, mars, cool, whack_a_mole, goldfish_in_bowl, white_light |
 | H70B8 | ✅ | ✅ | 2000-9000 | ✅ | - | reel, city_racing, whack_a_mole, train, station, sunset, aurora, rainbow, wave, meadow_breeze, white_light, vitruvian_man, sunflower_field, trolley_under_streetlight, collision, rainbow_heart, satellite_orbiting, planet, hot |
 | H70BC | ✅ | ✅ | 2000-9000 | ✅ | - | bubble, rainbow, star, meteor, christmas_tree, countdown, valentines_day, ring_toss, bouncing_ball, dodging, racing, stack |
-| H70C1 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, movie, crossing, twinkle, breathe, energetic |
-| H70C2 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, movie, crossing, twinkle, breathe, energetic |
-| H70C4 | ✅ | ✅ | 2000-9000 | ✅ | 10 | sunset, rainbow, candlelight, twinkle, crossing, white_light, movie, romantic, breathe, energetic |
-| H70C5 | ✅ | ✅ | 2000-9000 | ✅ | 10 | sunset, rainbow, candlelight, twinkle, crossing, white_light, movie, romantic, breathe, energetic |
-| H70C7 | ✅ | ✅ | 2000-9000 | ✅ | 10 | sunset, rainbow, candlelight, twinkle, crossing, white_light, movie, romantic, breathe, energetic |
-| H70C9 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, rainbow, candlelight, twinkle, crossing, white_light, movie, romantic, breathe, energetic |
-| H70D1 | ✅ | ✅ | 2000-9000 | ✅ | 10 | rainbow, meteor_shower, star |
-| H70D2 | ✅ | ✅ | 2000-9000 | ✅ | 10 | rainbow, meteor_shower, star |
-| H70D3 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, meteor_shower, star |
+| H70C1 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, movie, crossing, twinkle, breathe, energetic + 120 parameter scenes |
+| H70C2 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, snow_flake, rainbow, candlelight, romantic, movie, crossing, twinkle, breathe, energetic + 120 parameter scenes |
+| H70C4 | ✅ | ✅ | 2000-9000 | ✅ | 10 | sunset, rainbow, candlelight, twinkle, crossing, white_light, movie, romantic, breathe, energetic + 84 parameter scenes |
+| H70C5 | ✅ | ✅ | 2000-9000 | ✅ | 10 | sunset, rainbow, candlelight, twinkle, crossing, white_light, movie, romantic, breathe, energetic + 84 parameter scenes |
+| H70C7 | ✅ | ✅ | 2000-9000 | ✅ | 10 | sunset, rainbow, candlelight, twinkle, crossing, white_light, movie, romantic, breathe, energetic + 78 parameter scenes |
+| H70C9 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, rainbow, candlelight, twinkle, crossing, white_light, movie, romantic, breathe, energetic + 78 parameter scenes |
+| H70D1 | ✅ | ✅ | 2000-9000 | ✅ | 10 | rainbow, meteor_shower, star + 45 parameter scenes |
+| H70D2 | ✅ | ✅ | 2000-9000 | ✅ | 10 | rainbow, meteor_shower, star + 45 parameter scenes |
+| H70D3 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, meteor_shower, star + 45 parameter scenes |
 | H8015 | ✅ | ✅ | 2000-9000 | ✅ | - | ❌ |
 | H801A | ✅ | ✅ | 2000-9000 | ✅ | - | white_light, study, business, reading, night_light |
-| H801B | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, fluctuate, stacking, gradient |
+| H801B | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, fluctuate, stacking, gradient + 90 parameter scenes |
 | H801D | ✅ | ✅ | 2000-9000 | ✅ | - | white_light, study, business, reading, night_light |
 | H8022 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, forest, ocean, wave, snow_flake, fire, white_light, reading, night_light, joyful, starry_sky |
-| H8025 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, sunset, white_light |
-| H8026 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, sunset, white_light |
-| H802A | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, rainbow, candlelight, romantic, movie, energetic, twinkle, breathe |
-| H8048 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, aurora, snow_flake, stream, torch, fireworks, white_light, swing, stacking, candy_crush |
-| H8057 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, seasonal, sunset, white_light |
-| H805A | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, white_light, fluctuate, stacking, gradient |
-| H805B | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, white_light, fluctuate, stacking, gradient |
-| H805C | ✅ | ✅ | 2000-9000 | ✅ | 9 | rainbow, white_light, fluctuate, stacking, gradient |
-| H8066 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, seasonal, sunset, white_light |
+| H8025 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, sunset, white_light + 110 parameter scenes |
+| H8026 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, sunset, white_light + 110 parameter scenes |
+| H802A | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, rainbow, candlelight, romantic, movie, energetic, twinkle, breathe + 72 parameter scenes |
+| H8048 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, aurora, snow_flake, stream, torch, fireworks, white_light, swing, stacking, candy_crush + 60 parameter scenes |
+| H8057 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, sunset, seasonal, white_light + 51 parameter scenes |
+| H805A | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, white_light, fluctuate, stacking, gradient + 108 parameter scenes |
+| H805B | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, white_light, fluctuate, stacking, gradient + 108 parameter scenes |
+| H805C | ✅ | ✅ | 2000-9000 | ✅ | 9 | rainbow, white_light, fluctuate, stacking, gradient + 108 parameter scenes |
+| H8066 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, seasonal, sunset, white_light + 73 parameter scenes |
 | H8069 | ✅ | ✅ | 2000-9000 | ✅ | - | ❌ |
-| H8072 | ✅ | ✅ | 2000-9000 | ✅ | 8 | ocean, forest, sunset_glow, ripple, rainbow, white_light, leisure, night_light, romantic, fireworks, breathe, gradient, energetic, christmas, stacking, greedy_snake, bouncing_ball, strike, bubble, crossing |
-| H8076 | ✅ | ✅ | 2000-9000 | ✅ | - | night_light, fireworks, white_light, stacking, bouncing_ball, bubble, rainbow, meteor, ripple |
+| H8072 | ✅ | ✅ | 2000-9000 | ✅ | 8 | ocean, forest, sunset_glow, ripple, rainbow, white_light, leisure, night_light, romantic, fireworks, breathe, gradient, energetic, christmas, stacking, greedy_snake, bouncing_ball, strike, bubble, crossing + 48 parameter scenes |
+| H8076 | ✅ | ✅ | 2000-9000 | ✅ | - | night_light, fireworks, white_light, stacking, bouncing_ball, bubble, rainbow, meteor, ripple + 101 parameter scenes |
 | H8076A | ✅ | ✅ | 2000-9000 | ✅ | - | ❌ |
 | H807C | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, lava, ripple, fireworks, white_light, reading, work, breathe, gradient, graffiti, strike, gleam, dripping, crossing, night_light |
-| H808A | ✅ | ✅ | 2000-9000 | ✅ | 5 | sunset, rainbow, work, movie, romantic |
-| H80A1 | ✅ | ✅ | 2000-9000 | ✅ | 14 | sunrise, sunset, candlelight, white_light, night_light, work, leisure |
-| H80A4 | ✅ | ✅ | 2000-9000 | ✅ | - | sunrise, sunset, white_light, work, reading |
-| H80C4 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, rainbow, candlelight, twinkle, crossing, white_light, movie, romantic, breathe, energetic |
-| H80C5 | ✅ | ✅ | 2000-9000 | ✅ | 10 | sunset, rainbow, candlelight, twinkle, crossing, white_light, movie, romantic, breathe, energetic |
-| H80D1 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, meteor_shower, star |
+| H808A | ✅ | ✅ | 2000-9000 | ✅ | 5 | sunset, rainbow, work, movie, romantic + 60 parameter scenes |
+| H80A1 | ✅ | ✅ | 2000-9000 | ✅ | 14 | sunrise, sunset, candlelight, white_light, night_light, work, leisure + 72 parameter scenes |
+| H80A4 | ✅ | ✅ | 2000-9000 | ✅ | - | sunrise, sunset, white_light, work, reading + 102 parameter scenes |
+| H80C4 | ✅ | ✅ | 2000-9000 | ✅ | - | sunset, rainbow, candlelight, twinkle, crossing, white_light, movie, romantic, breathe, energetic + 84 parameter scenes |
+| H80C5 | ✅ | ✅ | 2000-9000 | ✅ | 10 | sunset, rainbow, candlelight, twinkle, crossing, white_light, movie, romantic, breathe, energetic + 84 parameter scenes |
+| H80D1 | ✅ | ✅ | 2000-9000 | ✅ | - | rainbow, meteor_shower, star + 45 parameter scenes |
 | H8630 | ✅ | ✅ | 2000-9000 | ✅ | - | white_light |
 | H8811 | ✅ | ✅ | 2000-9000 | ✅ | - | bubble, rainbow, star, meteor, christmas_tree, countdown, valentines_day, ring_toss, bouncing_ball, lottery_machine, maze, racing, dodging, stack |
 | H8840 | ✅ | ✅ | 2000-9000 | ✅ | - | countdown, valentines_day, meteor, star, bubble, rainbow, aircraft_battle, ring_toss, lottery_machine, poker, dodging, stack |
